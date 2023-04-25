@@ -28,11 +28,3 @@
         <a href="${policy_uri}"><b>Client policy</b></a>
     % endif
 </div>
-
-<%def name="add_js()">
-    <script type="text/javascript">
-        $(document).ready(function() {
-            bookie.login.init();
-        });
-    </script>
-</%def>

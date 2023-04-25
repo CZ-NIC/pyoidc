@@ -1,13 +1,3 @@
-<% self.seen_css = set() %>
-<%def name="css_link(path, media='')" filter="trim">
-    % if path not in self.seen_css:
-    <link rel="stylesheet" type="text/css" href="${path|h}" media="${media}">
-    % endif
-    <% self.seen_css.add(path) %>
-</%def>
-<%def name="css()" filter="trim">
-    ${css_link('/css/main.css', 'screen')}
-</%def>
 <%def name="pre()" filter="trim">
 <div class="header">
     <h1><a href="/">Login</a></h1>
@@ -24,7 +14,6 @@
 ##"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head><title>OAuth test</title>
-${self.css()}
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 </head>
 <body>

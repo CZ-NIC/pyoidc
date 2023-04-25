@@ -47,4 +47,8 @@ oidc_example/op1/client_db.db
 oidc_example/op1/oc_config.py
 oidc_example/rp3/conf.py
 oidc_example/rp3/modules/
+oauth_example/rp/modules/
+oauth_example/as/modules/
+oauth_example/as/static/jwks.json
+oauth_example/as/client_db.*
 update

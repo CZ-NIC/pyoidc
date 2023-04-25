@@ -4,13 +4,13 @@ A very simple OAuth2 AS
 """
 import json
 import logging
+import os
 import re
 import sys
 import traceback
 
+import cherrypy
 from authn_setup import authn_setup
-from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
-from otest import as_unicode
 from requests.packages import urllib3
 
 from oic.extension.provider import IntrospectionEndpoint
@@ -30,23 +30,22 @@ from oic.utils.keyio import keyjar_init
 
 urllib3.disable_warnings()
 
-__author__ = 'roland'
+__author__ = "roland"
 
 # ============================================================================
 # First define how logging is supposed to be done
 # ============================================================================
 
 LOGGER = logging.getLogger("")
-LOGFILE_NAME = 'oauth2_as.log'
+LOGFILE_NAME = "oauth2_as.log"
 hdlr = logging.FileHandler(LOGFILE_NAME)
-base_formatter = logging.Formatter(
-    "%(asctime)s %(name)s:%(levelname)s %(message)s")
+base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
 
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.INFO)
 
-JWKS_FILE_NAME = "static/jwks.json"
+JWKS_FILE_NAME = os.path.join(os.path.dirname(__file__), "static/jwks.json")
 
 
 # ---------------------------------------------------------------------------
@@ -57,20 +56,21 @@ def static(environ, start_response, path):
     LOGGER.info("[static]sending: %s" % (path,))
 
     try:
-        text = open(path, 'rb').read()
+        with open(path, "rb") as fd:
+            content = fd.read()
         if path.endswith(".ico"):
-            start_response('200 OK', [('Content-Type', "image/x-icon")])
+            start_response("200 OK", [("Content-Type", "image/x-icon")])
         elif path.endswith(".html"):
-            start_response('200 OK', [('Content-Type', 'text/html')])
+            start_response("200 OK", [("Content-Type", "text/html")])
         elif path.endswith(".json"):
-            start_response('200 OK', [('Content-Type', 'application/json')])
+            start_response("200 OK", [("Content-Type", "application/json")])
         elif path.endswith(".txt"):
-            start_response('200 OK', [('Content-Type', 'text/plain')])
+            start_response("200 OK", [("Content-Type", "text/plain")])
         elif path.endswith(".css"):
-            start_response('200 OK', [('Content-Type', 'text/css')])
+            start_response("200 OK", [("Content-Type", "text/css")])
         else:
-            start_response('200 OK', [('Content-Type', "text/xml")])
-        return [text]
+            start_response("200 OK", [("Content-Type", "text/xml")])
+        return [content]
     except IOError:
         resp = NotFound()
         return resp(environ, start_response)
@@ -90,12 +90,12 @@ class Application(object):
             TokenEndpoint(self.token),
             RegistrationEndpoint(self.registration),
             IntrospectionEndpoint(self.introspection),
-            RevocationEndpoint(self.revocation)
+            RevocationEndpoint(self.revocation),
         ]
 
         self.urls = [
-            (r'^verify', self.verify),
-            (r'.well-known/openid-configuration', self.config)
+            (r"^verify", self.verify),
+            (r".well-known/openid-configuration", self.config),
         ]
 
         for endp in self.endpoints:
@@ -111,28 +111,23 @@ class Application(object):
 
     # noinspection PyUnusedLocal
     def authorization(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response,
-                            self.oas.authorization_endpoint)
+        return wsgi_wrapper(environ, start_response, self.oas.authorization_endpoint)
 
     # noinspection PyUnusedLocal
     def config(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response,
-                            self.oas.providerinfo_endpoint)
+        return wsgi_wrapper(environ, start_response, self.oas.providerinfo_endpoint)
 
     # noinspection PyUnusedLocal
     def registration(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response,
-                            self.oas.registration_endpoint)
+        return wsgi_wrapper(environ, start_response, self.oas.registration_endpoint)
 
     # noinspection PyUnusedLocal
     def introspection(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response,
-                            self.oas.introspection_endpoint)
+        return wsgi_wrapper(environ, start_response, self.oas.introspection_endpoint)
 
     # noinspection PyUnusedLocal
     def revocation(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response,
-                            self.oas.revocation_endpoint)
+        return wsgi_wrapper(environ, start_response, self.oas.revocation_endpoint)
 
     def application(self, environ, start_response):
         """
@@ -149,8 +144,7 @@ class Application(object):
         :return: The response as a list of lines
         """
 
-        # user = environ.get("REMOTE_USER", "")
-        path = environ.get('PATH_INFO', '').lstrip('/')
+        path = environ.get("PATH_INFO", "").lstrip("/")
 
         LOGGER.info("path: %s" % path)
         if path == "robots.txt":
@@ -163,9 +157,9 @@ class Application(object):
             match = re.search(regex, path)
             if match is not None:
                 try:
-                    environ['oic.url_args'] = match.groups()[0]
+                    environ["oic.url_args"] = match.groups()[0]
                 except IndexError:
-                    environ['oic.url_args'] = path
+                    environ["oic.url_args"] = path
 
                 LOGGER.debug("callback: %s" % callback)
                 try:
@@ -191,24 +185,23 @@ START_MESG = "OAuth2 server starting listening on port:{} at {}"
 
 if __name__ == "__main__":
     import argparse
-    import shelve  # nosec
     import importlib
-
-    from cherrypy import wsgiserver
+    import shelve  # nosec
 
     # This is where session information is stored
     # This serve is stateful.
     from oic import rndstr
-    from oic.utils.sdb import SessionDB, DefaultToken
+    from oic.utils.sdb import DefaultToken
+    from oic.utils.sdb import SessionDB
 
     # Parse the command arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', dest='debug', action='store_true')
-    parser.add_argument('-k', dest='insecure', action='store_true')
-    parser.add_argument('-p', dest='port', default=80, type=int)
+    parser.add_argument("-d", dest="debug", action="store_true")
+    parser.add_argument("-k", dest="insecure", action="store_true")
+    parser.add_argument("-p", dest="port", default=80, type=int)
     # Who it should report as being responsible for the authentication
-    parser.add_argument('-A', dest='authn_as', default="")
-    parser.add_argument('-c', dest='conf_path')
+    parser.add_argument("-A", dest="authn_as", default="")
+    parser.add_argument("-c", dest="conf_path")
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -247,16 +240,25 @@ if __name__ == "__main__":
         capabilities = None
 
     if args.insecure:
-        kwargs = {'verify_ssl': False}
+        kwargs = {"verify_ssl": False}
     else:
         kwargs = {}
 
     # Initiate the Provider
-    oas = Provider(config.issuer, None, cdb, broker, authz,
-                   baseurl=config.issuer, client_authn=verify_client,
-                   symkey=config.SYM_KEY, hostname=config.HOST,
-                   capabilities=capabilities,
-                   behavior=config.BEHAVIOR, **kwargs)
+    oas = Provider(
+        config.issuer,
+        None,
+        cdb,
+        broker,
+        authz,
+        baseurl=config.issuer,
+        client_authn=verify_client,
+        symkey=config.SYM_KEY,
+        hostname=config.HOST,
+        capabilities=capabilities,
+        behavior=config.BEHAVIOR,
+        **kwargs
+    )
 
     try:
         jwks = keyjar_init(oas, config.keys, kid_template="op%d")
@@ -264,30 +266,41 @@ if __name__ == "__main__":
         LOGGER.error("Key setup failed: {}".format(err))
         print("Key setup failed: {}".format(err))
         exit()
-        # oas.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
         jwks_file_name = JWKS_FILE_NAME
-        f = open(jwks_file_name, "w")
 
-        for key in jwks["keys"]:
-            for k in key.keys():
-                key[k] = as_unicode(key[k])
+        with open(jwks_file_name, "w") as f:
+            for key in jwks["keys"]:
+                for k in key.keys():
+                    key[k] = key[k]
+            f.write(json.dumps(jwks))
 
-        f.write(json.dumps(jwks))
-        f.close()
         oas.jwks_uri = "{}/{}".format(oas.baseurl, jwks_file_name)
 
     # Initiate the SessionDB
-    _code = DefaultToken(rndstr(32), rndstr(32), typ='A', lifetime=600)
-    _token = JWTToken('T', oas.keyjar, {'code': 3600, 'token': 900},
-                      iss=config.issuer, sign_alg='RS256')
-    _refresh_token = JWTToken('R', oas.keyjar, {'': 86400}, iss=config.issuer,
-                              sign_alg='RS256')
-    oas.sdb = SessionDB(config.SERVICE_URL,
-                        db={},
-                        code_factory=_code,
-                        token_factory=_token,
-                        refresh_token_factory=_refresh_token)
+    _code = DefaultToken(rndstr(32), rndstr(32), typ="A", lifetime=600)
+    _token = JWTToken(
+        "T",
+        oas.keyjar,
+        {"code": 3600, "token": 900},
+        iss=config.issuer,
+        sign_alg="RS256",
+    )
+    _refresh_token = JWTToken(
+        "R",
+        oas.keyjar,
+        {"": 86400},
+        iss=config.issuer,
+        sign_alg="RS256",
+        token_storage={},
+    )
+    oas.sdb = SessionDB(
+        config.SERVICE_URL,
+        db={},
+        code_factory=_code,
+        token_factory=_token,
+        refresh_token_factory=_refresh_token,
+    )
 
     # set some parameters
     try:
@@ -324,25 +337,27 @@ if __name__ == "__main__":
         pass
     else:
         for ent in extern:
-            iss = ent['iss']
+            iss = ent["iss"]
             kb = KeyBundle()
-            kb.imp_jwks = json.load(open(ent['jwks']))
-            kb.do_keys(kb.imp_jwks['keys'])
+            kb.imp_jwks = json.load(open(ent["jwks"]))
+            kb.do_keys(kb.imp_jwks["keys"])
             oas.keyjar.add_kb(iss, kb)
 
-    _app = Application(oas)
-
     # Initiate the web server
-    SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), _app.application) # nosec
-    
+    cherrypy.config.update({"server.socket_port": args.port})
+
+    _app = Application(oas)
+    cherrypy.tree.graft(_app.application, "/")
+
     https = ""
     if config.SERVICE_URL.startswith("https"):
         https = " using HTTPS"
-        # SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
-        #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
-        SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT,
-                                            config.SERVER_KEY,
-                                            config.CERT_CHAIN)
+        cherrypy.config.update(
+            {
+                "cherrypy.server.ssl_certificate": config.SERVER_CERT,
+                "cherrypy.server.ssl_private_key": config.SERVER_KEY,
+            }
+        )
 
     _info = START_MESG.format(args.port, config.HOST)
     if https:
@@ -350,6 +365,6 @@ if __name__ == "__main__":
     LOGGER.info(_info)
     print(_info)
     try:
-        SRV.start()
+        cherrypy.engine.start()
     except KeyboardInterrupt:
-        SRV.stop()
+        pass
