@@ -14,11 +14,12 @@ The format is based on the [KeepAChangeLog] project.
 - [#851], [#852] Add `authn_method` to `Consumer.complete`
 
 ## Fixed
-- [#XXX] Made oauth_example less broken
+- [#857] Made oauth_example less broken
 
 [#847]: https://github.com/CZ-NIC/pyoidc/pull/847
 [#851]: https://github.com/CZ-NIC/pyoidc/issues/851
 [#852]: https://github.com/CZ-NIC/pyoidc/pull/852
+[#857]: https://github.com/CZ-NIC/pyoidc/pull/857
 
 ## 1.5.0 [2022-12-14]
 
