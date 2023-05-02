@@ -1,6 +1,6 @@
 from oic.utils.authn.authn_context import AuthnBroker
 
-__author__ = 'roland'
+__author__ = "roland"
 
 
 def ldap_validation(config):
@@ -10,9 +10,7 @@ def ldap_validation(config):
     return UserLDAPMemberValidation(**config["args"])
 
 
-VALIDATOR = {
-    "LDAP": ldap_validation
-}
+VALIDATOR = {"LDAP": ldap_validation}
 
 
 def cas_setup(item):
@@ -26,30 +24,23 @@ def cas_setup(item):
         _func = VALIDATOR[v_cnf["type"].upper()](item)
 
     _cnf = item["config"]
-    return CasAuthnMethod(None, _cnf["cas_server"], item["URL"],
-                          _cnf["return_to"], _func)
+    return CasAuthnMethod(
+        None, _cnf["cas_server"], item["URL"], _cnf["return_to"], _func
+    )
 
 
 def userpwd_setup(item):
     from oic.utils.authn.user import UsernamePasswordMako
 
     _conf = item["config"]
-    return UsernamePasswordMako(None, "login.mako", _conf["lookup"],
-                                _conf["passwd"], _conf["return_to"])
-
-
-# def ldap_setup(item):
-#     from oic.utils.authn.user import LDAPAuthn
-#
-#     _conf = item["config"]
-#     return LDAPAuthn(None, _conf["ldap_server"], _conf["return_to"],
-#                      _conf["dn_pattern"], "login.mako", _conf["lookup"])
+    return UsernamePasswordMako(
+        None, "login.mako", _conf["lookup"], _conf["passwd"], _conf["return_to"]
+    )
 
 
 AUTH_METHOD = {
     "UserPassword": userpwd_setup,
     "CAS": cas_setup,
-    #"LDAP": ldap_setup,
 }
 
 
@@ -63,7 +54,11 @@ def authn_setup(config):
         except KeyError:
             pass
         else:
-            broker.add(method_conf["ACR"], func(method_conf),
-                       method_conf["WEIGHT"], method_conf["URL"])
+            broker.add(
+                method_conf["ACR"],
+                func(method_conf),
+                method_conf["WEIGHT"],
+                method_conf["URL"],
+            )
 
     return broker
