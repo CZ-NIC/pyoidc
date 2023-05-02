@@ -41,7 +41,6 @@ def userpwd_setup(item):
 AUTH_METHOD = {
     "UserPassword": userpwd_setup,
     "CAS": cas_setup,
-    # "LDAP": ldap_setup,
 }
 
 

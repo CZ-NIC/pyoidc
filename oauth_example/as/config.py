@@ -76,7 +76,6 @@ COOKIETTL = 4 * 60  # 4 hours
 SYM_KEY = "IfIwerelookingfo"  # 16 bytes for AES_128 which is the default
 SERVER_CERT = "%s/certs/server.crt" % ROOT
 SERVER_KEY = "%s/certs/server.key" % ROOT
-# CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
 
 keys = [

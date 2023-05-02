@@ -7,6 +7,8 @@ BUILDDIR      = doc/_build
 DOCDIR        = doc/
 OICDIR        = src/oic
 TESTDIR       = tests
+OAUTH_EXAMPLE = oauth_example
+
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -43,17 +45,17 @@ test:
 .PHONY: test
 
 isort:
-	@pipenv run isort $(OICDIR) $(TESTDIR)
+	@pipenv run isort $(OICDIR) $(TESTDIR) $(OAUTH_EXAMPLE)
 
 check-isort:
-	@pipenv run isort --diff --check-only $(OICDIR) $(TESTDIR)
+	@pipenv run isort --diff --check-only $(OICDIR) $(TESTDIR) $(OAUTH_EXAMPLE)
 .PHONY: isort check-isort
 
 blacken:
-	@pipenv run black src/ tests/
+	@pipenv run black src/ tests/ oauth_example/
 
 check-black:
-	@pipenv run black src/ tests/ --check
+	@pipenv run black src/ tests/ oauth_example/ --check
 .PHONY: blacken check-black
 
 bandit:
@@ -61,7 +63,7 @@ bandit:
 .PHONY: bandit
 
 check-pylama:
-	@pipenv run pylama $(OICDIR) $(TESTDIR)
+	@pipenv run pylama $(OICDIR) $(TESTDIR) $(OAUTH_EXAMPLE)
 .PHONY: check-pylama
 
 release:
