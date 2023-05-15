@@ -7,6 +7,8 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.6.0 [2022-12-14]
+
 - [#854] Improve OIDC Session Management support by using the `session_state` parameter from an *Authentication Response* (if available) as a key to store `Consumer` data.
 
 ### Changed

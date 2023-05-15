@@ -24,7 +24,7 @@ except ImportError:
         )
 
 __author__ = "Roland Hedberg"
-__version__ = "1.5.0"
+__version__ = "1.6.0"
 
 
 OIDCONF_PATTERN = "%s/.well-known/openid-configuration"
