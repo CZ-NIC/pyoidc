@@ -87,7 +87,7 @@ setup(
     install_requires=[
         "requests",
         "pycryptodomex",
-        "pydantic",
+        "pydantic-settings",
         "pyjwkest>=1.3.6",
         "mako",
         "cryptography",

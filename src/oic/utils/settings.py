@@ -9,7 +9,7 @@ Settings for oic objects.
 In order to configure some objects in PyOIDC, you need a settings object.
 If you need to add some settings, make sure that you settings class inherits from the appropriate class in this module.
 
-The settings make use of `pydantic <https://docs.pydantic.dev/usage/settings/>`_ library.
+The settings make use of `pydantic-settings <https://docs.pydantic.dev/usage/settings/>`_ library.
 It is possible to instance them directly or use environment values to fill the settings.
 """
 from typing import Optional
@@ -17,7 +17,7 @@ from typing import Tuple
 from typing import Union
 
 import requests
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class PyoidcSettings(BaseSettings):
