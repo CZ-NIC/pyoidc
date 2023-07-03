@@ -7,7 +7,12 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
-## 1.6.0 [2022-12-14]
+## 1.6.1 [2023-07-13]
+- [#862] Fixed pydantic dependency
+
+[#862]: https://github.com/CZ-NIC/pyoidc/pull/862
+
+## 1.6.0 [2023-05-15]
 
 - [#854] Improve OIDC Session Management support by using the `session_state` parameter from an *Authentication Response* (if available) as a key to store `Consumer` data.
 
