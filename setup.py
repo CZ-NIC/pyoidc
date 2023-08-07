@@ -78,7 +78,7 @@ setup(
     extras_require={
         'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
         'testing': tests_requires,
-        'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster', 'autodoc_pydantic'],
+        'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster', 'autodoc_pydantic>=2.0.0'],
         'quality': ['pylama', 'isort', 'eradicate', 'mypy', 'black', 'bandit', 'readme_renderer[md]'],
         'types': ['types-requests'],
         'ldap_authn': ['python-ldap'],
