@@ -367,9 +367,7 @@ class Consumer(Client):
         self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
         return aresp, _state
 
-    def parse_authz(
-        self, query="", **kwargs
-    ) -> Union[
+    def parse_authz(self, query="", **kwargs) -> Union[
         http_util.BadRequest,
         Tuple[
             Optional[AuthorizationResponse],

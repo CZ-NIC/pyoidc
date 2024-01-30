@@ -512,9 +512,9 @@ class TestProvider(object):
         areq = ROPCAccessTokenRequest(
             grant_type="password", username="username", password="password"
         )
-        areq[
-            "client_id"
-        ] = "client1"  # Token endpoint would fill that in based on client_authn
+        areq["client_id"] = (
+            "client1"  # Token endpoint would fill that in based on client_authn
+        )
         resp = self.provider.password_grant_type(areq)
 
         atr = AccessTokenResponse().deserialize(resp.message, "json")
@@ -527,9 +527,9 @@ class TestProvider(object):
         areq = ROPCAccessTokenRequest(
             grant_type="password", username="username", password="password"
         )
-        areq[
-            "client_id"
-        ] = "client1"  # Token endpoint would fill that in based on client_authn
+        areq["client_id"] = (
+            "client1"  # Token endpoint would fill that in based on client_authn
+        )
         resp = self.provider.password_grant_type(areq)
 
         atr = TokenErrorResponse().deserialize(resp.message, "json")
@@ -542,9 +542,9 @@ class TestProvider(object):
         areq = ROPCAccessTokenRequest(
             grant_type="password", username="username", password="bad_password"
         )
-        areq[
-            "client_id"
-        ] = "client1"  # Token endpoint would fill that in based on client_authn
+        areq["client_id"] = (
+            "client1"  # Token endpoint would fill that in based on client_authn
+        )
         resp = self.provider.password_grant_type(areq)
 
         atr = TokenErrorResponse().deserialize(resp.message, "json")

@@ -116,9 +116,9 @@ class OAuthClient(client.Client):
         :return:
         """
         if self.behaviour["response_type"] == "code":
-            respcls: Union[
-                Type[AuthorizationResponse], Type[AccessTokenResponse]
-            ] = AuthorizationResponse
+            respcls: Union[Type[AuthorizationResponse], Type[AccessTokenResponse]] = (
+                AuthorizationResponse
+            )
         else:
             respcls = AccessTokenResponse
 

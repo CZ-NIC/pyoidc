@@ -12,6 +12,7 @@ If you need to add some settings, make sure that you settings class inherits fro
 The settings make use of `pydantic-settings <https://docs.pydantic.dev/usage/settings/>`_ library.
 It is possible to instance them directly or use environment values to fill the settings.
 """
+
 from typing import Optional
 from typing import Tuple
 from typing import Union

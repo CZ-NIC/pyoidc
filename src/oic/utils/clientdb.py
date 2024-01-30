@@ -1,4 +1,5 @@
 """Client management databases."""
+
 from abc import ABCMeta
 from abc import abstractmethod
 from urllib.parse import quote

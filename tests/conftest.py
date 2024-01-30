@@ -1,4 +1,5 @@
 """Pytest fixtures for testing."""
+
 from typing import Any
 from typing import Dict
 

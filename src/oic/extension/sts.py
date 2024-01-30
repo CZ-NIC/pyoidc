@@ -5,6 +5,7 @@ Message types in draft-ietf-oauth-token-exchange-03.
 :license: Apache2, see LICENSE for more details.
 
 """
+
 import json
 
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
