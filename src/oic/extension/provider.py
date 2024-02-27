@@ -744,7 +744,7 @@ class Provider(provider.Provider):
         try:
             client_id = self.client_authn(self, req, authn)
         except FailedAuthentication as err:
-            logger.error(err)
+            logger.error("%s", err)
             error = TokenErrorResponse(
                 error="unauthorized_client", error_description="%s" % err
             )

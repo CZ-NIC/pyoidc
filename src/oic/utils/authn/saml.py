@@ -368,7 +368,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
             logger.debug("ht_args: %s" % ht_args)
         except Exception as exc:
-            logger.exception(exc)
+            logger.exception("%s", exc)
             raise ServiceErrorException(
                 "Failed to construct the AuthnRequest: %s" % exc
             )

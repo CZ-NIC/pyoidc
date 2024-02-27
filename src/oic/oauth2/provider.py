@@ -592,7 +592,7 @@ class Provider(object):
         try:
             areq = self.server.parse_authorization_request(query=request)
         except (MissingRequiredValue, MissingRequiredAttribute, AuthzError) as err:
-            logger.debug("%s" % err)
+            logger.debug("%s", err)
             areq = request_class()
             areq.lax = True
             if isinstance(request, dict):
@@ -1015,7 +1015,7 @@ class Provider(object):
         try:
             client_id = self.client_authn(self, areq, authn)
         except (FailedAuthentication, AuthnFailure) as err:
-            logger.error(err)
+            logger.error("%s", err)
             error = TokenErrorResponse(
                 error="unauthorized_client", error_description="%s" % err
             )

@@ -150,7 +150,7 @@ class PBase(object):
             try:
                 set_cookie(self.cookiejar, SimpleCookie(_cookie))
             except CookieError as err:
-                logger.error(err)
+                logger.error("%s", err)
                 raise NonFatalException(r, "{}".format(err))
         except (AttributeError, KeyError):
             pass

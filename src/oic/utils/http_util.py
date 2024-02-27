@@ -560,7 +560,7 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
         resp = args
         return resp(environ, start_response)
     except Exception as err:
-        logger.error("%s" % err)
+        logger.error("%s", err)
         raise
 
 
