@@ -7,11 +7,16 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Changed
+
+- [#871]: Fix log messages without format string
+
 ### Removed
 
 - [#870]: Remove Python 3.7
 
 [#870]: https://github.com/CZ-NIC/pyoidc/pull/870
+[#871]: https://github.com/CZ-NIC/pyoidc/pull/871
 
 ## 1.6.1 [2023-07-13]
 - [#862] Fixed pydantic dependency
