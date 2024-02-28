@@ -289,7 +289,7 @@ class Consumer(Client):
                     AuthorizationResponse, info=query, sformat="urlencoded"
                 )
             except Exception as err:
-                logger.error("%s" % err)
+                logger.error("%s", err)
                 raise
 
             if isinstance(aresp, Message):

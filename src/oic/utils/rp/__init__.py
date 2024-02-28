@@ -134,7 +134,7 @@ class Client(oic.Client):
             msg = "Access token response: {}"
             logger.info(msg.format(sanitize(atresp)))
         except Exception as err:
-            logger.error("%s" % err)
+            logger.error("%s", err)
             raise
 
         if isinstance(atresp, ErrorResponse):

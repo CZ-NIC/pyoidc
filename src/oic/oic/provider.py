@@ -874,7 +874,7 @@ class Provider(AProvider):
         try:
             _tinfo = _sdb.upgrade_to_token(_access_code, issue_refresh=issue_refresh)
         except AccessCodeUsed as err:
-            logger.error("%s" % err)
+            logger.error("%s", err)
             # Should revoke the token issued to this access code
             _sdb.revoke_all_tokens(_access_code)
             return error_response("access_denied", descr="Access Code already used")
@@ -886,7 +886,7 @@ class Provider(AProvider):
                     _info, client_info, areq, user_info=userinfo
                 )
             except (JWEException, NoSuitableSigningKeys) as err:
-                logger.warning(str(err))
+                logger.warning("%s", err)
                 return error_response(
                     "invalid_request", descr="Could not sign/encrypt id_token"
                 )
@@ -934,7 +934,7 @@ class Provider(AProvider):
                     _info, client_info, areq, user_info=userinfo
                 )
             except (JWEException, NoSuitableSigningKeys) as err:
-                logger.warning(str(err))
+                logger.warning("%s", err)
                 return error_response(
                     "invalid_request", descr="Could not sign/encrypt id_token"
                 )
@@ -1376,7 +1376,7 @@ class Provider(AProvider):
         try:
             res = self.server.http_request(si_url)
         except RequestException as err:
-            logger.error(err)
+            logger.error("%s", err)
             res = None
 
         if not res:
@@ -1798,7 +1798,7 @@ class Provider(AProvider):
                         _sinfo, client_info, areq, user_info=user_info, **hargs
                     )
                 except (JWEException, NoSuitableSigningKeys) as err:
-                    logger.warning(str(err))
+                    logger.warning("%s", err)
                     return error_response(
                         "invalid_request", descr="Could not sign/encrypt id_token"
                     )
@@ -1935,7 +1935,7 @@ class Provider(AProvider):
                 return redirect_uri
         except Exception as exc:
             msg = "An error occurred while verifying redirect URI: %s"
-            logger.debug(msg, str(exc))
+            logger.debug(msg, exc)
 
         return None
 

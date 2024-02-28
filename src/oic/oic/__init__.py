@@ -1269,7 +1269,7 @@ class Client(oauth2.Client):
             try:
                 resp.verify()
             except oauth2.message.MissingRequiredAttribute as err:
-                logger.error(err)
+                logger.error("%s", err)
                 raise RegistrationError(err)
             except Exception:
                 resp = ErrorResponse().deserialize(response.text, "json")
@@ -1677,7 +1677,7 @@ class Server(oauth2.Server):
         except Exception as err:
             if self.events:
                 self.events.store("Exception", err)
-            logger.error(err)
+            logger.error("%s", err)
             raise
 
         return _req

@@ -193,7 +193,7 @@ class KeyBundle(object):
             logger.debug("KeyBundle fetch keys from: %s", self.source)
             r = requests.get(self.source, timeout=self.timeout, **args)
         except Exception as err:
-            logger.error(err)
+            logger.error("%s", err)
             raise_exception(UpdateFailed, REMOTE_FAILED.format(self.source, str(err)))
 
         if r.status_code == 304:  # file has not changed

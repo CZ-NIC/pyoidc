@@ -169,7 +169,7 @@ class OAuthClient(client.Client):
                 )
                 logger.info("Access token response: {}".format(sanitize(atresp)))
             except Exception as err:
-                logger.error("%s" % err)
+                logger.error("%s", err)
                 raise
 
             if isinstance(atresp, ErrorResponse):
