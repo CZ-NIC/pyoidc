@@ -7,6 +7,12 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Removed
+
+- [#870]: Remove Python 3.7
+
+[#870]: https://github.com/CZ-NIC/pyoidc/pull/870
+
 ## 1.6.1 [2023-07-13]
 - [#862] Fixed pydantic dependency
 

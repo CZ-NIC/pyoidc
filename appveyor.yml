@@ -3,7 +3,6 @@ image:
 
 environment:
   matrix:
-    - TOXENV: py37
     - TOXENV: py38
     - TOXENV: py39
     - TOXENV: py310
