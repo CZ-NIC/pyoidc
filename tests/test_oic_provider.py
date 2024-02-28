@@ -1349,12 +1349,12 @@ class TestProvider(object):
 
         assert len(logcap.records) == 2
         # First log record is from server...
-        assert isinstance(logcap.records[1].msg, MissingSchema)
+        assert isinstance(logcap.records[1].args[0], MissingSchema)
         error = (
             "Invalid URL 'example.com': No scheme supplied. Perhaps you meant "
             "https://example.com?"
         )
-        assert str(logcap.records[1].msg) == error
+        assert logcap.records[1].getMessage() == error
 
     def test_verify_sector_identifier_nonreachable(self):
         rr = RegistrationRequest(
@@ -1386,7 +1386,7 @@ class TestProvider(object):
 
         assert len(logcap.records) == 2
         # First log record is from server...
-        assert logcap.records[1].msg == error
+        assert logcap.records[1].args[0] == error
 
     def test_verify_sector_identifier_malformed(self):
         rr = RegistrationRequest(
