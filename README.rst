@@ -16,6 +16,9 @@
 .. image:: https://api.codacy.com/project/badge/Grade/2038cfa7c56b480db6ae18b8320d7157
     :target: https://www.codacy.com/app/tpazderka/pyoidc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CZ-NIC/pyoidc&amp;utm_campaign=Badge_Grade
 
+.. image:: https://api.securityscorecards.dev/projects/github.com/CZ-NIC/pyoidc/badge
+    :target: https://securityscorecards.dev/viewer/?uri=github.com/CZ-NIC/pyoidc
+
 A Python OpenID Connect implementation
 ======================================
 
