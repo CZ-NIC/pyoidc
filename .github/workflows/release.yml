@@ -57,5 +57,5 @@ jobs:
     - name: "Upload dists to GitHub Release"
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      # run: |
-      #  gh release upload ${{ github.ref_name }} dist/* --repo ${{ github.repository }}
+      run: |
+        gh release upload ${{ github.ref_name }} dist/* --repo ${{ github.repository }}
