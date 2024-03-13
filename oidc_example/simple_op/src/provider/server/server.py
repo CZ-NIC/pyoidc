@@ -7,7 +7,6 @@ import os
 from functools import partial
 from functools import wraps
 from urllib import parse as urlparse
-
 import cherrypy
 import yaml
 from cherrypy import wsgiserver
@@ -70,13 +69,16 @@ def VerifierMiddleware(verifier):
 
             url = "{base_url}?{query_string}".format(
                 base_url="/authorization",
-                query_string=kwargs["state"]["query"])
+                query_string=urlparse.urlparse(environ.get("HTTP_REFERER")).query)
             response = SeeOther(url, headers=[(set_cookie, cookie_value)])
             return response(environ, start_response)
+
         else:  # Unsuccessful authentication
             url = "{base_url}?{query_string}".format(
                 base_url="/authorization",
-                query_string=kwargs["state"]["query"])
+                query_string=urlparse.urlparse(environ.get("HTTP_REFERER")).query)
+            response = SeeOther(url, headers=[(set_cookie, cookie_value)])
+            return response(environ, start_response)
             response = SeeOther(url)
             return response(environ, start_response)
 
@@ -93,7 +95,11 @@ def pyoidcMiddleware(func):
     def wrapper(environ, start_response):
         data = get_or_post(environ)
         cookies = environ.get("HTTP_COOKIE", "")
-        resp = func(request=data, cookie=cookies)
+        if(environ.get("REQUEST_URI", "") == "/token"):
+            # This is correct at least for our case which is the authorization code flow.
+            resp = func(request=data, cookie=cookies, authn=environ.get("HTTP_AUTHORIZATION", ""))
+        else:
+            resp = func(request=data, cookie=cookies)
         return resp(environ, start_response)
 
     return wrapper
@@ -107,14 +113,24 @@ def resp2flask(resp):
     return resp.message, resp.status, resp.headers
 
 
+"""
+Creates an AuthnBroker with the authentication methods set in settings.yaml.
+
+:returns an AuthnBroker and the routing.
+"""
 def setup_authentication_methods(authn_config, template_env):
     """Add all authentication methods specified in the configuration."""
     routing = {}
     ac = AuthnBroker()
     for authn_method in authn_config:
+
+        # Create instance of the appropiate auth class.
         cls = make_cls_from_name(authn_method["class"])
         instance = cls(template_env=template_env, **authn_method["kwargs"])
+
+        # Adds the auth method name to the broker.
         ac.add(authn_method["acr"], instance)
+
         routing[instance.url_endpoint] = VerifierMiddleware(instance)
 
     return ac, routing
@@ -123,6 +139,8 @@ def setup_authentication_methods(authn_config, template_env):
 def setup_endpoints(provider):
     """Setup the OpenID Connect Provider endpoints."""
     app_routing = {}
+
+    # Each provider.***** is a pointer to a function
     endpoints = [
         AuthorizationEndpoint(
             pyoidcMiddleware(provider.authorization_endpoint)),
@@ -204,6 +222,8 @@ def main():
     client_db = {}
     session_db = create_session_db(issuer,
                                    secret=rndstr(32), password=rndstr(32))
+
+    # verify_client is a pointer to that function which is used in the token endpoint.
     provider = Provider(issuer, session_db, client_db, authn_broker,
                         userinfo, AuthzHandling(), verify_client, None)
     provider.baseurl = issuer
