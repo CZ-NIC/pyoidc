@@ -383,9 +383,14 @@ class Message(MutableMapping):
                     else:
                         return
                 elif vtyp is bool:
-                    raise ParameterError(
-                        '"{}", wrong type of value for "{}"'.format(val, skey)
-                    )
+                    if val == "true":
+                        self._dict[skey] = True
+                    elif val == "false":
+                        self._dict[skey] = False
+                    else:
+                        raise ParameterError(
+                            '"{}", wrong type of value for "{}"'.format(val, skey)
+                        )
 
                 if isinstance(val, str):
                     self._dict[skey] = val
