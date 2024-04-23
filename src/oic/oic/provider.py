@@ -255,6 +255,9 @@ class Provider(AProvider):
         logout_path="",
         settings: Optional[PyoidcSettings] = None,
     ):
+        """
+        :param name the iss, which is the URI of the OP.
+        """
         self.settings = settings or OicProviderSettings()
         if verify_ssl is not None:
             warnings.warn(

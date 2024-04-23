@@ -29,6 +29,11 @@ class UserPass(AuthnModule):
                                         state=json.dumps(kwargs),
                                         **self.kwargs))
 
+    """
+    Checks if the user can be authenticated with the password provided
+
+    :param kwargs: 
+    """
     def verify(self, *args, **kwargs):
         username = kwargs["username"]
         if username in self.user_db and self.user_db[username] == kwargs[
