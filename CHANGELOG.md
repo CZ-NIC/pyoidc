@@ -7,6 +7,7 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+## 1.7.0 [2024-04-25]
 ### Changed
 
 - [#871]: Fix log messages without format string
