@@ -829,7 +829,7 @@ class Message(MutableMapping):
         else:
             return False
 
-    def update(self, item):
+    def update(self, item):  # type: ignore[override]
         if isinstance(item, dict):
             self._dict.update(item)
         elif isinstance(item, Message):

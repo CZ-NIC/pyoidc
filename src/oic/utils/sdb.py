@@ -208,7 +208,7 @@ class DefaultToken(Token):
             self.crypt.encrypt(lv_pack(rnd, ttype, sid, issued_at).encode())
         ).decode("utf-8")
 
-    def key(self, user="", areq=None):
+    def key(self, user="", areq=None, **kwargs):
         """
         Return a key - the session id - that are based on some session connected data.
 

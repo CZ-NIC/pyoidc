@@ -13,7 +13,9 @@ class UserLDAPMemberValidation(UserInfoLDAP):
         self.verify_attr = verify_attr
         self.verify_attr_valid = verify_attr_valid
 
-    def __call__(self, userid, **kwargs):
+    def __call__(
+        self, userid, client_id, user_info_claims=None, first_only=True, **kwargs
+    ):
         result = UserInfoLDAP.__call__(self, userid, None, False)
         if self.verify_attr in result:
             for field in result[self.verify_attr]:
