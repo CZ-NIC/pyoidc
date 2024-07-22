@@ -32,7 +32,7 @@ class PoPProvider(Provider):
         # mapping from signed pop token to access token in db
         self.access_tokens: Dict[JWS, str] = {}
 
-    def token_endpoint(self, dtype="urlencoded", **kwargs):
+    def token_endpoint(self, request="", authn="", dtype="urlencoded", **kwargs):
         atr = AccessTokenRequest().deserialize(kwargs["request"], dtype)
         resp = super(PoPProvider, self).token_endpoint(**kwargs)
 
@@ -60,7 +60,7 @@ class PoPProvider(Provider):
         atr["token_type"] = "pop"  # nosec
         return Response(atr.to_json(), content="application/json")
 
-    def userinfo_endpoint(self, request, **kwargs):
+    def userinfo_endpoint(self, request="", **kwargs):
         access_token = self._parse_access_token(request)
         shr = SignedHttpRequest(self._get_client_public_key(access_token))
         http_signature = self._parse_signature(request)

@@ -63,7 +63,7 @@ class ClientAuthnMethod(object):
         """
         self.cli = cli
 
-    def construct(self, **kwargs):
+    def construct(self, *args, **kwargs):
         """
         Add authentication information to a request.
 
@@ -71,7 +71,7 @@ class ClientAuthnMethod(object):
         """
         raise NotImplementedError
 
-    def verify(self, **kwargs):
+    def verify(self, *args, **kwargs):
         """
         Verify authentication information in a request.
 

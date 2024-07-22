@@ -134,7 +134,7 @@ class UserAuthnMethod(CookieDealer):
 
         return create_return_url(_path, uid, **{self.query_param: "true"})
 
-    def verify(self, **kwargs):
+    def verify(self, *args, **kwargs):
         raise NotImplementedError
 
     def get_multi_auth_cookie(self, cookie):

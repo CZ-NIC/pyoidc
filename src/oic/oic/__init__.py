@@ -1607,9 +1607,8 @@ class Server(oauth2.Server):
         logger.debug("Fetched request: {}".format(req))
         return req
 
-    def parse_authorization_request(
-        self, request=AuthorizationRequest, url=None, query=None, keys=None
-    ):
+    def parse_authorization_request(self, url=None, query=None, keys=None):
+        request = self.message_factory.get_request_type("authorization_endpoint")
         if url:
             parts = urlparse(url)
             scheme, netloc, path, params, query, fragment = parts[:6]
