@@ -1300,7 +1300,7 @@ class Provider(AProvider):
 
     @staticmethod
     def verify_redirect_uris(registration_request):
-        verified_redirect_uris = []
+        verified_redirect_uris: List[Tuple[str, Optional[Dict[str, List[str]]]]] = []
         try:
             client_type = registration_request["application_type"]
         except KeyError:  # default
@@ -1349,7 +1349,7 @@ class Provider(AProvider):
 
     def _verify_post_logout_uri(self, request):
         """Verify correct format of post_logout_redirect_uris."""
-        plruri = []
+        plruri: List[Tuple[str, Optional[Dict[str, List[str]]]]] = []
         for uri in request["post_logout_redirect_uris"]:
             part = urlparse(uri)
             if part.fragment:
