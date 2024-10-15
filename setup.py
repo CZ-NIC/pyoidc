@@ -19,23 +19,8 @@ import sys
 from io import open
 
 from setuptools import setup
-from setuptools.command.test import test as TestCommand
 
 __author__ = 'rohe0002'
-
-
-class PyTest(TestCommand):
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
-
-    def run_tests(self):
-        # import here, cause outside the eggs aren't loaded
-        import pytest
-
-        errno = pytest.main(self.test_args)
-        sys.exit(errno)
 
 
 tests_requires = ['responses', 'testfixtures', 'pytest', 'freezegun']
@@ -93,8 +78,6 @@ setup(
         "defusedxml",
         'typing_extensions; python_version<"3.8"',
     ],
-    tests_require=tests_requires,
     long_description_content_type="text/x-rst",
     zip_safe=False,
-    cmdclass={'test': PyTest},
 )
