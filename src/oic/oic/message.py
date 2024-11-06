@@ -298,7 +298,7 @@ def verify_id_token(instance, check_hash=False, **kwargs):
 
     if "keyjar" in kwargs:
         try:
-            if _body["iss"] not in kwargs["keyjar"]:
+            if _body["iss"] not in kwargs["iss"]:
                 raise ValueError("Unknown issuer")
         except KeyError:
             raise MissingRequiredAttribute("iss")

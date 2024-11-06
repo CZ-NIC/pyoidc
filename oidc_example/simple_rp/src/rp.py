@@ -98,6 +98,8 @@ class RPServer(object):
         ]
         _, keyjar, _ = build_keyjar(keys)
         cherrypy.session["client"] = Client(verify_ssl=self.verify_ssl, keyjar=keyjar)
+        cherrypy.session["client"].token_endpoint = "https://localhost/token" 
+        cherrypy.session["client"].userinfo_endpoint = "https://localhost/userinfo"
 
         # webfinger+registration
         self.rp.register_with_dynamic_provider(cherrypy.session, uid)
