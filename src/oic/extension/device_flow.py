@@ -94,7 +94,7 @@ class DeviceFlowClient(SingleClient):
             req["scope"] = scope
 
         http_response = self.host.http_request(
-            self.host.provider_info["device_endpoint"], "POST", req.to_urlencoded()
+            self.host.provider_info["device_authorization_endpoint"], "POST", req.to_urlencoded()
         )
 
         response = self.host.parse_request_response(
