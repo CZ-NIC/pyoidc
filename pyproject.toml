@@ -2,14 +2,18 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.pylama]
-linters = "pyflakes,eradicate,pycodestyle,mccabe"
-# D203/D204 and D212/D213 are mutually exclusive, pick one
-# E203 is not PEP8 compliant in pycodestyle
-ignore = "D203,D212,E203,C901"
+[tool.ruff]
+target-version = "py39"
+line-length = 120
 
-[tool.pylama.linter.pycodestyle]
-max_line_length = 120
+[tool.ruff.lint]
+ignore = ["D203", "D212", "E203", "C901", "D413"]
 
-[tool.pylama.linter.mccabe]
-complexity = 30
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 120
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

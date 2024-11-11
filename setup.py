@@ -64,7 +64,7 @@ setup(
         'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
         'testing': tests_requires,
         'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster', 'autodoc_pydantic>=2.0.0'],
-        'quality': ['pylama[toml,eradicate]', 'isort', 'mypy', 'black', 'bandit', 'readme_renderer[md]', 'build'],
+        'quality': ['mypy', 'ruff', 'bandit', 'readme_renderer[md]', 'build'],
         'types': ['types-requests'],
         'ldap_authn': ['python-ldap'],
         'examples': ['beaker'],
