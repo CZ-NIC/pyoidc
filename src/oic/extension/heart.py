@@ -16,7 +16,6 @@ class PrivateKeyJWT(JasonWebToken):
             "aud": SINGLE_REQUIRED_STRING,
             "iss": SINGLE_REQUIRED_STRING,
             "sub": SINGLE_REQUIRED_STRING,
-            "aud": SINGLE_REQUIRED_STRING,
             "exp": SINGLE_REQUIRED_INT,
             "iat": SINGLE_REQUIRED_INT,
             "jti": SINGLE_REQUIRED_STRING,

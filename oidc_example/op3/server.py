@@ -10,6 +10,7 @@ import sys
 import traceback
 import argparse
 import importlib
+import time
 import logging
 
 from mako.lookup import TemplateLookup
@@ -29,7 +30,8 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.multi_auth import AuthnIndexedEndpointWrapper
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import *
+from oic.utils.http_util import NotFound, ServiceError, Response, BadRequest, wsgi_wrapper, get_post, Unauthorized
+from jwkest import as_unicode
 from oic.utils.keyio import keyjar_init
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import OIC_ISSUER
@@ -446,7 +448,7 @@ if __name__ == '__main__':
             provider,             # server/client instance
             config.keys,          # key configuration
             kid_template="op%d")  # template by which to build the kids (key ID parameter)
-    except Exception as err:
+    except Exception:
         # LOGGER.error("Key setup failed: %s" % err)
         provider.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:

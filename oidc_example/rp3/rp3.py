@@ -321,7 +321,7 @@ class Application(object):
                     return result(environ, start_response)
             except OIDCError as err:
                 return operror(environ, start_response, "%s" % err)
-            except Exception as err:
+            except Exception:
                 raise
             else:
                 session.update(result)

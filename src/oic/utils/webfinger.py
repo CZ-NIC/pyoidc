@@ -39,7 +39,7 @@ class Base(object):
 
         try:
             t1, t2 = spec["type"]
-            if t1 == list:  # Should always be
+            if t1 is list:  # Should always be
                 assert not isinstance(val, str)  # nosec
                 assert isinstance(val, list)  # nosec
                 res = []

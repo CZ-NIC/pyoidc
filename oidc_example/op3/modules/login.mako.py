@@ -1,4 +1,4 @@
-from mako import runtime, filters, cache
+from mako import runtime
 UNDEFINED = runtime.UNDEFINED
 STOP_RENDERING = runtime.STOP_RENDERING
 __M_dict_builtin = dict
@@ -41,35 +41,35 @@ def render_body(context,**pageargs):
         logo_uri = context.get('logo_uri', UNDEFINED)
         __M_writer = context.writer()
         __M_writer(u'\n<div class="header">\n    <h1><a href="/">')
-        __M_writer(unicode(title))
+        __M_writer(title)
         __M_writer(u'</a></h1>\n</div>\n<div class="login_form" class="block">\n    <form action="')
-        __M_writer(unicode(action))
+        __M_writer(action)
         __M_writer(u'" method="post" class="login form">\n        <input type="hidden" name="query" value="')
-        __M_writer(unicode(query))
+        __M_writer(query)
         __M_writer(u'"/>\n        <input type="hidden" name="acr_values" value="')
-        __M_writer(unicode(acr))
+        __M_writer(acr)
         __M_writer(u'"/>\n        <table>\n            <tr>\n                <td>')
-        __M_writer(unicode(login_title))
+        __M_writer(login_title)
         __M_writer(u'</td>\n                <td><input type="text" name="login" value="')
-        __M_writer(unicode(login))
+        __M_writer(login)
         __M_writer(u'"/></td>\n            </tr>\n            <tr>\n                <td>')
-        __M_writer(unicode(passwd_title))
+        __M_writer(passwd_title)
         __M_writer(u'</td>\n                <td><input type="password" name="password"\n                value="')
-        __M_writer(unicode(password))
+        __M_writer(password)
         __M_writer(u'"/></td>\n            </tr>\n            <tr>\n                </td>\n                <td><input type="submit" name="form.commit"\n                        value="')
-        __M_writer(unicode(submit_text))
+        __M_writer(submit_text)
         __M_writer(u'"/></td>\n            </tr>\n        </table>\n    </form>\n')
         if logo_uri:
             __M_writer(u'        <img src="')
-            __M_writer(unicode(logo_uri))
+            __M_writer(logo_uri)
             __M_writer(u'" alt="Client logo">\n')
         if policy_uri:
             __M_writer(u'        <a href="')
-            __M_writer(unicode(policy_uri))
+            __M_writer(policy_uri)
             __M_writer(u'"><strong>Client&#39;s Policy</strong></a>\n')
         if tos_uri:
             __M_writer(u'        <a href="')
-            __M_writer(unicode(tos_uri))
+            __M_writer(tos_uri)
             __M_writer(u'"><strong>Client&#39;s Terms of Service</strong></a>\n')
         __M_writer(u'</div>\n\n')
         __M_writer(u'\n')

@@ -39,9 +39,9 @@ def lv_unpack(txt):
     txt = txt.strip()
     res = []
     while txt:
-        l, v = txt.split(":", 1)
-        res.append(v[: int(l)])
-        txt = v[int(l) :]
+        length, v = txt.split(":", 1)
+        res.append(v[: int(length)])
+        txt = v[int(length) :]
     return res
 
 

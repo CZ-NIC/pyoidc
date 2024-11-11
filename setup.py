@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 import re
-import sys
 from io import open
 
 from setuptools import setup

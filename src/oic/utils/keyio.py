@@ -259,7 +259,7 @@ class KeyBundle(object):
 
     def _uptodate(self):
         res = False
-        if self._keys is not []:
+        if self._keys != []:
             if self.remote:  # verify that it's not to old
                 if time.time() > self.time_out:
                     if self.update():

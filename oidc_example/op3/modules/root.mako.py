@@ -1,4 +1,4 @@
-from mako import runtime, filters, cache
+from mako import runtime, filters
 UNDEFINED = runtime.UNDEFINED
 STOP_RENDERING = runtime.STOP_RENDERING
 __M_dict_builtin = dict
@@ -32,13 +32,13 @@ def render_body(context,**pageargs):
         __M_writer(u'\n')
         __M_writer(u'\n')
         __M_writer(u'<html>\n<head><title>OpenID Connect provider example</title>\n')
-        __M_writer(unicode(self.css()))
+        __M_writer(self.css())
         __M_writer(u'\n<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />\n</head>\n<body>\n')
-        __M_writer(unicode(pre()))
+        __M_writer(pre())
         __M_writer(u'\n')
-        __M_writer(unicode(next.body()))
+        __M_writer(next.body())
         __M_writer(u'\n')
-        __M_writer(unicode(post()))
+        __M_writer(post())
         __M_writer(u'\n</body>\n</html>\n')
         return ''
     finally:
@@ -54,9 +54,9 @@ def render_css_link(context,path,media=''):
         __M_writer(u'\n')
         if path not in self.seen_css:
             __M_writer(u'    <link rel="stylesheet" type="text/css" href="')
-            __M_writer(filters.html_escape(unicode(path)))
+            __M_writer(filters.html_escape(path))
             __M_writer(u'" media="')
-            __M_writer(unicode(media))
+            __M_writer(media)
             __M_writer(u'">\n')
         __M_writer(u'    ')
         self.seen_css.add(path) 
@@ -103,7 +103,7 @@ def render_css(context):
             return render_css_link(context,path,media)
         __M_writer = context.writer()
         __M_writer(u'\n    ')
-        __M_writer(unicode(css_link('/css/main.css', 'screen')))
+        __M_writer(css_link('/css/main.css', 'screen'))
         __M_writer(u'\n')
     finally:
         __M_buf, __M_writer = context._pop_buffer_and_writer()

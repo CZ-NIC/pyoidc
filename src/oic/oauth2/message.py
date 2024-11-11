@@ -725,7 +725,7 @@ class Message(MutableMapping):
                 if cparam.required:
                     raise MissingRequiredAttribute("%s" % attribute)
                 continue
-            if cparam.type != bool and not val:
+            if cparam.type is not bool and not val:
                 if cparam.required:
                     raise MissingRequiredAttribute("%s" % attribute)
                 continue

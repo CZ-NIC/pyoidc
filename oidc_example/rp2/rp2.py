@@ -172,12 +172,12 @@ def application(environ, start_response):
                 logoutUrl += "&" + urlencode({
                     "id_token_hint": id_token_as_signed_jwt(
                         session['client'], "HS256")})
-            except AttributeError as err:
+            except AttributeError:
                 pass
             session.clear()
             resp = SeeOther(str(logoutUrl))
             return resp(environ, start_response)
-        except Exception as err:
+        except Exception:
             LOGGER.exception("Failed to handle logout")
 
     if path == "post_logout":

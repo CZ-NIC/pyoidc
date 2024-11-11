@@ -302,7 +302,7 @@ class OpenIDConnect(object):
         if isinstance(inforesp, ErrorResponse):
             return False, "Invalid response %s." % inforesp["error"], session
 
-        tot_info = userinfo.update(inforesp.to_dict())
+        userinfo.update(inforesp.to_dict())
 
         logger.debug("UserInfo: %s", inforesp)
 
