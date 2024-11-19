@@ -41,9 +41,7 @@ class CasAuthnMethod(UserAuthnMethod):
     # The name for the CAS cookie, containing query parameters and nonce.
     CONST_CAS_COOKIE = "cascookie"
 
-    def __init__(
-        self, srv, cas_server, service_url, return_to, extra_validation=None, timeout=5
-    ):
+    def __init__(self, srv, cas_server, service_url, return_to, extra_validation=None, timeout=5):
         """
         Construct the class.
 
@@ -136,15 +134,7 @@ class CasAuthnMethod(UserAuthnMethod):
         """
         if acr is None:
             acr = ""
-        return (
-            self.service_url
-            + "?"
-            + self.CONST_NONCE
-            + "="
-            + nonce
-            + "&acr_values="
-            + acr
-        )
+        return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + "&acr_values=" + acr
 
     def verify(self, request, cookie, **kwargs):
         """
@@ -177,9 +167,7 @@ class CasAuthnMethod(UserAuthnMethod):
                 acr = _dict["acr_values"][0]
             except KeyError:
                 pass
-            uid = self.handle_callback(
-                _dict[self.CONST_TICKET], self.get_service_url(nonce, acr)
-            )
+            uid = self.handle_callback(_dict[self.CONST_TICKET], self.get_service_url(nonce, acr))
             if uid is None or uid == "":
                 logger.info("Someone tried to login, but was denied by CAS!")
                 return Unauthorized("You are not authorized!")
@@ -193,7 +181,5 @@ class CasAuthnMethod(UserAuthnMethod):
             return SeeOther(return_to, headers=[cookie])
         except Exception:
             # FIXME: This should catch specific exception thrown from methods in the block
-            logger.critical(
-                "Metod verify in user_cas.py had a fatal exception.", exc_info=True
-            )
+            logger.critical("Metod verify in user_cas.py had a fatal exception.", exc_info=True)
             return Unauthorized("You are not authorized!")

@@ -94,17 +94,13 @@ class UserAuthnMethod(CookieDealer):
                 _now = int(time.time())
                 if _now > (int(_ts) + int(self.cookie_ttl * 60)):
                     logger.debug("Authentication timed out")
-                    raise ToOld(
-                        "%d > (%d + %d)" % (_now, int(_ts), int(self.cookie_ttl * 60))
-                    )
+                    raise ToOld("%d > (%d + %d)" % (_now, int(_ts), int(self.cookie_ttl * 60)))
             else:
                 if "max_age" in kwargs and kwargs["max_age"]:
                     _now = int(time.time())
                     if _now > (int(_ts) + int(kwargs["max_age"])):
                         logger.debug("Authentication too old")
-                        raise ToOld(
-                            "%d > (%d + %d)" % (_now, int(_ts), int(kwargs["max_age"]))
-                        )
+                        raise ToOld("%d > (%d + %d)" % (_now, int(_ts), int(kwargs["max_age"])))
 
             return {"uid": uid}, _ts
 
@@ -350,9 +346,7 @@ class UsernamePasswordMako(UserAuthnMethod):
             return_to = self.generate_return_url(kwargs["return_to"], _qp)
         except KeyError:
             try:
-                return_to = self.generate_return_url(
-                    self.return_to, _qp, kwargs["path"]
-                )
+                return_to = self.generate_return_url(self.return_to, _qp, kwargs["path"])
             except KeyError:
                 return_to = self.generate_return_url(self.return_to, _qp)
 

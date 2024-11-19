@@ -136,8 +136,7 @@ class PBase(object):
             )
         except Exception as err:
             logger.error(
-                "http_request failed: %s, url: %s, htargs: %s, method: %s"
-                % (err, url, sanitize(_kwargs), method)
+                "http_request failed: %s, url: %s, htargs: %s, method: %s" % (err, url, sanitize(_kwargs), method)
             )
             raise
 
@@ -160,12 +159,8 @@ class PBase(object):
     def send(self, url, method="GET", **kwargs):
         return self.http_request(url, method, **kwargs)
 
-    def load_cookies_from_file(
-        self, filename, ignore_discard=False, ignore_expires=False
-    ):
+    def load_cookies_from_file(self, filename, ignore_discard=False, ignore_expires=False):
         self.cookiejar.load(filename, ignore_discard, ignore_expires)
 
-    def save_cookies_to_file(
-        self, filename, ignore_discard=False, ignore_expires=False
-    ):
+    def save_cookies_to_file(self, filename, ignore_discard=False, ignore_expires=False):
         self.cookiejar.save(filename, ignore_discard, ignore_expires)

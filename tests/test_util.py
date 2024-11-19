@@ -162,9 +162,7 @@ def test_set_cookie():
     c_2 = cookies[""][""]["value_2"]
 
     assert not (c_2.domain_specified and c_2.path_specified)
-    assert (
-        c_1.domain_specified and not c_1.domain_initial_dot and not c_1.path_specified
-    )
+    assert c_1.domain_specified and not c_1.domain_initial_dot and not c_1.path_specified
     assert c_0.domain_specified and c_0.domain_initial_dot and c_0.path_specified
 
     assert c_0.expires == expires
@@ -221,13 +219,8 @@ def test_verify_header():
     assert util.verify_header(FakeResponse(json_header), "json") == "json"
     assert util.verify_header(FakeResponse(jwt_header), "json") == "jwt"
     assert util.verify_header(FakeResponse(jwt_header), "jwt") == "jwt"
-    assert (
-        util.verify_header(FakeResponse(default_header), "urlencoded") == "urlencoded"
-    )
-    assert (
-        util.verify_header(FakeResponse(plain_text_header), "urlencoded")
-        == "urlencoded"
-    )
+    assert util.verify_header(FakeResponse(default_header), "urlencoded") == "urlencoded"
+    assert util.verify_header(FakeResponse(plain_text_header), "urlencoded") == "urlencoded"
     assert util.verify_header(FakeResponse(zero_content_length_header), None) is None
     assert util.verify_header(FakeResponse(chunked_header_json), None) == "json"
 
@@ -246,9 +239,7 @@ class TestRenderTemplate(object):
             render_template("bogus_template", {"action": "action"})
 
     def test_form_post(self):
-        response = render_template(
-            "form_post", {"action": "action", "inputs": {"a": "a"}}
-        )
+        response = render_template("form_post", {"action": "action", "inputs": {"a": "a"}})
         assert '<form method="post" action="action">' in response
         assert '<input type="hidden" name="a" value="a"/>' in response
 
@@ -273,10 +264,7 @@ class TestRenderTemplate(object):
         assert '<form method="post" action="action">' in response
         assert '<input type="submit">' in response
         assert '<input type="hidden" name="id_token_hint" value="hint"/>' in response
-        assert (
-            '<input type="hidden" name="post_logout_redirect_uri" value="http://example.com"/>'
-            in response
-        )
+        assert '<input type="hidden" name="post_logout_redirect_uri" value="http://example.com"/>' in response
 
     def test_verify_logout_missing_action(self):
         with pytest.raises(TemplateException):

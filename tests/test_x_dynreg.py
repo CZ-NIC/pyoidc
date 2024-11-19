@@ -124,7 +124,7 @@ class TestProvider(object):
                 "https://client.example.org/callback2",
             ],
             "client_name": "My Example Client",
-            "client_name#ja-Jpan-JP": "\u30AF\u30E9\u30A4\u30A2\u30F3\u30C8\u540D",
+            "client_name#ja-Jpan-JP": "\u30af\u30e9\u30a4\u30a2\u30f3\u30c8\u540d",
             "token_endpoint_auth_method": "client_secret_basic",
             "scope": "read write dolphin",
             # invalid logo_uri
@@ -146,7 +146,7 @@ class TestProvider(object):
                 "https://client.example.org/callback2",
             ],
             "client_name": "My Example Client",
-            "client_name#ja-Jpan-JP": "\u30AF\u30E9\u30A4\u30A2\u30F3\u30C8\u540D",
+            "client_name#ja-Jpan-JP": "\u30af\u30e9\u30a4\u30a2\u30f3\u30c8\u540d",
             "token_endpoint_auth_method": "client_secret_basic",
             "scope": "read write dolphin",
         }
@@ -155,10 +155,7 @@ class TestProvider(object):
         resp = self.provider.registration_endpoint(request=request.to_json())
         _resp = ClientInfoResponse().from_json(resp.message)
 
-        assert (
-            _resp["client_name#ja-Jpan-JP"]
-            == "\u30AF\u30E9\u30A4\u30A2\u30F3\u30C8\u540D"
-        )
+        assert _resp["client_name#ja-Jpan-JP"] == "\u30af\u30e9\u30a4\u30a2\u30f3\u30c8\u540d"
         assert _resp["client_name"] == "My Example Client"
 
     def test_client_user_info_get(self):
@@ -168,7 +165,7 @@ class TestProvider(object):
                 "https://client.example.org/callback2",
             ],
             "client_name": "My Example Client",
-            "client_name#ja-Jpan-JP": "\u30AF\u30E9\u30A4\u30A2\u30F3\u30C8\u540D",
+            "client_name#ja-Jpan-JP": "\u30af\u30e9\u30a4\u30a2\u30f3\u30c8\u540d",
             "token_endpoint_auth_method": "client_secret_basic",
             "scope": "read write dolphin",
         }
@@ -178,10 +175,7 @@ class TestProvider(object):
 
         resp = self.provider.client_info_endpoint(
             "GET",
-            environ={
-                "HTTP_AUTHORIZATION": "Bearer %s"
-                % (_resp["registration_access_token"],)
-            },
+            environ={"HTTP_AUTHORIZATION": "Bearer %s" % (_resp["registration_access_token"],)},
             query="client_id=%s" % _resp["client_id"],
             request=request.to_json(),
         )
@@ -196,14 +190,12 @@ class TestProvider(object):
                 "https://client.example.org/callback2",
             ],
             "client_name": "My Example Client",
-            "client_name#ja-Jpan-JP": "\u30AF\u30E9\u30A4\u30A2\u30F3\u30C8\u540D",
+            "client_name#ja-Jpan-JP": "\u30af\u30e9\u30a4\u30a2\u30f3\u30c8\u540d",
             "token_endpoint_auth_method": "client_secret_basic",
             "scope": "read write dolphin",
         }
         request = RegistrationRequest(**args)
-        resp = self.provider.registration_endpoint(
-            request=request.to_json(), environ={}
-        )
+        resp = self.provider.registration_endpoint(request=request.to_json(), environ={})
         _resp = ClientInfoResponse().from_json(resp.message)
 
         update = {
@@ -223,10 +215,7 @@ class TestProvider(object):
         update_req = RegistrationRequest(**update)
         resp = self.provider.client_info_endpoint(
             request=update_req.to_json(),
-            environ={
-                "HTTP_AUTHORIZATION": "Bearer %s"
-                % (_resp["registration_access_token"],)
-            },
+            environ={"HTTP_AUTHORIZATION": "Bearer %s" % (_resp["registration_access_token"],)},
             method="PUT",
             query="client_id=%s" % _resp["client_id"],
         )
@@ -237,10 +226,7 @@ class TestProvider(object):
         assert _resp_up["redirect_uris"] == update["redirect_uris"]
         assert _resp_up["scope"] == update["scope"].split()
         assert _resp_up["grant_types"] == update["grant_types"]
-        assert (
-            _resp_up["token_endpoint_auth_method"]
-            == update["token_endpoint_auth_method"]
-        )
+        assert _resp_up["token_endpoint_auth_method"] == update["token_endpoint_auth_method"]
         assert _resp_up["jwks_uri"] == update["jwks_uri"]
         assert _resp_up["client_name"] == update["client_name"]
         assert _resp_up["client_name#fr"] == update["client_name#fr"]
@@ -253,21 +239,16 @@ class TestProvider(object):
                 "https://client.example.org/callback2",
             ],
             "client_name": "My Example Client",
-            "client_name#ja-Jpan-JP": "\u30AF\u30E9\u30A4\u30A2\u30F3\u30C8\u540D",
+            "client_name#ja-Jpan-JP": "\u30af\u30e9\u30a4\u30a2\u30f3\u30c8\u540d",
             "token_endpoint_auth_method": "client_secret_basic",
             "scope": "read write dolphin",
         }
         request = RegistrationRequest(**args)
-        resp = self.provider.registration_endpoint(
-            request=request.to_json(), environ={}
-        )
+        resp = self.provider.registration_endpoint(request=request.to_json(), environ={})
         _resp = ClientInfoResponse().from_json(resp.message)
         resp = self.provider.client_info_endpoint(
             request=request.to_json(),
-            environ={
-                "HTTP_AUTHORIZATION": "Bearer %s"
-                % (_resp["registration_access_token"],)
-            },
+            environ={"HTTP_AUTHORIZATION": "Bearer %s" % (_resp["registration_access_token"],)},
             method="DELETE",
             query="client_id=%s" % _resp["client_id"],
         )
@@ -277,10 +258,7 @@ class TestProvider(object):
         # A read should fail
         resp = self.provider.client_info_endpoint(
             "",
-            environ={
-                "HTTP_AUTHORIZATION": "Bearer %s"
-                % (_resp["registration_access_token"],)
-            },
+            environ={"HTTP_AUTHORIZATION": "Bearer %s" % (_resp["registration_access_token"],)},
             query="client_id=%s" % _resp["client_id"],
         )
 
@@ -304,8 +282,6 @@ class TestProvider(object):
             "software_statement": ss,
         }
         request = RegistrationRequest(**args)
-        resp = self.provider.registration_endpoint(
-            request=request.to_json(), environ={}
-        )
+        resp = self.provider.registration_endpoint(request=request.to_json(), environ={})
         cli_resp = ClientInfoResponse().from_json(resp.message)
         assert cli_resp

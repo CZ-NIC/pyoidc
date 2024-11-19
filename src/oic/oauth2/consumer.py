@@ -285,9 +285,7 @@ class Consumer(Client):
         if "code" in self.response_type:
             # Might be an error response
             try:
-                aresp = self.parse_response(
-                    AuthorizationResponse, info=query, sformat="urlencoded"
-                )
+                aresp = self.parse_response(AuthorizationResponse, info=query, sformat="urlencoded")
             except Exception as err:
                 logger.error("%s", err)
                 raise
@@ -305,9 +303,7 @@ class Consumer(Client):
 
             return aresp
         else:  # implicit flow
-            atr = self.parse_response(
-                AccessTokenResponse, info=query, sformat="urlencoded", extended=True
-            )
+            atr = self.parse_response(AccessTokenResponse, info=query, sformat="urlencoded", extended=True)
 
             if isinstance(atr, Message):
                 if atr.type().endswith("ErrorResponse"):

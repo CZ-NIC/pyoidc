@@ -139,9 +139,7 @@ class CDB(BaseClientDatabase):
 
 def run():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-l", "--list", dest="list", action="store_true", help="List all client_ids"
-    )
+    parser.add_argument("-l", "--list", dest="list", action="store_true", help="List all client_ids")
     parser.add_argument(
         "-d",
         "--delete",
@@ -173,9 +171,7 @@ def run():
         "-r",
         "--replace",
         dest="replace",
-        help=(
-            "Information that should replace what's there about a specific client_id"
-        ),
+        help=("Information that should replace what's there about a specific client_id"),
     )
     parser.add_argument(
         "-I",

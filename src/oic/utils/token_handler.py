@@ -39,9 +39,7 @@ class TokenHandler(object):
         """
         self.token_policy = token_policy
         if token_factory is None:
-            self.token_factory = JWTToken(
-                "T", keyjar=keyjar, iss=issuer, sign_alg=sign_alg
-            )
+            self.token_factory = JWTToken("T", keyjar=keyjar, iss=issuer, sign_alg=sign_alg)
         else:
             self.token_factory = token_factory
 
@@ -69,9 +67,7 @@ class TokenHandler(object):
         try:
             lifetime = self.token_policy["access_token"][target_id][grant_type]
         except KeyError:
-            raise NotAllowed(
-                "Access token for grant_type {} for target_id {} not allowed"
-            )
+            raise NotAllowed("Access token for grant_type {} for target_id {} not allowed")
 
         sid = rndstr(32)
         return self.token_factory(
@@ -108,9 +104,7 @@ class TokenHandler(object):
             try:
                 lifetime = self.token_policy["access_token"][target_id][grant_type]
             except KeyError:
-                raise NotAllowed(
-                    "Issue access token for grant_type {} for target_id {} not allowed"
-                )
+                raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed")
             else:
                 sid = self.token_factory.db[info["jti"]]
                 try:
@@ -118,21 +112,15 @@ class TokenHandler(object):
                 except KeyError:
                     _aud = info["aud"]
 
-                return self.token_factory(
-                    sid, target_id=target_id, lifetime=lifetime, aud=_aud
-                )
+                return self.token_factory(sid, target_id=target_id, lifetime=lifetime, aud=_aud)
 
     def get_refresh_token(self, target_id, grant_type, sid):
         try:
             lifetime = self.token_policy["refresh_token"][target_id][grant_type]
         except KeyError:
-            raise NotAllowed(
-                "Issue access token for grant_type {} for target_id {} not allowed"
-            )
+            raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed")
         else:
-            return self.refresh_token_factory(
-                sid, target_id=target_id, lifetime=lifetime
-            )
+            return self.refresh_token_factory(sid, target_id=target_id, lifetime=lifetime)
 
     def invalidate(self, token):
         if self.token_factory.valid(token):

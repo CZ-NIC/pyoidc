@@ -114,9 +114,7 @@ class RegistrationRequest(Message):
     }
 
     def verify(self, **kwargs):
-        if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith(
-            "https:"
-        ):
+        if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith("https:"):
             raise RegistrationError("initiate_login_uri is not https")
 
         if "redirect_uris" in self:
@@ -127,9 +125,7 @@ class RegistrationRequest(Message):
         for uri in ["client_uri", "logo_uri", "tos_uri", "policy_uri"]:
             if uri in self:
                 try:
-                    resp = requests.request(
-                        "GET", str(self[uri]), allow_redirects=True, verify=False
-                    )
+                    resp = requests.request("GET", str(self[uri]), allow_redirects=True, verify=False)
                 except requests.ConnectionError:
                     raise MissingPage(self[uri])
 
@@ -244,9 +240,7 @@ def unpack_software_statement(software_statement, iss, keyjar):
 class ExtensionMessageFactory(OauthMessageFactory):
     """Message factory for Extension code."""
 
-    introspection_endpoint = MessageTuple(
-        TokenIntrospectionRequest, TokenIntrospectionResponse
-    )
+    introspection_endpoint = MessageTuple(TokenIntrospectionRequest, TokenIntrospectionResponse)
     revocation_endpoint = MessageTuple(TokenRevocationRequest, Message)
     registration_endpoint = MessageTuple(RegistrationRequest, ClientInfoResponse)
     update_endpoint = MessageTuple(ClientUpdateRequest, ClientInfoResponse)

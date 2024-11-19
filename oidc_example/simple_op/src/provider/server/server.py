@@ -45,8 +45,6 @@ except ImportError:
     from cherrypy.wsgiserver.wsgiserver2 import WSGIPathInfoDispatcher
 
 
-
-
 def VerifierMiddleware(verifier):
     """Common wrapper for the authentication modules.
         * Parses the request before passing it on to the authentication module.
@@ -68,15 +66,11 @@ def VerifierMiddleware(verifier):
             set_cookie, cookie_value = verifier.create_cookie(val, "auth")
             cookie_value += "; path=/"
 
-            url = "{base_url}?{query_string}".format(
-                base_url="/authorization",
-                query_string=kwargs["state"]["query"])
+            url = "{base_url}?{query_string}".format(base_url="/authorization", query_string=kwargs["state"]["query"])
             response = SeeOther(url, headers=[(set_cookie, cookie_value)])
             return response(environ, start_response)
         else:  # Unsuccessful authentication
-            url = "{base_url}?{query_string}".format(
-                base_url="/authorization",
-                query_string=kwargs["state"]["query"])
+            url = "{base_url}?{query_string}".format(base_url="/authorization", query_string=kwargs["state"]["query"])
             response = SeeOther(url)
             return response(environ, start_response)
 
@@ -124,16 +118,11 @@ def setup_endpoints(provider):
     """Setup the OpenID Connect Provider endpoints."""
     app_routing = {}
     endpoints = [
-        AuthorizationEndpoint(
-            pyoidcMiddleware(provider.authorization_endpoint)),
-        TokenEndpoint(
-            pyoidcMiddleware(provider.token_endpoint)),
-        UserinfoEndpoint(
-            pyoidcMiddleware(provider.userinfo_endpoint)),
-        RegistrationEndpoint(
-            pyoidcMiddleware(provider.registration_endpoint)),
-        EndSessionEndpoint(
-            pyoidcMiddleware(provider.endsession_endpoint))
+        AuthorizationEndpoint(pyoidcMiddleware(provider.authorization_endpoint)),
+        TokenEndpoint(pyoidcMiddleware(provider.token_endpoint)),
+        UserinfoEndpoint(pyoidcMiddleware(provider.userinfo_endpoint)),
+        RegistrationEndpoint(pyoidcMiddleware(provider.registration_endpoint)),
+        EndSessionEndpoint(pyoidcMiddleware(provider.endsession_endpoint)),
     ]
 
     provider.endp = endpoints
@@ -148,35 +137,35 @@ def _webfinger(provider, request, **kwargs):
     params = urlparse.parse_qs(request)
     if params["rel"][0] == OIC_ISSUER:
         wf = WebFinger()
-        return Response(wf.response(params["resource"][0], provider.baseurl),
-                        headers=[("Content-Type", "application/jrd+json")])
+        return Response(
+            wf.response(params["resource"][0], provider.baseurl), headers=[("Content-Type", "application/jrd+json")]
+        )
     else:
         return BadRequest("Incorrect webfinger.")
 
 
 def make_static_handler(static_dir):
     def static(environ, start_response):
-        path = environ['PATH_INFO']
+        path = environ["PATH_INFO"]
         full_path = os.path.join(static_dir, os.path.normpath(path).lstrip("/"))
 
         if os.path.exists(full_path):
-            with open(full_path, 'rb') as f:
+            with open(full_path, "rb") as f:
                 content = f.read()
 
             content_type, encoding = mimetypes.guess_type(full_path)
-            headers = [('Content-Type', content_type)]
+            headers = [("Content-Type", content_type)]
             start_response("200 OK", headers)
             return [content]
         else:
-            response = NotFound(
-                "File '{}' not found.".format(environ['PATH_INFO']))
+            response = NotFound("File '{}' not found.".format(environ["PATH_INFO"]))
             return response(environ, start_response)
 
     return static
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Example OIDC Provider.')
+    parser = argparse.ArgumentParser(description="Example OIDC Provider.")
     parser.add_argument("-p", "--port", default=80, type=int)
     parser.add_argument("-b", "--base", default="https://localhost", type=str)
     parser.add_argument("-d", "--debug", action="store_true")
@@ -190,10 +179,8 @@ def main():
     issuer = args.base.rstrip("/")
 
     template_dirs = settings["server"].get("template_dirs", "templates")
-    jinja_env = Environment(loader=FileSystemLoader(template_dirs),
-                            autoescape=select_autoescape(['html']))
-    authn_broker, auth_routing = setup_authentication_methods(settings["authn"],
-                                                              jinja_env)
+    jinja_env = Environment(loader=FileSystemLoader(template_dirs), autoescape=select_autoescape(["html"]))
+    authn_broker, auth_routing = setup_authentication_methods(settings["authn"], jinja_env)
 
     # Setup userinfo
     userinfo_conf = settings["userinfo"]
@@ -202,10 +189,8 @@ def main():
     userinfo = UserInfo(i)
 
     client_db = {}
-    session_db = create_session_db(issuer,
-                                   secret=rndstr(32), password=rndstr(32))
-    provider = Provider(issuer, session_db, client_db, authn_broker,
-                        userinfo, AuthzHandling(), verify_client, None)
+    session_db = create_session_db(issuer, secret=rndstr(32), password=rndstr(32))
+    provider = Provider(issuer, session_db, client_db, authn_broker, userinfo, AuthzHandling(), verify_client, None)
     provider.baseurl = issuer
     provider.symkey = rndstr(16)
 
@@ -222,26 +207,24 @@ def main():
     with open(os.path.join(path, name), "w") as f:
         f.write(json.dumps(jwks))
 
-    #TODO: I take this out and it still works, what was this for?
-    #provider.jwks_uri.append(
+    # TODO: I take this out and it still works, what was this for?
+    # provider.jwks_uri.append(
     #    "{}/static/{}".format(provider.baseurl, name))
 
     # Mount the WSGI callable object (app) on the root directory
     app_routing = setup_endpoints(provider)
-    app_routing["/.well-known/openid-configuration"] = pyoidcMiddleware(
-        provider.providerinfo_endpoint)
-    app_routing["/.well-known/webfinger"] = pyoidcMiddleware(
-        partial(_webfinger, provider))
+    app_routing["/.well-known/openid-configuration"] = pyoidcMiddleware(provider.providerinfo_endpoint)
+    app_routing["/.well-known/webfinger"] = pyoidcMiddleware(partial(_webfinger, provider))
     routing = dict(list(auth_routing.items()) + list(app_routing.items()))
     routing["/static"] = make_static_handler(path)
     dispatcher = WSGIPathInfoDispatcher(routing)
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', args.port), dispatcher)  # nosec
+    server = wsgiserver.CherryPyWSGIServer(("0.0.0.0", args.port), dispatcher)  # nosec
 
     # Setup SSL
     if provider.baseurl.startswith("https://"):
         server.ssl_adapter = BuiltinSSLAdapter(
-        settings["server"]["cert"], settings["server"]["key"],
-        settings["server"]["cert_chain"])
+            settings["server"]["cert"], settings["server"]["key"], settings["server"]["cert_chain"]
+        )
 
     # Start the CherryPy WSGI web server
     try:

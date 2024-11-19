@@ -204,9 +204,7 @@ class Provider(provider.Provider):
         else:
             self.lifetime_policy = lifetime_policy
 
-        self.token_handler = TokenHandler(
-            self.baseurl, self.token_policy, keyjar=self.keyjar
-        )
+        self.token_handler = TokenHandler(self.baseurl, self.token_policy, keyjar=self.keyjar)
 
     @staticmethod
     def _uris_to_tuples(uris):
@@ -244,9 +242,7 @@ class Provider(provider.Provider):
             msg = "Failed to load client keys: {}"
             logger.error(msg.format(sanitize(request.to_dict())))
             logger.error("%s", err)
-            error = ClientRegistrationError(
-                error="invalid_configuration_parameter", error_description="%s" % err
-            )
+            error = ClientRegistrationError(error="invalid_configuration_parameter", error_description="%s" % err)
             return Response(
                 error.to_json(),
                 content="application/json",
@@ -357,17 +353,13 @@ class Provider(provider.Provider):
                         if request[_pref] not in self.capabilities[_prov]:
                             raise CapabilitiesMisMatch("Not allowed {}".format(_pref))
                     else:
-                        if not set(request[_pref]).issubset(
-                            set(self.capabilities[_prov])
-                        ):
+                        if not set(request[_pref]).issubset(set(self.capabilities[_prov])):
                             raise CapabilitiesMisMatch("Not allowed {}".format(_pref))
 
     def client_info(self, client_id):
         _cinfo = self.cdb[client_id].copy()
         if not valid_client_info(_cinfo):
-            err = ErrorResponse(
-                error="invalid_client", error_description="Invalid client secret"
-            )
+            err = ErrorResponse(error="invalid_client", error_description="Invalid client secret")
             return BadRequest(err.to_json(), content="application/json")
 
         try:
@@ -439,28 +431,22 @@ class Provider(provider.Provider):
         :param kwargs: extra keyword arguments
         :return: A Response instance
         """
-        _request = self.server.message_factory.get_request_type(
-            "registration_endpoint"
-        )().deserialize(kwargs["request"], "json")
+        _request = self.server.message_factory.get_request_type("registration_endpoint")().deserialize(
+            kwargs["request"], "json"
+        )
         try:
             _request.verify(keyjar=self.keyjar)
         except InvalidRedirectUri as err:
-            msg = ClientRegistrationError(
-                error="invalid_redirect_uri", error_description="%s" % err
-            )
+            msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
         except (MissingPage, VerificationError) as err:
-            msg = ClientRegistrationError(
-                error="invalid_client_metadata", error_description="%s" % err
-            )
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
 
         # If authentication is necessary at registration
         if self.authn_at_registration:
             try:
-                self.verify_client(
-                    kwargs["environ"], _request, self.authn_at_registration
-                )
+                self.verify_client(kwargs["environ"], _request, self.authn_at_registration)
             except (AuthnFailure, UnknownAssertionType):
                 return Unauthorized()
 
@@ -474,14 +460,10 @@ class Provider(provider.Provider):
         try:
             client_id = self.create_new_client(_request, client_restrictions)
         except CapabilitiesMisMatch as err:
-            msg = ClientRegistrationError(
-                error="invalid_client_metadata", error_description="%s" % err
-            )
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
         except RestrictionError as err:
-            msg = ClientRegistrationError(
-                error="invalid_client_metadata", error_description="%s" % err
-            )
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
             return BadRequest(msg.to_json(), content="application/json")
 
         return self.client_info(client_id)
@@ -505,9 +487,7 @@ class Provider(provider.Provider):
 
         # authenticated client
         try:
-            self.verify_client(
-                kwargs["environ"], kwargs["request"], "bearer_header", client_id=_id
-            )
+            self.verify_client(kwargs["environ"], kwargs["request"], "bearer_header", client_id=_id)
         except (AuthnFailure, UnknownAssertionType):
             return Unauthorized()
 
@@ -515,23 +495,19 @@ class Provider(provider.Provider):
             return self.client_info(_id)
         elif method == "PUT":
             try:
-                _request = self.server.message_factory.get_request_type(
-                    "update_endpoint"
-                )().from_json(kwargs["request"])
+                _request = self.server.message_factory.get_request_type("update_endpoint")().from_json(
+                    kwargs["request"]
+                )
             except ValueError as err:
                 return BadRequest(str(err))
 
             try:
                 _request.verify()
             except InvalidRedirectUri as err:
-                msg = ClientRegistrationError(
-                    error="invalid_redirect_uri", error_description="%s" % err
-                )
+                msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="%s" % err)
                 return BadRequest(msg.to_json(), content="application/json")
             except (MissingPage, VerificationError) as err:
-                msg = ClientRegistrationError(
-                    error="invalid_client_metadata", error_description="%s" % err
-                )
+                msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
                 return BadRequest(msg.to_json(), content="application/json")
 
             try:
@@ -548,9 +524,7 @@ class Provider(provider.Provider):
                 return NoContent()
 
     @staticmethod
-    def verify_code_challenge(
-        code_verifier, code_challenge, code_challenge_method="S256"
-    ):
+    def verify_code_challenge(code_verifier, code_challenge, code_challenge_method="S256"):
         """
         Verify a PKCE (RFC7636) code challenge.
 
@@ -562,9 +536,7 @@ class Provider(provider.Provider):
         _cc = b64e(_h)
         if _cc.decode("ascii") != code_challenge:
             logger.error("PCKE Code Challenge check failed")
-            err = TokenErrorResponse(
-                error="invalid_request", error_description="PCKE check failed"
-            )
+            err = TokenErrorResponse(error="invalid_request", error_description="PCKE check failed")
             return Response(err.to_json(), content="application/json", status_code=401)
         return True
 
@@ -591,12 +563,8 @@ class Provider(provider.Provider):
         try:
             _info = self.sdb[areq["code"]]
         except KeyError:
-            err = TokenErrorResponse(
-                error="invalid_grant", error_description="Unknown access grant"
-            )
-            return Response(
-                err.to_json(), content="application/json", status="401 Unauthorized"
-            )
+            err = TokenErrorResponse(error="invalid_grant", error_description="Unknown access grant")
+            return Response(err.to_json(), content="application/json", status="401 Unauthorized")
 
         authzreq = json.loads(_info["authzreq"])
         if "code_verifier" in areq:
@@ -605,9 +573,7 @@ class Provider(provider.Provider):
             except KeyError:
                 _method = "S256"
 
-            resp = self.verify_code_challenge(
-                areq["code_verifier"], authzreq["code_challenge"], _method
-            )
+            resp = self.verify_code_challenge(areq["code_verifier"], authzreq["code_challenge"], _method)
             if resp:
                 return resp
 
@@ -634,16 +600,10 @@ class Provider(provider.Provider):
                 issue_refresh = True
 
         try:
-            _tinfo = self.sdb.upgrade_to_token(
-                areq["code"], issue_refresh=issue_refresh
-            )
+            _tinfo = self.sdb.upgrade_to_token(areq["code"], issue_refresh=issue_refresh)
         except AccessCodeUsed:
-            err = TokenErrorResponse(
-                error="invalid_grant", error_description="Access grant used"
-            )
-            return Response(
-                err.to_json(), content="application/json", status="401 Unauthorized"
-            )
+            err = TokenErrorResponse(error="invalid_grant", error_description="Access grant used")
+            return Response(err.to_json(), content="application/json", status="401 Unauthorized")
 
         logger.debug("_tinfo: %s" % _tinfo)
 
@@ -652,9 +612,7 @@ class Provider(provider.Provider):
 
         logger.debug("AccessTokenResponse: %s" % atr)
 
-        return Response(
-            atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS
-        )
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def client_credentials_grant_type(self, areq):
         _at = self.token_handler.get_access_token(
@@ -662,9 +620,7 @@ class Provider(provider.Provider):
         )
         _info = self.token_handler.token_factory.get_info(_at)
         try:
-            _rt = self.token_handler.get_refresh_token(
-                self.baseurl, _info["access_token"], "client_credentials"
-            )
+            _rt = self.token_handler.get_refresh_token(self.baseurl, _info["access_token"], "client_credentials")
         except NotAllowed:
             atr = self.do_access_token_response(_at, _info, areq["state"])
         else:
@@ -684,9 +640,7 @@ class Provider(provider.Provider):
         except IndexError:
             err = TokenErrorResponse(error="invalid_grant")
             return Unauthorized(err.to_json(), content="application/json")
-        identity, _ts = authn.authenticated_as(
-            username=areq["username"], password=areq["password"]
-        )
+        identity, _ts = authn.authenticated_as(username=areq["username"], password=areq["password"])
         if identity is None:
             err = TokenErrorResponse(error="invalid_grant")
             return Unauthorized(err.to_json(), content="application/json")
@@ -702,14 +656,10 @@ class Provider(provider.Provider):
         _at = self.sdb.upgrade_to_token(self.sdb[sid]["code"], issue_refresh=True)
         atr_class = self.server.message_factory.get_response_type("token_endpoint")
         atr = atr_class(**by_schema(atr_class, **_at))
-        return Response(
-            atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS
-        )
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def refresh_token_grant_type(self, areq):
-        at = self.token_handler.refresh_access_token(
-            self.baseurl, areq["access_token"], "refresh_token"
-        )
+        at = self.token_handler.refresh_access_token(self.baseurl, areq["access_token"], "refresh_token")
 
         atr_class = self.server.message_factory.get_response_type("token_endpoint")
         atr = atr_class(**by_schema(atr_class, **at))
@@ -745,12 +695,8 @@ class Provider(provider.Provider):
             client_id = self.client_authn(self, req, authn)
         except FailedAuthentication as err:
             logger.error("%s", err)
-            error = TokenErrorResponse(
-                error="unauthorized_client", error_description="%s" % err
-            )
-            return Response(
-                error.to_json(), content="application/json", status="401 Unauthorized"
-            )
+            error = TokenErrorResponse(error="unauthorized_client", error_description="%s" % err)
+            return Response(error.to_json(), content="application/json", status="401 Unauthorized")
 
         logger.debug("{}: {} requesting {}".format(endpoint, client_id, req.to_dict()))
 
@@ -761,9 +707,7 @@ class Provider(provider.Provider):
                 _info = self.sdb.token_factory["access_token"].get_info(req["token"])
             except Exception:
                 try:
-                    _info = self.sdb.token_factory["refresh_token"].get_info(
-                        req["token"]
-                    )
+                    _info = self.sdb.token_factory["refresh_token"].get_info(req["token"])
                 except Exception:
                     return self._return_inactive()
                 else:
@@ -782,9 +726,7 @@ class Provider(provider.Provider):
         return client_id, token_type, _info
 
     def _return_inactive(self):
-        ir = self.server.message_factory.get_response_type("introspection_endpoint")(
-            active=False
-        )
+        ir = self.server.message_factory.get_response_type("introspection_endpoint")(active=False)
         return Response(ir.to_json(), content="application/json")
 
     def revocation_endpoint(self, authn="", request=None, **kwargs):
@@ -796,9 +738,7 @@ class Provider(provider.Provider):
         :param kwargs:
         :return:
         """
-        trr = self.server.message_factory.get_request_type(
-            "revocation_endpoint"
-        )().deserialize(request, "urlencoded")
+        trr = self.server.message_factory.get_request_type("revocation_endpoint")().deserialize(request, "urlencoded")
 
         resp = self.get_token_info(authn, trr, "revocation_endpoint")
 
@@ -825,9 +765,9 @@ class Provider(provider.Provider):
         :param kwargs:
         :return:
         """
-        tir = self.server.message_factory.get_request_type(
-            "introspection_endpoint"
-        )().deserialize(request, "urlencoded")
+        tir = self.server.message_factory.get_request_type("introspection_endpoint")().deserialize(
+            request, "urlencoded"
+        )
 
         resp = self.get_token_info(authn, tir, "introspection_endpoint")
 

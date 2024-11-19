@@ -112,9 +112,7 @@ def test_factory():
     consumer._backup(sid)
     consumer.sdb["seed:%s" % consumer.seed] = sid
 
-    kaka = make_cookie(
-        CLIENT_CONFIG["client_id"], _state, consumer.seed, expire=360, path="/"
-    )
+    kaka = make_cookie(CLIENT_CONFIG["client_id"], _state, consumer.seed, expire=360, path="/")
 
     _oac = factory(
         kaka[1],
@@ -163,9 +161,7 @@ class TestConsumer(object):
         assert cons.authorization_endpoint is None
 
     def test_begin(self):
-        sid, loc = self.consumer.begin(
-            "http://localhost:8087", "http://localhost:8088/authorization"
-        )
+        sid, loc = self.consumer.begin("http://localhost:8087", "http://localhost:8088/authorization")
 
         # state is dynamic
         params = {
@@ -180,9 +176,7 @@ class TestConsumer(object):
         assert url_compare(loc, url)
 
     def test_handle_authorization_response(self):
-        sid, loc = self.consumer.begin(
-            "http://localhost:8087", "http://localhost:8088/authorization"
-        )
+        sid, loc = self.consumer.begin("http://localhost:8087", "http://localhost:8088/authorization")
 
         atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA", state=sid)
 
@@ -192,9 +186,7 @@ class TestConsumer(object):
         assert self.consumer.grant[sid].code == "SplxlOBeZQQYbYS6WxSbIA"
 
     def test_parse_authz_without_code(self):
-        sid, loc = self.consumer.begin(
-            "http://localhost:8087", "http://localhost:8088/authorization"
-        )
+        sid, loc = self.consumer.begin("http://localhost:8087", "http://localhost:8088/authorization")
 
         atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA", state=sid)
 
@@ -205,9 +197,7 @@ class TestConsumer(object):
             self.consumer.handle_authorization_response(query=urlencode(adict))
 
     def test_parse_authz_access_denied(self):
-        sid, loc = self.consumer.begin(
-            "http://localhost:8087", "http://localhost:8088/authorization"
-        )
+        sid, loc = self.consumer.begin("http://localhost:8087", "http://localhost:8088/authorization")
 
         atr = AuthorizationErrorResponse(error="access_denied", state=sid)
 
@@ -217,9 +207,7 @@ class TestConsumer(object):
     def test_parse_access_token(self):
         # implicit flow test
         self.consumer.response_type = ["token"]
-        sid, loc = self.consumer.begin(
-            "http://localhost:8087", "http://localhost:8088/authorization"
-        )
+        sid, loc = self.consumer.begin("http://localhost:8087", "http://localhost:8088/authorization")
 
         atr = AccessTokenResponse(
             access_token="2YotnFZFEjr1zCsicMWpAA",
@@ -238,9 +226,7 @@ class TestConsumer(object):
         assert token.access_token == "2YotnFZFEjr1zCsicMWpAA"
 
     def test_parse_authz_invalid_client(self):
-        self.consumer.begin(
-            "http://localhost:8087", "http://localhost:8088/authorization"
-        )
+        self.consumer.begin("http://localhost:8087", "http://localhost:8088/authorization")
 
         atr = TokenErrorResponse(error="invalid_client")
 
@@ -279,15 +265,9 @@ class TestConsumer(object):
         self.consumer.redirect_uris = ["https://www.example.com/oic/cb"]
 
         resp1 = AuthorizationResponse(code="auth_grant", state=_state)
-        self.consumer.parse_response(
-            AuthorizationResponse, resp1.to_urlencoded(), "urlencoded"
-        )
-        resp2 = AccessTokenResponse(
-            access_token="token1", token_type="Bearer", expires_in=0, state=_state
-        )
-        self.consumer.parse_response(
-            AccessTokenResponse, resp2.to_urlencoded(), "urlencoded"
-        )
+        self.consumer.parse_response(AuthorizationResponse, resp1.to_urlencoded(), "urlencoded")
+        resp2 = AccessTokenResponse(access_token="token1", token_type="Bearer", expires_in=0, state=_state)
+        self.consumer.parse_response(AccessTokenResponse, resp2.to_urlencoded(), "urlencoded")
 
         url, body, http_args = self.consumer.get_access_token_request(_state)
         assert url_compare(url, "http://localhost:8088/token")
@@ -297,9 +277,7 @@ class TestConsumer(object):
         )
 
         assert query_string_compare(body, expected_params)
-        assert http_args == {
-            "headers": {"Content-Type": "application/x-www-form-urlencoded"}
-        }
+        assert http_args == {"headers": {"Content-Type": "application/x-www-form-urlencoded"}}
 
     def test_access_token_storage_with_custom_response_class(self):
         _state = "state"
@@ -322,9 +300,7 @@ class TestConsumer(object):
             expires_in=3600,
             state=_state,
         )
-        self.consumer.parse_response(
-            AccessTokenResponseWrapper, resp.to_urlencoded(), "urlencoded"
-        )
+        self.consumer.parse_response(AccessTokenResponseWrapper, resp.to_urlencoded(), "urlencoded")
 
         grant = self.consumer.grant[_state]
         assert len(grant.tokens) == 1

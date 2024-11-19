@@ -17,9 +17,7 @@ PASSWD = {"user": "hemligt"}
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_PATH, "data/templates")
-tl = TemplateLookup(
-    directories=[TEMPLATE_DIR], input_encoding="utf-8", output_encoding="utf-8"
-)
+tl = TemplateLookup(directories=[TEMPLATE_DIR], input_encoding="utf-8", output_encoding="utf-8")
 
 
 def query_string_compare(query_str1, query_str2):
@@ -49,16 +47,12 @@ def create_return_form_env(user, password, query):
 
 class TestUsernamePasswordMako(object):
     def test_authenticated_as_no_cookie(self):
-        authn = UsernamePasswordMako(
-            None, "login.mako", tl, PASSWD, "authorization_endpoint"
-        )
+        authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authorization_endpoint")
         res = authn.authenticated_as()
         assert res == (None, 0)
 
     def test_call(self):
-        authn = UsernamePasswordMako(
-            None, "login.mako", tl, PASSWD, "authorization_endpoint"
-        )
+        authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authorization_endpoint")
         resp = authn(query="QUERY")
         assert 'name="query" value="QUERY"' in resp.message
         assert 'name="login" value=""' in resp.message
@@ -66,9 +60,7 @@ class TestUsernamePasswordMako(object):
     def test_authenticated_as(self, srv):
         form = create_return_form_env("user", "hemligt", "QUERY")
 
-        authn = UsernamePasswordMako(
-            srv, "login.mako", tl, PASSWD, "authorization_endpoint"
-        )
+        authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD, "authorization_endpoint")
         response, success = authn.verify(compact(parse_qs(form)))
 
         headers = dict(response.headers)
@@ -78,14 +70,10 @@ class TestUsernamePasswordMako(object):
     def test_verify(self, srv):
         form = create_return_form_env("user", "hemligt", "query=foo")
 
-        authn = UsernamePasswordMako(
-            srv, "login.mako", tl, PASSWD, "authorization_endpoint"
-        )
+        authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD, "authorization_endpoint")
         with LogCapture(level=logging.DEBUG) as logcap:
             response, success = authn.verify(compact(parse_qs(form)))
-        assert query_string_compare(
-            response.message.split("?")[1], "query=foo&upm_answer=true"
-        )
+        assert query_string_compare(response.message.split("?")[1], "query=foo&upm_answer=true")
 
         headers = dict(response.headers)
         assert headers["Set-Cookie"].startswith("xyzxyz=")
@@ -110,9 +98,7 @@ class TestUsernamePasswordMako(object):
     def test_not_authenticated(self, srv):
         form = create_return_form_env("user", "hemligt", "QUERY")
 
-        authn = UsernamePasswordMako(
-            srv, "login.mako", tl, PASSWD, "authorization_endpoint"
-        )
+        authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD, "authorization_endpoint")
         response, state = authn.verify(compact(parse_qs(form)))
 
         headers = dict(response.headers)
@@ -124,8 +110,6 @@ class TestUsernamePasswordMako(object):
     def test_verify_unauthorized(self, srv):
         form = create_return_form_env("user", "secret", "QUERY")
 
-        authn = UsernamePasswordMako(
-            srv, "login.mako", tl, PASSWD, "authorization_endpoint"
-        )
+        authn = UsernamePasswordMako(srv, "login.mako", tl, PASSWD, "authorization_endpoint")
         response, state = authn.verify(parse_qs(form))
         assert isinstance(response, Unauthorized)

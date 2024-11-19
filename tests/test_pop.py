@@ -71,9 +71,7 @@ def test_flow():
     finger_print = pas.store_key(json.loads(atreq["key"]))
     access_token = pas.create_access_token(finger_print)
     # The AS constructs the access token response
-    atrsp = AccessTokenResponse(
-        access_token=access_token, token_type="bearer", state="state"
-    )
+    atrsp = AccessTokenResponse(access_token=access_token, token_type="bearer", state="state")
 
     # The client receives the response and connects the key to the access token
     cli.handle_access_token_response(atrsp)
@@ -106,9 +104,7 @@ def test_flow():
     rs.store_key(access_token, tir)
 
     # The RS verifies the correctness of the POP token
-    res = rs.eval_signed_http_request(
-        pop_token, access_token, "POST", url, headers, body
-    )
+    res = rs.eval_signed_http_request(pop_token, access_token, "POST", url, headers, body)
 
     # YEY :-)
     assert res

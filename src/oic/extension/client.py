@@ -70,9 +70,7 @@ class Client(oauth2.Client):
         )
         self.registration_response = None
 
-    def construct_RegistrationRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_RegistrationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("registration_endpoint")
         if request_args is None:
@@ -80,9 +78,7 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_ClientUpdateRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_ClientUpdateRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("update_endpoint")
         if request_args is None:
@@ -110,17 +106,13 @@ class Client(oauth2.Client):
 
         return request_args
 
-    def construct_TokenIntrospectionRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_TokenIntrospectionRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("introspection_endpoint")
         request_args = self._token_interaction_setup(request_args, **kwargs)
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_TokenRevocationRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_TokenRevocationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("revocation_endpoint")
         request_args = self._token_interaction_setup(request_args, **kwargs)
@@ -138,18 +130,14 @@ class Client(oauth2.Client):
         response_cls=None,
         **kwargs,
     ):
-        url, body, ht_args, _ = self.request_info(
-            request, method, request_args, extra_args, **kwargs
-        )
+        url, body, ht_args, _ = self.request_info(request, method, request_args, extra_args, **kwargs)
 
         if http_args is None:
             http_args = ht_args
         else:
             http_args.update(ht_args)
 
-        resp = self.request_and_return(
-            url, response_cls, method, body, body_type, http_args=http_args
-        )
+        resp = self.request_and_return(url, response_cls, method, body, body_type, http_args=http_args)
 
         return resp
 
@@ -276,9 +264,7 @@ class Client(oauth2.Client):
         # There is no expected response, only the status code is important,
         # so do not use do_op().
 
-        url, body, ht_args, _ = self.request_info(
-            request, method, request_args, extra_args, **kwargs
-        )
+        url, body, ht_args, _ = self.request_info(request, method, request_args, extra_args, **kwargs)
 
         if http_args is None:
             http_args = ht_args
@@ -372,9 +358,7 @@ class Client(oauth2.Client):
 
     def handle_registration_info(self, response):
         if response.status_code in SUCCESSFUL:
-            resp = self.message_factory.get_response_type(
-                "registration_endpoint"
-            )().deserialize(response.text, "json")
+            resp = self.message_factory.get_response_type("registration_endpoint")().deserialize(response.text, "json")
             self.store_response(resp, response.text)
             self.store_registration_info(resp)
         else:

@@ -19,33 +19,34 @@ from io import open
 
 from setuptools import setup
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
 
 
-tests_requires = ['responses', 'testfixtures', 'pytest', 'freezegun']
+tests_requires = ["responses", "testfixtures", "pytest", "freezegun"]
 
-with open('src/oic/__init__.py', 'r') as fd:
-    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-                        fd.read(), re.MULTILINE).group(1)
+with open("src/oic/__init__.py", "r") as fd:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', fd.read(), re.MULTILINE).group(1)
 
 setup(
     name="oic",
     version=version,
     description="Python implementation of OAuth2 and OpenID Connect",
-    long_description=open('README.rst', encoding='utf-8').read(),
+    long_description=open("README.rst", encoding="utf-8").read(),
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license="Apache 2.0",
-    url='https://github.com/CZ-NIC/pyoidc/',
+    url="https://github.com/CZ-NIC/pyoidc/",
     packages=[
-        "oic", "oic/oauth2", "oic/oic", "oic/utils", "oic/utils/authn",
-        "oic/utils/userinfo", 'oic/utils/rp', 'oic/extension'
+        "oic",
+        "oic/oauth2",
+        "oic/oic",
+        "oic/utils",
+        "oic/utils/authn",
+        "oic/utils/userinfo",
+        "oic/utils/rp",
+        "oic/extension",
     ],
-    entry_points={
-        'console_scripts': [
-            'oic-client-management = oic.utils.client_management:run'
-        ]
-    },
+    entry_points={"console_scripts": ["oic-client-management = oic.utils.client_management:run"]},
     package_dir={"": "src"},
     package_data={"oic": ["py.typed"]},
     include_package_data=True,
@@ -57,16 +58,17 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
-        "Topic :: Software Development :: Libraries :: Python Modules"],
-    python_requires='~=3.9',
+        "Topic :: Software Development :: Libraries :: Python Modules",
+    ],
+    python_requires="~=3.9",
     extras_require={
-        'develop': ["cherrypy==3.2.4", "pyOpenSSL"],
-        'testing': tests_requires,
-        'docs': ['Sphinx', 'sphinx-autobuild', 'alabaster', 'autodoc_pydantic>=2.0.0'],
-        'quality': ['mypy', 'ruff', 'bandit', 'readme_renderer[md]', 'build'],
-        'types': ['types-requests'],
-        'ldap_authn': ['python-ldap'],
-        'examples': ['beaker'],
+        "develop": ["cherrypy==3.2.4", "pyOpenSSL"],
+        "testing": tests_requires,
+        "docs": ["Sphinx", "sphinx-autobuild", "alabaster", "autodoc_pydantic>=2.0.0"],
+        "quality": ["mypy", "ruff", "bandit", "readme_renderer[md]", "build"],
+        "types": ["types-requests"],
+        "ldap_authn": ["python-ldap"],
+        "examples": ["beaker"],
     },
     install_requires=[
         "requests",

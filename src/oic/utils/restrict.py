@@ -46,9 +46,7 @@ def allow(restriction, cinfo):
                 return "Not allowed to register with {}={}".format(param, _cparam)
         else:
             if not set(_cparam).issubset(args):
-                return "Not allowed to register with {}={}".format(
-                    param, json.dumps(_cparam)
-                )
+                return "Not allowed to register with {}={}".format(param, json.dumps(_cparam))
 
     return ""
 

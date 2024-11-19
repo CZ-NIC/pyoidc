@@ -155,9 +155,7 @@ class ClaimsServer(Provider):
         _log_info("User info claims: %s" % sanitize(uic))
 
         # oicsrv, userdb, subject, client_id="", user_info_claims=None
-        info = self.userinfo(
-            ucreq["sub"], user_info_claims=uic, client_id=ucreq["client_id"]
-        )
+        info = self.userinfo(ucreq["sub"], user_info_claims=uic, client_id=ucreq["client_id"])
 
         _log_info("User info: %s" % sanitize(info))
 
@@ -204,9 +202,7 @@ class ClaimsClient(Client):
         self.response2error = RESPONSE2ERROR.copy()
         self.response2error["UserClaimsResponse"] = ["ErrorResponse"]
 
-    def construct_UserClaimsRequest(
-        self, request=UserClaimsRequest, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_UserClaimsRequest(self, request=UserClaimsRequest, request_args=None, extra_args=None, **kwargs):
         return self.construct_request(request, request_args, extra_args)
 
     def do_claims_request(

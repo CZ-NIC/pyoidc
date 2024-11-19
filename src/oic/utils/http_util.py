@@ -69,14 +69,10 @@ class Response(object):
         if message:
             try:
                 if "<script>" in message:
-                    message = message.replace("<script>", "&lt;script&gt;").replace(
-                        "</script>", "&lt;/script&gt;"
-                    )
+                    message = message.replace("<script>", "&lt;script&gt;").replace("</script>", "&lt;/script&gt;")
             except TypeError:
                 if b"<script>" in message:
-                    message = message.replace(b"<script>", b"&lt;script&gt;").replace(
-                        b"</script>", b"&lt;/script&gt;"
-                    )
+                    message = message.replace(b"<script>", b"&lt;script&gt;").replace(b"</script>", b"&lt;/script&gt;")
 
         if self.template:
             if ("Content-type", "application/json") in self.headers:
@@ -245,9 +241,7 @@ def geturl(environ, query=True, path=True):
 
 def getpath(environ):
     """Build a path."""
-    return "".join(
-        [quote(environ.get("SCRIPT_NAME", "")), quote(environ.get("PATH_INFO", ""))]
-    )
+    return "".join([quote(environ.get("SCRIPT_NAME", "")), quote(environ.get("PATH_INFO", ""))])
 
 
 def _expiration(timeout, time_format=None):
@@ -651,9 +645,7 @@ class CookieDealer(object):
             return None
         else:
             try:
-                info, timestamp = parse_cookie(
-                    cookie_name, self.srv.seed, cookie, self.srv.symkey
-                )
+                info, timestamp = parse_cookie(cookie_name, self.srv.seed, cookie, self.srv.symkey)
             except (TypeError, AssertionError):
                 return None
             else:

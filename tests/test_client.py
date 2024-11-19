@@ -65,11 +65,7 @@ class TestClientSecretBasic(object):
         http_args = csb.construct(cis)
         cred = "{}:{}".format(quote_plus("A"), quote_plus("boarding pass"))
         assert http_args == {
-            "headers": {
-                "Authorization": "Basic {}".format(
-                    base64.b64encode(cred.encode("utf-8")).decode("utf-8")
-                )
-            }
+            "headers": {"Authorization": "Basic {}".format(base64.b64encode(cred.encode("utf-8")).decode("utf-8"))}
         }
 
     def test_does_not_remove_padding(self):
@@ -101,9 +97,7 @@ class TestBearerHeader(object):
         request_args = {"access_token": "Sesame"}
 
         bh = BearerHeader(client)
-        http_args = bh.construct(
-            request_args=request_args, http_args={"headers": {"x-foo": "bar"}}
-        )
+        http_args = bh.construct(request_args=request_args, http_args={"headers": {"x-foo": "bar"}})
 
         assert _eq(http_args.keys(), ["headers"])
         assert _eq(http_args["headers"].keys(), ["Authorization", "x-foo"])
@@ -120,12 +114,8 @@ class TestBearerHeader(object):
 
     def test_construct_with_token(self, client):
         resp1 = AuthorizationResponse(code="auth_grant", state="state")
-        client.parse_response(
-            AuthorizationResponse, resp1.to_urlencoded(), "urlencoded"
-        )
-        resp2 = AccessTokenResponse(
-            access_token="token1", token_type="Bearer", expires_in=0, state="state"
-        )
+        client.parse_response(AuthorizationResponse, resp1.to_urlencoded(), "urlencoded")
+        resp2 = AccessTokenResponse(access_token="token1", token_type="Bearer", expires_in=0, state="state")
         client.parse_response(AccessTokenResponse, resp2.to_urlencoded(), "urlencoded")
 
         http_args = BearerHeader(client).construct(ResourceRequest(), state="state")
@@ -162,12 +152,8 @@ class TestBearerBody(object):
 
     def test_construct_with_request(self, client):
         resp1 = AuthorizationResponse(code="auth_grant", state="state")
-        client.parse_response(
-            AuthorizationResponse, resp1.to_urlencoded(), "urlencoded"
-        )
-        resp2 = AccessTokenResponse(
-            access_token="token1", token_type="Bearer", expires_in=0, state="state"
-        )
+        client.parse_response(AuthorizationResponse, resp1.to_urlencoded(), "urlencoded")
+        resp2 = AccessTokenResponse(access_token="token1", token_type="Bearer", expires_in=0, state="state")
         client.parse_response(AccessTokenResponse, resp2.to_urlencoded(), "urlencoded")
 
         cis = ResourceRequest()
@@ -284,15 +270,10 @@ class TestValidClientInfo(object):
         assert valid_client_info({"client_secret_expires_at": 0})
         # Expired secret
         assert valid_client_info({"client_secret_expires_at": 1}) is not True
-        assert (
-            valid_client_info({"client_id": "test", "client_secret_expires_at": 123455})
-            is not True
-        )
+        assert valid_client_info({"client_id": "test", "client_secret_expires_at": 123455}) is not True
         # Valid secret
         assert valid_client_info({"client_secret_expires_at": 123457})
-        assert valid_client_info(
-            {"client_id": "test", "client_secret_expires_at": 123457}
-        )
+        assert valid_client_info({"client_id": "test", "client_secret_expires_at": 123457})
 
 
 class TestPKCE(object):

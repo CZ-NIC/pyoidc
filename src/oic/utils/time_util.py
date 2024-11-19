@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Implement some usefull functions when dealing with validity of different types of information."""
+
 import calendar
 import re
 import sys
@@ -21,9 +22,7 @@ from datetime import timedelta
 from typing import Dict
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-TIME_FORMAT_WITH_FRAGMENT = re.compile(
-    r"^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$"
-)
+TIME_FORMAT_WITH_FRAGMENT = re.compile(r"^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
 
 
 class TimeUtilError(Exception):
@@ -104,9 +103,7 @@ def parse_duration(duration):
                         except ValueError:
                             raise TimeUtilError("Not a float")
                     else:
-                        raise TimeUtilError(
-                            "Fractions not allow on anything byt seconds"
-                        )
+                        raise TimeUtilError("Fractions not allow on anything byt seconds")
                 index = mod + index + 1
             except ValueError:
                 dic[typ] = 0
@@ -159,9 +156,7 @@ def add_duration(tid, duration):
             month = modulo(temp, 1, 13)
             year += f_quotient(temp, 1, 13)
 
-        return time.localtime(
-            time.mktime((year, month, days, hour, minutes, secs, 0, 0, -1))
-        )
+        return time.localtime(time.mktime((year, month, days, hour, minutes, secs, 0, 0, -1)))
     else:
         pass
 
@@ -169,9 +164,7 @@ def add_duration(tid, duration):
 # ---------------------------------------------------------------------------
 
 
-def time_in_a_while(
-    days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0
-):
+def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
     """
     Return time in a future.
 
@@ -185,9 +178,7 @@ def time_in_a_while(
     return datetime.utcnow() + delta
 
 
-def time_a_while_ago(
-    days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0
-):
+def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
     """
     Return time in past.
 
@@ -234,9 +225,7 @@ def in_a_while(
     if not time_format:
         time_format = TIME_FORMAT
 
-    return time_in_a_while(
-        days, seconds, microseconds, milliseconds, minutes, hours, weeks
-    ).strftime(time_format)
+    return time_in_a_while(days, seconds, microseconds, milliseconds, minutes, hours, weeks).strftime(time_format)
 
 
 def a_while_ago(
@@ -262,9 +251,7 @@ def a_while_ago(
     :param time_format:
     :return: Formatet string
     """
-    return time_a_while_ago(
-        days, seconds, microseconds, milliseconds, minutes, hours, weeks
-    ).strftime(time_format)
+    return time_a_while_ago(days, seconds, microseconds, milliseconds, minutes, hours, weeks).strftime(time_format)
 
 
 # ---------------------------------------------------------------------------
@@ -370,9 +357,7 @@ def time_sans_frac():
     return int("%d" % time.time())
 
 
-def epoch_in_a_while(
-    days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0
-):
+def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
     """
     Return the number of seconds since epoch a while from now.
 
@@ -385,7 +370,5 @@ def epoch_in_a_while(
     :param weeks:
     :return: Seconds since epoch (1970-01-01)
     """
-    dt = time_in_a_while(
-        days, seconds, microseconds, milliseconds, minutes, hours, weeks
-    )
+    dt = time_in_a_while(days, seconds, microseconds, milliseconds, minutes, hours, weeks)
     return int((dt - datetime(1970, 1, 1)).total_seconds())

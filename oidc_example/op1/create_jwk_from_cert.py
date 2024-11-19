@@ -4,7 +4,8 @@ from oic.oauth2 import PBase
 from oic.utils.keystore import KeyStore
 from oic.utils.keystore import x509_rsa_loads
 
-__author__ = 'rohe0002'
+__author__ = "rohe0002"
+
 
 def main(x509_file, out="keys.jwk"):
     pb = PBase()
@@ -18,6 +19,8 @@ def main(x509_file, out="keys.jwk"):
     f.write(txt)
     f.close()
 
+
 if __name__ == "__main__":
     import sys
+
     main(*sys.argv[1:2])

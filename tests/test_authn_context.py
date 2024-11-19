@@ -60,9 +60,7 @@ class TestAuthnBroker(object):
 
         ac.add(
             PASSWORD,
-            UsernamePasswordMako(
-                None, "login.mako", LOOKUP, PASSWD, "%s/authorization" % issuer
-            ),
+            UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD, "%s/authorization" % issuer),
             10,
             "http://%s" % socket.gethostname(),
         )

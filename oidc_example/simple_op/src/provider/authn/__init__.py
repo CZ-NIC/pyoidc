@@ -1,10 +1,10 @@
 import importlib
 from oic.utils.authn.user import UserAuthnMethod
 
-__author__ = 'regu0004'
+__author__ = "regu0004"
+
 
 class AuthnModule(UserAuthnMethod):
-
     # override in subclass specifying suitable url endpoint to POST user input
     url_endpoint = "/verify"
     FAILED_AUTHN = (None, True)

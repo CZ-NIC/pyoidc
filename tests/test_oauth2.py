@@ -82,9 +82,7 @@ class TestClient(object):
         self.client.token_endpoint = self.token_endpoint
 
     def test_construct_authz_req_no_optional_params(self):
-        areq = self.client.construct_AuthorizationRequest(
-            request_args={"response_type": ["code"]}
-        )
+        areq = self.client.construct_AuthorizationRequest(request_args={"response_type": ["code"]})
 
         assert areq["redirect_uri"] == self.redirect_uri
         assert areq["response_type"] == ["code"]
@@ -123,9 +121,7 @@ class TestClient(object):
         code = "SplxlOBeZQQYbYS6WxSbIA"
         state = "ghi"
         url = "{}?code={}&state={}".format(self.redirect_uri, code, state)
-        aresp = self.client.parse_response(
-            AuthorizationResponse, info=url, sformat="urlencoded"
-        )
+        aresp = self.client.parse_response(AuthorizationResponse, info=url, sformat="urlencoded")
 
         assert aresp["code"] == code
         assert aresp["state"] == state
@@ -135,9 +131,7 @@ class TestClient(object):
 
     def test_parse_authz_resp_query(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=hij"
-        aresp = self.client.parse_response(
-            AuthorizationResponse, info=query, sformat="urlencoded"
-        )
+        aresp = self.client.parse_response(AuthorizationResponse, info=query, sformat="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
         assert aresp["state"] == "hij"
@@ -150,9 +144,7 @@ class TestClient(object):
         code = "SplxlOBeZQQYbYS6WxSbIA"
         state = "ghi"
         resp = dict(code=code, state=state)
-        aresp = self.client.parse_response(
-            AuthorizationResponse, info=resp, sformat="dict"
-        )
+        aresp = self.client.parse_response(AuthorizationResponse, info=resp, sformat="dict")
 
         assert aresp["code"] == code
         assert aresp["state"] == state
@@ -178,9 +170,7 @@ class TestClient(object):
 
     def test_parse_authz_resp_query_unknown_parameter(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=xyz&foo=bar"
-        aresp = self.client.parse_response(
-            AuthorizationResponse, info=query, sformat="urlencoded"
-        )
+        aresp = self.client.parse_response(AuthorizationResponse, info=query, sformat="urlencoded")
 
         assert aresp["code"] == "SplxlOBeZQQYbYS6WxSbIA"
         assert aresp["state"] == "xyz"
@@ -212,9 +202,7 @@ class TestClient(object):
             "scope": "read write",
             "audience": ["client_id1", "client_id2"],
         }
-        atr = self.client.construct_request(
-            request=CCAccessTokenRequest, request_args=request_args
-        )
+        atr = self.client.construct_request(request=CCAccessTokenRequest, request_args=request_args)
 
         assert atr["grant_type"] == "client_credentials"
 
@@ -223,9 +211,7 @@ class TestClient(object):
             "grant_type": "urn:ietf:params:oauth:grant-type:saml2-bearer",
             "assertion": "saml assertion",
         }
-        atr = self.client.construct_AccessTokenRequest(
-            request=ExtensionTokenRequest, request_args=request_args
-        )
+        atr = self.client.construct_AccessTokenRequest(request=ExtensionTokenRequest, request_args=request_args)
         assert atr["grant_type"] == "urn:ietf:params:oauth:grant-type:saml2-bearer"
         assert atr["assertion"] == "saml assertion"
 
@@ -269,9 +255,7 @@ class TestClient(object):
         _get = time_util.utc_time_sans_frac() + 60
         self.client.grant["foo"].grant_expiration_time = _get
         self.client.grant["foo"].code = "access_code"
-        resp = AccessTokenResponse(
-            refresh_token="refresh_with_me", access_token="access"
-        )
+        resp = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
         token = Token(resp)
         self.client.grant["foo"].tokens.append(token)
 
@@ -287,9 +271,7 @@ class TestClient(object):
         self.client.grant["foo"].grant_expiration_time = _get
         self.client.grant["foo"].code = "access_code"
 
-        resp = AccessTokenResponse(
-            refresh_token="refresh_with_me", access_token="access"
-        )
+        resp = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
 
         self.client.grant["foo"].tokens.append(Token(resp))
         # Uses refresh_token from previous response
@@ -304,9 +286,7 @@ class TestClient(object):
         state = "xyz"
         ruri = "{}?error={}&state={}".format(self.redirect_uri, error, state)
 
-        resp = self.client.parse_response(
-            AuthorizationResponse, info=ruri, sformat="urlencoded"
-        )
+        resp = self.client.parse_response(AuthorizationResponse, info=ruri, sformat="urlencoded")
 
         assert isinstance(resp, AuthorizationErrorResponse)
         assert resp["error"] == error
@@ -328,13 +308,9 @@ class TestClient(object):
 
     def test_construct_access_token_req_with_extra_args(self):
         query = "code=SplxlOBeZQQYbYS6WxSbIA&state=abc"
-        self.client.parse_response(
-            AuthorizationResponse, info=query, sformat="urlencoded"
-        )
+        self.client.parse_response(AuthorizationResponse, info=query, sformat="urlencoded")
 
-        req = self.client.construct_AccessTokenRequest(
-            state="abc", extra_args={"foo": "bar"}
-        )
+        req = self.client.construct_AccessTokenRequest(state="abc", extra_args={"foo": "bar"})
 
         assert _eq(
             req.keys(),
@@ -344,28 +320,20 @@ class TestClient(object):
 
     def test_request_info_simple(self):
         req_args = {"state": "hmm", "response_type": "code"}
-        uri, body, h_args, cis = self.client.request_info(
-            AuthorizationRequest, request_args=req_args
-        )
+        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest, request_args=req_args)
 
         assert uri == self.authorization_endpoint
         body_elts = body.split("&")
-        expected_body = (
-            "state=hmm&redirect_uri={}&response_type=code&client_id=1".format(
-                quote(self.redirect_uri, safe="")
-            )
+        expected_body = "state=hmm&redirect_uri={}&response_type=code&client_id=1".format(
+            quote(self.redirect_uri, safe="")
         )
         expected_body_elts = expected_body.split("&")
         assert set(body_elts) == set(expected_body_elts)
-        assert h_args == {
-            "headers": {"Content-Type": "application/x-www-form-urlencoded"}
-        }
+        assert h_args == {"headers": {"Content-Type": "application/x-www-form-urlencoded"}}
         assert isinstance(cis, AuthorizationRequest)
 
     def test_request_info_simple_get(self):
-        uri, body, h_args, cis = self.client.request_info(
-            AuthorizationRequest, method="GET"
-        )
+        uri, body, h_args, cis = self.client.request_info(AuthorizationRequest, method="GET")
         assert url_compare(
             uri,
             "{}?redirect_uri={}&response_type=code&client_id=1".format(
@@ -413,14 +381,10 @@ class TestClient(object):
             extra_args={"rock": "little"},
         )
 
-        expected = (
-            "{}?state=init&redirect_uri={}&response_type=code&client_id=1&rock=little"
-        )
+        expected = "{}?state=init&redirect_uri={}&response_type=code&client_id=1&rock=little"
         assert url_compare(
             uri,
-            expected.format(
-                self.authorization_endpoint, quote(self.redirect_uri, safe="")
-            ),
+            expected.format(self.authorization_endpoint, quote(self.redirect_uri, safe="")),
         )
         assert body is None
         assert h_args == {}
@@ -445,27 +409,17 @@ class TestClient(object):
             client.construct_AccessTokenRequest(state="openid")
 
     def test_parse_access_token_resp_json(self):
-        atr = self.client.parse_response(
-            AccessTokenResponse, info=ACC_TOK_RESP.to_json()
-        )
+        atr = self.client.parse_response(AccessTokenResponse, info=ACC_TOK_RESP.to_json())
         assert _eq(atr.keys(), ["token_type", "scope", "access_token", "refresh_token"])
 
     def test_parse_access_token_resp_urlencoded(self):
-        uatr = self.client.parse_response(
-            AccessTokenResponse, info=ACC_TOK_RESP.to_urlencoded(), sformat="urlencoded"
-        )
-        assert _eq(
-            uatr.keys(), ["token_type", "scope", "access_token", "refresh_token"]
-        )
+        uatr = self.client.parse_response(AccessTokenResponse, info=ACC_TOK_RESP.to_urlencoded(), sformat="urlencoded")
+        assert _eq(uatr.keys(), ["token_type", "scope", "access_token", "refresh_token"])
 
     def test_parse_access_token_resp_url(self):
         url = "{}?{}".format("https://example.com/token", ACC_TOK_RESP.to_urlencoded())
-        uatr = self.client.parse_response(
-            AccessTokenResponse, info=url, sformat="urlencoded"
-        )
-        assert _eq(
-            uatr.keys(), ["token_type", "scope", "access_token", "refresh_token"]
-        )
+        uatr = self.client.parse_response(AccessTokenResponse, info=url, sformat="urlencoded")
+        assert _eq(uatr.keys(), ["token_type", "scope", "access_token", "refresh_token"])
 
     def test_parse_error_resp(self):
         err = ErrorResponse(
@@ -480,16 +434,16 @@ class TestClient(object):
         self.client.parse_response(AccessTokenResponse, info=uerr, sformat="urlencoded")
 
         with pytest.raises(ResponseError):
-            self.client.parse_response(
-                AccessTokenResponse, info=jerr, sformat="urlencoded"
-            )
+            self.client.parse_response(AccessTokenResponse, info=jerr, sformat="urlencoded")
 
         with pytest.raises(DecodeError):
             self.client.parse_response(AccessTokenResponse, info=uerr)
 
         with pytest.raises(FormatError):
             self.client.parse_response(
-                AccessTokenResponse, info=jerr, sformat="focus"  # type: ignore
+                AccessTokenResponse,
+                info=jerr,
+                sformat="focus",  # type: ignore
             )
 
     def test_parse_access_token_resp_missing_attribute(self):
@@ -507,9 +461,7 @@ class TestClient(object):
             self.client.parse_response(AccessTokenResponse, info=atj)
 
         with pytest.raises(MissingRequiredAttribute):
-            self.client.parse_response(
-                AccessTokenResponse, info=urlencode(atdict), sformat="urlencoded"
-            )
+            self.client.parse_response(AccessTokenResponse, info=urlencode(atdict), sformat="urlencoded")
 
     def test_client_parse_args(self):
         args = {
@@ -555,18 +507,9 @@ class TestClient(object):
         self.client.token_endpoint = "https://example.org/oauth2/token"
         self.client.token_revocation_endpoint = "https://example.org/oauth2/token_rev"
 
-        assert (
-            self.client._endpoint("authorization_endpoint")
-            == "https://example.org/oauth2/as"
-        )
-        assert (
-            self.client._endpoint("token_endpoint")
-            == "https://example.org/oauth2/token"
-        )
-        assert (
-            self.client._endpoint("token_revocation_endpoint")
-            == "https://example.org/oauth2/token_rev"
-        )
+        assert self.client._endpoint("authorization_endpoint") == "https://example.org/oauth2/as"
+        assert self.client._endpoint("token_endpoint") == "https://example.org/oauth2/token"
+        assert self.client._endpoint("token_revocation_endpoint") == "https://example.org/oauth2/token_rev"
 
         auth_endpoint = self.client._endpoint(
             "authorization_endpoint",
@@ -641,10 +584,7 @@ class TestClient(object):
             resp = self.client.do_access_token_request(request_args=request_args)
             request = parse_qs(str(rsps.calls[0].request.body))
             assert request["assertion"][0] == "saml assertion"
-            assert (
-                request["grant_type"][0]
-                == "urn:ietf:params:oauth:grant-type:saml2-bearer"
-            )
+            assert request["grant_type"][0] == "urn:ietf:params:oauth:grant-type:saml2-bearer"
 
         assert isinstance(resp, AccessTokenResponse)
         assert resp["access_token"] == "Token"
@@ -739,9 +679,7 @@ class TestServer(object):
         assert tr["extra"] == "foo"
 
     def test_server_parse_refresh_token_request(self):
-        ratr = RefreshAccessTokenRequest(
-            refresh_token="ababababab", client_id="Client_id"
-        )
+        ratr = RefreshAccessTokenRequest(refresh_token="ababababab", client_id="Client_id")
         uenc = ratr.to_urlencoded()
 
         tr = self.srv.parse_refresh_token_request(body=uenc)

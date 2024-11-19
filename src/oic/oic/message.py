@@ -236,18 +236,12 @@ def claims_request_deser(val, sformat="json"):
 
 OPTIONAL_ADDRESS = ParamDefinition(Message, False, msg_ser, address_deser, False)
 OPTIONAL_LOGICAL = ParamDefinition(bool, False, None, None, False)
-OPTIONAL_MULTIPLE_Claims = ParamDefinition(
-    Message, False, claims_ser, claims_deser, False
-)
+OPTIONAL_MULTIPLE_Claims = ParamDefinition(Message, False, claims_ser, claims_deser, False)
 
 SINGLE_OPTIONAL_IDTOKEN = ParamDefinition(str, False, msg_ser, None, False)
 
-SINGLE_OPTIONAL_REGISTRATION_REQUEST = ParamDefinition(
-    Message, False, msg_ser, registration_request_deser, False
-)
-SINGLE_OPTIONAL_CLAIMSREQ = ParamDefinition(
-    Message, False, msg_ser_json, claims_request_deser, False
-)
+SINGLE_OPTIONAL_REGISTRATION_REQUEST = ParamDefinition(Message, False, msg_ser, registration_request_deser, False)
+SINGLE_OPTIONAL_CLAIMSREQ = ParamDefinition(Message, False, msg_ser_json, claims_request_deser, False)
 
 OPTIONAL_MESSAGE = ParamDefinition(Message, False, msg_ser, message_deser, False)
 REQUIRED_MESSAGE = ParamDefinition(Message, True, msg_ser, message_deser, False)
@@ -256,7 +250,7 @@ REQUIRED_MESSAGE = ParamDefinition(Message, True, msg_ser, message_deser, False)
 
 
 SCOPE_CHARSET = []
-for char in ["\x21", ("\x23", "\x5b"), ("\x5d", "\x7E")]:
+for char in ["\x21", ("\x23", "\x5b"), ("\x5d", "\x7e")]:
     if isinstance(char, tuple):
         c = char[0]
         while c <= char[1]:
@@ -517,11 +511,7 @@ class AccessTokenRequest(message.AccessTokenRequest):
         }
     )
     c_default = {"grant_type": "authorization_code"}
-    c_allowed_values = {
-        "client_assertion_type": [
-            "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
-        ]
-    }
+    c_allowed_values = {"client_assertion_type": ["urn:ietf:params:oauth:client-assertion-type:jwt-bearer"]}
 
 
 class AddressClaim(Message):
@@ -565,9 +555,7 @@ class OpenIDSchema(Message):
         result = super().from_dict(dictionary, **kwargs)
         # The spec allows empty fields in the UserInfo/IdToken response, but suggests
         # the OP should omit those. So lets drop them here.
-        for key_ in [
-            key_ for key_, val in self._dict.items() if val is None or val == ""
-        ]:
+        for key_ in [key_ for key_, val in self._dict.items() if val is None or val == ""]:
             del self[key_]
         return result
 
@@ -640,9 +628,7 @@ class RegistrationRequest(Message):
     def verify(self, **kwargs):
         super().verify(**kwargs)
 
-        if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith(
-            "https:"
-        ):
+        if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith("https:"):
             raise AssertionError()
 
         for param in [
@@ -660,10 +646,7 @@ class RegistrationRequest(Message):
             if enc_param in self and alg_param not in self:
                 raise AssertionError()
 
-        if (
-            "token_endpoint_auth_signing_alg" in self
-            and self["token_endpoint_auth_signing_alg"] == "none"
-        ):
+        if "token_endpoint_auth_signing_alg" in self and self["token_endpoint_auth_signing_alg"] == "none":
             raise AssertionError()
 
         return True
@@ -697,10 +680,7 @@ class RegistrationResponse(Message):
         has_reg_at = "registration_access_token" in self
         if has_reg_uri != has_reg_at:
             raise VerificationError(
-                (
-                    "Only one of registration_client_uri"
-                    " and registration_access_token present"
-                ),
+                ("Only one of registration_client_uri" " and registration_access_token present"),
                 self,
             )
 
@@ -765,9 +745,7 @@ class IdToken(OpenIDSchema):
         if "azp" in self:
             if "client_id" in kwargs:
                 if kwargs["client_id"] != self["azp"]:
-                    raise NotForMe(
-                        "{} != azp:{}".format(kwargs["client_id"], self["azp"]), self
-                    )
+                    raise NotForMe("{} != azp:{}".format(kwargs["client_id"], self["azp"]), self)
 
         _now = time_util.utc_time_sans_frac()
 
@@ -811,9 +789,7 @@ class StateFullMessage(Message):
 
 class RefreshSessionRequest(StateFullMessage):
     c_param = StateFullMessage.c_param.copy()
-    c_param.update(
-        {"id_token": SINGLE_REQUIRED_STRING, "redirect_url": SINGLE_REQUIRED_STRING}
-    )
+    c_param.update({"id_token": SINGLE_REQUIRED_STRING, "redirect_url": SINGLE_REQUIRED_STRING})
 
     def verify(self, **kwargs):
         super(RefreshSessionRequest, self).verify(**kwargs)
@@ -945,10 +921,7 @@ class ProviderConfigurationResponse(Message):
         if parts.query or parts.fragment:
             raise AssertionError()
 
-        if (
-            any("code" in rt for rt in self["response_types_supported"])
-            and "token_endpoint" not in self
-        ):
+        if any("code" in rt for rt in self["response_types_supported"]) and "token_endpoint" not in self:
             raise MissingRequiredAttribute("token_endpoint")
 
         return True
@@ -1063,9 +1036,7 @@ class LogoutToken(Message):
         super().verify(**kwargs)
 
         if "nonce" in self:
-            raise MessageException(
-                '"nonce" is prohibited from appearing in a LogoutToken.'
-            )
+            raise MessageException('"nonce" is prohibited from appearing in a LogoutToken.')
 
         # Check the 'events' JSON
         _keys = list(self["events"].keys())
@@ -1181,9 +1152,7 @@ MSG = {
 
 
 def factory(msgtype):
-    warnings.warn(
-        "`factory` is deprecated. Use `OIDCMessageFactory` instead.", DeprecationWarning
-    )
+    warnings.warn("`factory` is deprecated. Use `OIDCMessageFactory` instead.", DeprecationWarning)
     for _, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj) and issubclass(obj, Message):
             try:
@@ -1210,7 +1179,5 @@ class OIDCMessageFactory(MessageFactory):
     endsession_endpoint = MessageTuple(EndSessionRequest, EndSessionResponse)
     checkid_endpoint = MessageTuple(CheckIDRequest, IdToken)
     checksession_endpoint = MessageTuple(CheckSessionRequest, IdToken)
-    refreshsession_endpoint = MessageTuple(
-        RefreshSessionRequest, RefreshSessionResponse
-    )
+    refreshsession_endpoint = MessageTuple(RefreshSessionRequest, RefreshSessionResponse)
     discovery_endpoint = MessageTuple(DiscoveryRequest, DiscoveryResponse)

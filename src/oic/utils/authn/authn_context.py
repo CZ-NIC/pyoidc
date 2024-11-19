@@ -7,15 +7,9 @@ from oic.utils.http_util import extract_from_request
 __author__ = "rolandh"
 
 UNSPECIFIED = "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
-INTERNETPROTOCOLPASSWORD = (
-    "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"
-)
-MOBILETWOFACTORCONTRACT = (
-    "urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract"
-)
-PASSWORDPROTECTEDTRANSPORT = (
-    "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
-)
+INTERNETPROTOCOLPASSWORD = "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword"
+MOBILETWOFACTORCONTRACT = "urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract"
+PASSWORDPROTECTEDTRANSPORT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
 PASSWORD = "urn:oasis:names:tc:SAML:2.0:ac:classes:Password"  # nosec
 TLSCLIENT = "urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient"
 TIMESYNCTOKEN = "urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken"

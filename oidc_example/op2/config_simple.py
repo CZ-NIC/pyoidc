@@ -1,19 +1,16 @@
 keys = [
     {"type": "RSA", "key": "cp_keys/key.pem", "use": ["enc", "sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["enc"]}
+    {"type": "EC", "crv": "P-256", "use": ["enc"]},
 ]
 
-ISSUER = 'http://localhost'
+ISSUER = "http://localhost"
 SERVICE_URL = "{issuer}/verify"
 
 # Only Username and password.
-AUTHENTICATION = {
-    "UserPassword": {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL,
-                     "END_POINTS": ["verify"]}
-}
+AUTHENTICATION = {"UserPassword": {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL, "END_POINTS": ["verify"]}}
 
-COOKIENAME = 'pyoic'
+COOKIENAME = "pyoic"
 COOKIETTL = 4 * 60  # 4 hours
 SYM_KEY = "SoLittleTime,Got"
 
@@ -40,7 +37,7 @@ USERDB = {
             "street_address": "Umeå Universitet",
             "locality": "Umeå",
             "postal_code": "SE-90187",
-            "country": "Sweden"
+            "country": "Sweden",
         },
     },
     "babs": {
@@ -66,5 +63,5 @@ USERDB = {
         "family_name": "Crust",
         "email": "uc@example.com",
         "email_verified": True,
-    }
+    },
 }

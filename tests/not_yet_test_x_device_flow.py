@@ -14,9 +14,7 @@ def test_device_flow():
     srv = DeviceFlowServer(_server)
 
     # init
-    req = AuthorizationRequest(
-        client_id=cli.host.client_id, response_type="device_code"
-    )
+    req = AuthorizationRequest(client_id=cli.host.client_id, response_type="device_code")
 
     resp = srv.device_endpoint(req)
 

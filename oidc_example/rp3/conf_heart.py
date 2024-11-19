@@ -18,7 +18,7 @@ ME = {
     "redirect_uris": ["{base}authz_cb"],
     "post_logout_redirect_uris": ["{base}logout_success"],
     "response_types": ["code"],
-    'token_endpoint_auth_method': ['private_key_jwt']
+    "token_endpoint_auth_method": ["private_key_jwt"],
 }
 
 BEHAVIOUR = {
@@ -35,18 +35,15 @@ CLIENTS = {
     # The ones that support webfinger, OP discovery and client registration
     # This is the default, any client that is not listed here is expected to
     # support dynamic discovery and registration.
-    "": {
-        "client_info": ME,
-        "behaviour": BEHAVIOUR
-    },
+    "": {"client_info": ME, "behaviour": BEHAVIOUR},
 }
 
 KEY_SPECIFICATION = [
     {"type": "RSA", "key": "keys/pyoidc_enc", "use": ["enc"]},
     {"type": "RSA", "key": "keys/pyoidc_sig", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["enc"]}
+    {"type": "EC", "crv": "P-256", "use": ["enc"]},
 ]
 
-CLIENT_TYPE = 'OAUTH2'  # one of OIDC/OAUTH2
+CLIENT_TYPE = "OAUTH2"  # one of OIDC/OAUTH2
 USERINFO = False

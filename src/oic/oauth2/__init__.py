@@ -100,9 +100,7 @@ class ExpiredToken(PyoidcError):
 def error_response(error, descr=None, status_code=400):
     logger.error("%s" % sanitize(error))
     response = ErrorResponse(error=error, error_description=descr)
-    return Response(
-        response.to_json(), content="application/json", status_code=status_code
-    )
+    return Response(response.to_json(), content="application/json", status_code=status_code)
 
 
 def none_response(**kwargs):
@@ -389,9 +387,7 @@ class Client(PBase):
                 if token.replaced or not token.is_valid():
                     grant.delete_token(token)
 
-    def construct_request(
-        self, request: Type[Message], request_args=None, extra_args=None
-    ):
+    def construct_request(self, request: Type[Message], request_args=None, extra_args=None):
         if request_args is None:
             request_args = {}
 
@@ -467,8 +463,7 @@ class Client(PBase):
 
             if not grant.is_valid():
                 raise GrantExpired(
-                    "Authorization Code to old %s > %s"
-                    % (utc_time_sans_frac(), grant.grant_expiration_time)
+                    "Authorization Code to old %s > %s" % (utc_time_sans_frac(), grant.grant_expiration_time)
                 )
 
             request_args["code"] = grant.code
@@ -575,9 +570,7 @@ class Client(PBase):
         cis.lax = lax
 
         if "authn_method" in kwargs:
-            h_arg = self.init_authentication_method(
-                cis, request_args=request_args, **kwargs
-            )
+            h_arg = self.init_authentication_method(cis, request_args=request_args, **kwargs)
         else:
             h_arg = None
 
@@ -713,18 +706,14 @@ class Client(PBase):
                     session_update(self.sso_db, _state, "smid", resp["id_token"]["sid"])
         return resp
 
-    def init_authentication_method(
-        self, cis, authn_method, request_args=None, http_args=None, **kwargs
-    ):
+    def init_authentication_method(self, cis, authn_method, request_args=None, http_args=None, **kwargs):
         if http_args is None:
             http_args = {}
         if request_args is None:
             request_args = {}
 
         if authn_method:
-            return self.client_authn_method[authn_method](self).construct(
-                cis, request_args, http_args, **kwargs
-            )
+            return self.client_authn_method[authn_method](self).construct(cis, request_args, http_args, **kwargs)
         else:
             return http_args
 
@@ -743,17 +732,12 @@ class Client(PBase):
             logger.error("(%d) %s" % (reqresp.status_code, sanitize(reqresp.text)))
             raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
 
-        if reqresp.status_code in SUCCESSFUL or (
-            reqresp.status_code in [400, 401] and response
-        ):
+        if reqresp.status_code in SUCCESSFUL or (reqresp.status_code in [400, 401] and response):
             verified_body_type = verify_header(reqresp, body_type)
         else:
             # Any other error
             logger.error("(%d) %s" % (reqresp.status_code, sanitize(reqresp.text)))
-            raise HttpError(
-                "HTTP ERROR: %s [%s] on %s"
-                % (reqresp.text, reqresp.status_code, reqresp.url)
-            )
+            raise HttpError("HTTP ERROR: %s [%s] on %s" % (reqresp.text, reqresp.status_code, reqresp.url))
 
         # we expect some specific response message type, try to parse it
         if response:
@@ -761,9 +745,7 @@ class Client(PBase):
             if verified_body_type is None:
                 verified_body_type = "urlencoded"
 
-            return self.parse_response(
-                response, reqresp.text, verified_body_type, state, **kwargs
-            )
+            return self.parse_response(response, reqresp.text, verified_body_type, state, **kwargs)
 
         # No one told us what to expect, so try to decode an error response
         if reqresp.status_code in [200, 400, 401]:
@@ -842,9 +824,7 @@ class Client(PBase):
                 request_args = {"state": state}
 
         kwargs["authn_endpoint"] = "authorization"
-        url, body, ht_args, csi = self.request_info(
-            request, method, request_args, extra_args, **kwargs
-        )
+        url, body, ht_args, csi = self.request_info(request, method, request_args, extra_args, **kwargs)
 
         try:
             self.authz_req[request_args["state"]] = csi
@@ -1011,13 +991,9 @@ class Client(PBase):
         else:
             http_args.update(ht_args)
 
-        return self.request_and_return(
-            url, response, method, body, body_type, state=state, http_args=http_args
-        )
+        return self.request_and_return(url, response, method, body, body_type, state=state, http_args=http_args)
 
-    def fetch_protected_resource(
-        self, uri, method="GET", headers=None, state="", **kwargs
-    ):
+    def fetch_protected_resource(self, uri, method="GET", headers=None, state="", **kwargs):
         if "token" in kwargs and kwargs["token"]:
             token = kwargs["token"]
             request_args = {"access_token": token}
@@ -1034,14 +1010,10 @@ class Client(PBase):
             headers = {}
 
         if "authn_method" in kwargs:
-            http_args = self.init_authentication_method(
-                request_args=request_args, **kwargs
-            )
+            http_args = self.init_authentication_method(request_args=request_args, **kwargs)
         else:
             # If nothing defined this is the default
-            http_args = self.client_authn_method["bearer_header"](self).construct(
-                request_args=request_args
-            )
+            http_args = self.client_authn_method["bearer_header"](self).construct(request_args=request_args)
 
         headers.update(http_args["headers"])
 
@@ -1109,10 +1081,7 @@ class Client(PBase):
                     _issuer = issuer
 
             if not self.allow.get("issuer_mismatch", False) and _issuer != _pcr_issuer:
-                raise PyoidcError(
-                    "provider info issuer mismatch '%s' != '%s'"
-                    % (_issuer, _pcr_issuer)
-                )
+                raise PyoidcError("provider info issuer mismatch '%s' != '%s'" % (_issuer, _pcr_issuer))
 
             self.provider_info = pcr
         else:
@@ -1244,9 +1213,7 @@ class Server(PBase):
             areq.verify()
         return areq
 
-    def parse_body_request(
-        self, request: Type[Message] = AccessTokenRequest, body: Optional[str] = None
-    ):
+    def parse_body_request(self, request: Type[Message] = AccessTokenRequest, body: Optional[str] = None):
         req = request().deserialize(body, "urlencoded")
         req.verify()
         return req
@@ -1255,8 +1222,6 @@ class Server(PBase):
         request = self.message_factory.get_request_type("token_endpoint")
         return self.parse_body_request(request, body)
 
-    def parse_refresh_token_request(
-        self, body: Optional[str] = None
-    ) -> RefreshAccessTokenRequest:
+    def parse_refresh_token_request(self, body: Optional[str] = None) -> RefreshAccessTokenRequest:
         request = self.message_factory.get_request_type("refresh_endpoint")
         return self.parse_body_request(request, body)

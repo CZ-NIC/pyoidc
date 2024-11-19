@@ -174,10 +174,7 @@ class TestMessage(object):
             DummyMessage().from_json(jso)
 
     def test_single_optional(self):
-        jso = (
-            '{"req_str": "Fair", "req_str_list": ["spike", "lee"], '
-            '"opt_int": [9, 10]}'
-        )
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' '"opt_int": [9, 10]}'
         with pytest.raises(MessageException):
             DummyMessage().deserialize(jso, "json")
 
@@ -279,9 +276,7 @@ class TestMessage(object):
         )
 
     def test_request(self):
-        req = DummyMessage(req_str="Fair", req_str_list=["game"]).request(
-            "http://example.com"
-        )
+        req = DummyMessage(req_str="Fair", req_str_list=["game"]).request("http://example.com")
         assert url_compare(req, "http://example.com?req_str=Fair&req_str_list=game")
 
     def test_get(self):
@@ -385,8 +380,7 @@ class TestAuthorizationRequest(object):
         ue = ar.to_urlencoded()
         assert query_string_compare(
             ue,
-            "state=cold&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&"
-            "response_type=code&client_id=foobar",
+            "state=cold&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&" "response_type=code&client_id=foobar",
         )
 
     def test_urlencoded_resp_type_token(self):
@@ -400,8 +394,7 @@ class TestAuthorizationRequest(object):
         ue = ar.to_urlencoded()
         assert query_string_compare(
             ue,
-            "state=xyz&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&response_type=token&"
-            "client_id=s6BhdRkqt3",
+            "state=xyz&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&response_type=token&" "client_id=s6BhdRkqt3",
         )
 
     def test_deserialize_urlencoded(self):
@@ -527,10 +520,7 @@ class TestAuthorizationRequest(object):
         assert ar == ar2
 
     def test_verify(self):
-        query = (
-            "redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz"
-            "&response_type=code&client_id=0123456789"
-        )
+        query = "redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz" "&response_type=code&client_id=0123456789"
         ar = AuthorizationRequest().deserialize(query, "urlencoded")
         assert ar.verify()
 
@@ -590,9 +580,7 @@ class TestAuthorizationRequest(object):
         )
         ue = ar.to_urlencoded()
         ue_splits = ue.split("&")
-        expected_ue_splits = (
-            "scope=openid+foxtrot&response_type=code+token&client_id=foobar".split("&")
-        )
+        expected_ue_splits = "scope=openid+foxtrot&response_type=code+token&client_id=foobar".split("&")
         assert _eq(ue_splits, expected_ue_splits)
 
         are = AuthorizationRequest().deserialize(ue, "urlencoded")
@@ -670,9 +658,7 @@ class TestTokenErrorResponse(object):
 
 class TestAccessTokenResponse(object):
     def test_json_serialize(self):
-        at = AccessTokenResponse(
-            access_token="SlAV32hkKG", token_type="Bearer", expires_in=3600
-        )
+        at = AccessTokenResponse(access_token="SlAV32hkKG", token_type="Bearer", expires_in=3600)
 
         atj = at.serialize(method="json")
         atj_obj = json.loads(atj)
@@ -780,9 +766,7 @@ class TestAccessTokenRequest(object):
 
 class TestAuthorizationResponse(object):
     def test_init(self):
-        atr = AuthorizationResponse(
-            code="SplxlOBeZQQYbYS6WxSbIA", state="Fun_state", extra="foo"
-        )
+        atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA", state="Fun_state", extra="foo")
 
         assert atr["code"] == "SplxlOBeZQQYbYS6WxSbIA"
         assert atr["state"] == "Fun_state"
@@ -791,9 +775,7 @@ class TestAuthorizationResponse(object):
 
 class TestROPCAccessTokenRequest(object):
     def test_init(self):
-        ropc = ROPCAccessTokenRequest(
-            grant_type="password", username="johndoe", password="A3ddj3w"
-        )
+        ropc = ROPCAccessTokenRequest(grant_type="password", username="johndoe", password="A3ddj3w")
 
         assert ropc["grant_type"] == "password"
         assert ropc["username"] == "johndoe"
@@ -810,9 +792,7 @@ class TestCCAccessTokenRequest(object):
 
 class TestRefreshAccessTokenRequest(object):
     def test_init(self):
-        ratr = RefreshAccessTokenRequest(
-            refresh_token="ababababab", client_id="Client_id"
-        )
+        ratr = RefreshAccessTokenRequest(refresh_token="ababababab", client_id="Client_id")
 
         assert ratr["grant_type"] == "refresh_token"
         assert ratr["refresh_token"] == "ababababab"
@@ -902,9 +882,7 @@ def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer():
     a_kids = [k.kid for k in KEYJARS["A"].get_verify_key(owner="A", key_type="RSA")]
     no_kid_issuer = {"A": a_kids}
 
-    msg.get_verify_keys(
-        KEYJARS["A"], keys, {"iss": "A"}, header, {}, no_kid_issuer=no_kid_issuer
-    )
+    msg.get_verify_keys(KEYJARS["A"], keys, {"iss": "A"}, header, {}, no_kid_issuer=no_kid_issuer)
     assert len(keys) == 3
     assert set([k.kid for k in keys]) == set(a_kids)
 
@@ -919,9 +897,7 @@ def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer_lim():
     a_kids = a_kids[:-1]
     no_kid_issuer = {"A": a_kids}
 
-    msg.get_verify_keys(
-        KEYJARS["A"], keys, {"iss": "A"}, header, {}, no_kid_issuer=no_kid_issuer
-    )
+    msg.get_verify_keys(KEYJARS["A"], keys, {"iss": "A"}, header, {}, no_kid_issuer=no_kid_issuer)
     assert len(keys) == 2
     assert set([k.kid for k in keys]) == set(a_kids)
 

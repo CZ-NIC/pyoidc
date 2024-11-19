@@ -88,9 +88,7 @@ class MDQClient(BaseClientDatabase):
         if response.status_code == 200:
             return response.json()
         else:
-            raise NoClientInfoReceivedError(
-                "{} {}".format(response.status_code, response.reason)
-            )
+            raise NoClientInfoReceivedError("{} {}".format(response.status_code, response.reason))
 
     def __setitem__(self, item, value):
         """Remote management is readonly."""
@@ -107,9 +105,7 @@ class MDQClient(BaseClientDatabase):
         if response.status_code == 200:
             return [item["client_id"] for item in response.json()]
         else:
-            raise NoClientInfoReceivedError(
-                "{} {}".format(response.status_code, response.reason)
-            )
+            raise NoClientInfoReceivedError("{} {}".format(response.status_code, response.reason))
 
     def items(self):
         """Geting all registered entities."""
@@ -118,9 +114,7 @@ class MDQClient(BaseClientDatabase):
         if response.status_code == 200:
             return response.json()
         else:
-            raise NoClientInfoReceivedError(
-                "{} {}".format(response.status_code, response.reason)
-            )
+            raise NoClientInfoReceivedError("{} {}".format(response.status_code, response.reason))
 
 
 # Dictionary can be used as a ClientDatabase

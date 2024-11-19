@@ -451,9 +451,7 @@ class Client(oauth2.Client):
             try:
                 encenc = self.behaviour["request_object_encryption_enc"]
             except KeyError:
-                raise MissingRequiredAttribute(
-                    "No request_object_encryption_enc specified"
-                )
+                raise MissingRequiredAttribute("No request_object_encryption_enc specified")
 
         _jwe = JWE(msg, alg=encalg, enc=encenc)
         _kty = jwe.alg2keytype(encalg)
@@ -498,9 +496,7 @@ class Client(oauth2.Client):
         else:
             raise ValueError("Invalid webname, must start with base_url")
 
-    def construct_AuthorizationRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_AuthorizationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request_args is not None:
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
@@ -570,9 +566,7 @@ class Client(oauth2.Client):
 
         return areq
 
-    def construct_UserInfoRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_UserInfoRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("userinfo_endpoint")
         if request_args is None:
@@ -591,16 +585,12 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_RegistrationRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_RegistrationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("registration_endpoint")
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_RefreshSessionRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_RefreshSessionRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("refreshsession_endpoint")
         return self.construct_request(request, request_args, extra_args)
@@ -625,23 +615,17 @@ class Client(oauth2.Client):
 
         return self.construct_request(request, request_args, extra_args)
 
-    def construct_CheckSessionRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_CheckSessionRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("checksession_endpoint")
 
         return self._id_token_based(request, request_args, extra_args, **kwargs)
 
-    def construct_CheckIDRequest(
-        self, request=None, request_args=None, extra_args=None, **kwargs
-    ):
+    def construct_CheckIDRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
         if request is None:
             request = self.message_factory.get_request_type("checkid_endpoint")
         # access_token is where the id_token will be placed
-        return self._id_token_based(
-            request, request_args, extra_args, prop="access_token", **kwargs
-        )
+        return self._id_token_based(request, request_args, extra_args, prop="access_token", **kwargs)
 
     def construct_EndSessionRequest(
         self,
@@ -659,9 +643,7 @@ class Client(oauth2.Client):
         if "state" in request_args and "state" not in kwargs:
             kwargs["state"] = request_args["state"]
 
-        return self._id_token_based(
-            request, request_args, extra_args, prop=prop, **kwargs
-        )
+        return self._id_token_based(request, request_args, extra_args, prop=prop, **kwargs)
 
     def do_authorization_request(
         self,
@@ -750,9 +732,7 @@ class Client(oauth2.Client):
             http_args.update(http_args)
 
         response_cls = self.message_factory.get_response_type("registration_endpoint")
-        response = self.request_and_return(
-            url, response_cls, method, body, body_type, state=state, http_args=http_args
-        )
+        response = self.request_and_return(url, response_cls, method, body, body_type, state=state, http_args=http_args)
         return response
 
     def do_check_session_request(
@@ -782,9 +762,7 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(
-            url, response_cls, method, body, body_type, state=state, http_args=http_args
-        )
+        return self.request_and_return(url, response_cls, method, body, body_type, state=state, http_args=http_args)
 
     def do_check_id_request(
         self,
@@ -813,9 +791,7 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(
-            url, response_cls, method, body, body_type, state=state, http_args=http_args
-        )
+        return self.request_and_return(url, response_cls, method, body, body_type, state=state, http_args=http_args)
 
     def do_end_session_request(
         self,
@@ -845,9 +821,7 @@ class Client(oauth2.Client):
         else:
             http_args.update(http_args)
 
-        return self.request_and_return(
-            url, response_cls, method, body, body_type, state=state, http_args=http_args
-        )
+        return self.request_and_return(url, response_cls, method, body, body_type, state=state, http_args=http_args)
 
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = self.message_factory.get_request_type("userinfo_endpoint")()
@@ -872,11 +846,7 @@ class Client(oauth2.Client):
                 raise AccessDenied("invalid_token")
             if token.is_valid():
                 uir["access_token"] = token.access_token
-                if (
-                    token.token_type
-                    and token.token_type.lower() == "bearer"
-                    and method == "GET"
-                ):
+                if token.token_type and token.token_type.lower() == "bearer" and method == "GET":
                     kwargs["behavior"] = "use_authorization_header"
             else:
                 # raise oauth2.OldAccessToken
@@ -918,9 +888,7 @@ class Client(oauth2.Client):
             elif token:
                 # use_authorization_header, token_in_message_body
                 if "use_authorization_header" in _behav:
-                    token_header = "{type} {token}".format(
-                        type=_ttype.capitalize(), token=_token
-                    )
+                    token_header = "{type} {token}".format(type=_ttype.capitalize(), token=_token)
                     if "headers" in kwargs:
                         kwargs["headers"].update({"Authorization": token_header})
                     else:
@@ -936,17 +904,12 @@ class Client(oauth2.Client):
 
         return path, body, method, h_args
 
-    def do_user_info_request(
-        self, method="POST", state="", scope="openid", request="openid", **kwargs
-    ):
+    def do_user_info_request(self, method="POST", state="", scope="openid", request="openid", **kwargs):
         kwargs["request"] = request
-        path, body, method, h_args = self.user_info_request(
-            method, state, scope, **kwargs
-        )
+        path, body, method, h_args = self.user_info_request(method, state, scope, **kwargs)
 
         logger.debug(
-            "[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s"
-            % (sanitize(path), sanitize(body), sanitize(h_args))
+            "[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (sanitize(path), sanitize(body), sanitize(h_args))
         )
 
         if self.events:
@@ -965,17 +928,13 @@ class Client(oauth2.Client):
             elif "application/jwt" in resp.headers["content-type"]:
                 sformat = "jwt"
             else:
-                raise PyoidcError(
-                    "ERROR: Unexpected content-type: %s" % resp.headers["content-type"]
-                )
+                raise PyoidcError("ERROR: Unexpected content-type: %s" % resp.headers["content-type"])
         elif resp.status_code == 500:
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
         elif resp.status_code == 405:
             # Method not allowed error
             allowed_methods = [x.strip() for x in resp.headers["allow"].split(",")]
-            raise CommunicationError(
-                "Server responded with HTTP Error Code 405", "", allowed_methods
-            )
+            raise CommunicationError("Server responded with HTTP Error Code 405", "", allowed_methods)
         elif 400 <= resp.status_code < 500:
             # the response text might be a OIDC message
             try:
@@ -986,9 +945,7 @@ class Client(oauth2.Client):
                 self.store_response(res, resp.text)
                 return res
         else:
-            raise PyoidcError(
-                "ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text)
-            )
+            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text))
 
         try:
             _schema = kwargs["user_info_schema"]
@@ -1017,17 +974,13 @@ class Client(oauth2.Client):
             idt = self.get_grant(state).get_id_token()
             if idt:
                 if idt["sub"] != res["sub"]:
-                    raise SubMismatch(
-                        "Sub identifier not the same in userinfo and Id Token"
-                    )
+                    raise SubMismatch("Sub identifier not the same in userinfo and Id Token")
 
         self.store_response(res, _txt)
 
         return res
 
-    def get_userinfo_claims(
-        self, access_token, endpoint, method="POST", schema_class=OpenIDSchema, **kwargs
-    ):
+    def get_userinfo_claims(self, access_token, endpoint, method="POST", schema_class=OpenIDSchema, **kwargs):
         uir = UserInfoRequest(access_token=access_token)
 
         h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])
@@ -1050,16 +1003,11 @@ class Client(oauth2.Client):
             # FIXME: Could this also encounter application/jwt for encrypted userinfo
             #        the do_userinfo_request method already handles it
             if "application/json" not in resp.headers["content-type"]:
-                raise PyoidcError(
-                    "ERROR: content-type in response unexpected: %s"
-                    % resp.headers["content-type"]
-                )
+                raise PyoidcError("ERROR: content-type in response unexpected: %s" % resp.headers["content-type"])
         elif resp.status_code == 500:
             raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
         else:
-            raise PyoidcError(
-                "ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text)
-            )
+            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text))
 
         res = schema_class().from_json(txt=resp.text)
         self.store_response(res, resp.text)
@@ -1069,20 +1017,11 @@ class Client(oauth2.Client):
         if userinfo["_claim_sources"]:
             for csrc, spec in userinfo["_claim_sources"].items():
                 if "JWT" in spec:
-                    aggregated_claims = Message().from_jwt(
-                        spec["JWT"].encode("utf-8"), keyjar=self.keyjar, sender=csrc
-                    )
-                    claims = [
-                        value
-                        for value, src in userinfo["_claim_names"].items()
-                        if src == csrc
-                    ]
+                    aggregated_claims = Message().from_jwt(spec["JWT"].encode("utf-8"), keyjar=self.keyjar, sender=csrc)
+                    claims = [value for value, src in userinfo["_claim_names"].items() if src == csrc]
 
                     if set(claims) != set(list(aggregated_claims.keys())):
-                        logger.warning(
-                            "Claims from claim source doesn't match what's in "
-                            "the userinfo"
-                        )
+                        logger.warning("Claims from claim source doesn't match what's in " "the userinfo")
 
                     for key, vals in aggregated_claims.items():
                         userinfo[key] = vals
@@ -1119,17 +1058,10 @@ class Client(oauth2.Client):
                             verify=False,
                         )
 
-                claims = [
-                    value
-                    for value, src in userinfo["_claim_names"].items()
-                    if src == csrc
-                ]
+                claims = [value for value, src in userinfo["_claim_names"].items() if src == csrc]
 
                 if set(claims) != set(list(_uinfo.keys())):
-                    logger.warning(
-                        "Claims from claim source doesn't match what's in "
-                        "the userinfo"
-                    )
+                    logger.warning("Claims from claim source doesn't match what's in " "the userinfo")
 
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals
@@ -1262,9 +1194,7 @@ class Client(oauth2.Client):
         err_msg = "Got error response: {}"
         unk_msg = "Unknown response: {}"
         if response.status_code in [200, 201]:
-            resp = self.message_factory.get_response_type(
-                "registration_endpoint"
-            )().deserialize(response.text, "json")
+            resp = self.message_factory.get_response_type("registration_endpoint")().deserialize(response.text, "json")
             # Some implementations sends back a 200 with an error message inside
             try:
                 resp.verify()
@@ -1371,9 +1301,7 @@ class Client(oauth2.Client):
             pass
 
         if "response_types" in req:
-            req["grant_types"] = response_types_to_grant_types(
-                req["response_types"], **kwargs
-            )
+            req["grant_types"] = response_types_to_grant_types(req["response_types"], **kwargs)
 
         return req
 
@@ -1476,14 +1404,9 @@ class Client(oauth2.Client):
             raise OtherError("Passed best before date")
 
         if response_type != ["code"] and id_token.jws_header["alg"] == "none":
-            raise WrongSigningAlgorithm(
-                "none is not allowed outside Authorization Flow."
-            )
+            raise WrongSigningAlgorithm("none is not allowed outside Authorization Flow.")
 
-        if (
-            self.id_token_max_age
-            and _now > int(id_token["iat"]) + self.id_token_max_age
-        ):
+        if self.id_token_max_age and _now > int(id_token["iat"]) + self.id_token_max_age:
             raise OtherError("I think this ID token is to old")
 
         if nonce and nonce != id_token["nonce"]:
@@ -1593,15 +1516,9 @@ class Server(oauth2.Server):
         # http_req.text is a signed JWT
         try:
             logger.debug("request txt: {}".format(http_req.text))
-            req = self.parse_jwt_request(
-                txt=http_req.text, verify=verify, sender=sender
-            )
+            req = self.parse_jwt_request(txt=http_req.text, verify=verify, sender=sender)
         except Exception as err:
-            logger.error(
-                "{}:{} encountered while parsing fetched request".format(
-                    err.__class__, err
-                )
-            )
+            logger.error("{}:{} encountered while parsing fetched request".format(err.__class__, err))
             raise AuthzError("invalid_openid_request_object")
 
         logger.debug("Fetched request: {}".format(req))
@@ -1632,21 +1549,15 @@ class Server(oauth2.Server):
             except KeyError:
                 pass
             else:
-                _req_req = self.handle_request_uri(
-                    _url, verify=False, sender=_req["client_id"]
-                )
+                _req_req = self.handle_request_uri(_url, verify=False, sender=_req["client_id"])
         else:
             if isinstance(_request, Message):
                 _req_req = _request
             else:
                 try:
-                    _req_req = self.parse_jwt_request(
-                        request, txt=_request, verify=False
-                    )
+                    _req_req = self.parse_jwt_request(request, txt=_request, verify=False)
                 except Exception:
-                    _req_req = self._parse_request(
-                        request, _request, "urlencoded", verify=False
-                    )
+                    _req_req = self._parse_request(request, _request, "urlencoded", verify=False)
                 else:  # remove JWT attributes
                     for attr in JasonWebToken.c_param:
                         try:
@@ -1698,9 +1609,7 @@ class Server(oauth2.Server):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        return super().parse_jwt_request(
-            request=request, txt=txt, keyjar=keyjar, verify=verify, sender=sender
-        )
+        return super().parse_jwt_request(request=request, txt=txt, keyjar=keyjar, verify=verify, sender=sender)
 
     def parse_check_session_request(self, url=None, query=None):
         param = self._parse_urlencoded(url, query)
@@ -1727,9 +1636,7 @@ class Server(oauth2.Server):
         elif sformat == "dict":
             request = request_cls(**data)
         else:
-            raise ParseError(
-                "Unknown package format: '{}'".format(sformat), request_cls
-            )
+            raise ParseError("Unknown package format: '{}'".format(sformat), request_cls)
 
         # get the verification keys
         if client_id:

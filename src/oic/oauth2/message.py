@@ -318,9 +318,7 @@ class Message(MutableMapping):
 
             if isinstance(val, Message):
                 _res[key] = val.to_dict(lev + 1)
-            elif isinstance(val, list) and isinstance(
-                next(iter(val or []), None), Message
-            ):
+            elif isinstance(val, list) and isinstance(next(iter(val or []), None), Message):
                 _res[key] = [v.to_dict(lev) for v in val]
             else:
                 _res[key] = val
@@ -341,9 +339,7 @@ class Message(MutableMapping):
                 continue
             cparam = self._extract_cparam(key, _spec)
             if cparam is not None:
-                self._add_value(
-                    key, cparam.type, key, val, cparam.deserializer, cparam.null_allowed
-                )
+                self._add_value(key, cparam.type, key, val, cparam.deserializer, cparam.null_allowed)
             else:
                 self._dict[key] = val
         return self
@@ -362,9 +358,7 @@ class Message(MutableMapping):
                 if vtyp is bool:
                     self._dict[skey] = val
                 else:
-                    raise ParameterError(
-                        '"{}", wrong type of value for "{}"'.format(val, skey)
-                    )
+                    raise ParameterError('"{}", wrong type of value for "{}"'.format(val, skey))
             elif isinstance(val, vtyp):  # Not necessary to do anything
                 self._dict[skey] = val
             else:
@@ -377,15 +371,11 @@ class Message(MutableMapping):
                     try:
                         self._dict[skey] = int(val)
                     except (ValueError, TypeError):
-                        raise ParameterError(
-                            '"{}", wrong type of value for "{}"'.format(val, skey)
-                        )
+                        raise ParameterError('"{}", wrong type of value for "{}"'.format(val, skey))
                     else:
                         return
                 elif vtyp is bool:
-                    raise ParameterError(
-                        '"{}", wrong type of value for "{}"'.format(val, skey)
-                    )
+                    raise ParameterError('"{}", wrong type of value for "{}"'.format(val, skey))
 
                 if isinstance(val, str):
                     self._dict[skey] = val
@@ -439,9 +429,7 @@ class Message(MutableMapping):
             else:
                 for v in val:
                     if not isinstance(v, vtype):
-                        raise DecodeError(
-                            ERRTXT % (key, "type != %s (%s)" % (vtype, type(v)))
-                        )
+                        raise DecodeError(ERRTXT % (key, "type != %s (%s)" % (vtype, type(v))))
             self._dict[skey] = val
             return
         if isinstance(val, dict):
@@ -487,9 +475,7 @@ class Message(MutableMapping):
             logger.error('Issuer "{}" not in keyjar'.format(issuer))
             return
 
-        logger.debug(
-            "Key set summary for {}: {}".format(issuer, key_summary(keyjar, issuer))
-        )
+        logger.debug("Key set summary for {}: {}".format(issuer, key_summary(keyjar, issuer)))
 
         if kid:
             _key = keyjar.get_key_by_kid(kid, issuer)
@@ -608,13 +594,9 @@ class Message(MutableMapping):
 
             if "algs" in kwargs and "encalg" in kwargs["algs"]:
                 if kwargs["algs"]["encalg"] != _jw["alg"]:
-                    raise WrongEncryptionAlgorithm(
-                        "%s != %s" % (_jw["alg"], kwargs["algs"]["encalg"])
-                    )
+                    raise WrongEncryptionAlgorithm("%s != %s" % (_jw["alg"], kwargs["algs"]["encalg"]))
                 if kwargs["algs"]["encenc"] != _jw["enc"]:
-                    raise WrongEncryptionAlgorithm(
-                        "%s != %s" % (_jw["enc"], kwargs["algs"]["encenc"])
-                    )
+                    raise WrongEncryptionAlgorithm("%s != %s" % (_jw["enc"], kwargs["algs"]["encenc"]))
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
                 if "sender" in kwargs:
@@ -640,9 +622,7 @@ class Message(MutableMapping):
             if "algs" in kwargs and "sign" in kwargs["algs"]:
                 _alg = _jw.jwt.headers["alg"]
                 if kwargs["algs"]["sign"] != _alg:
-                    raise WrongSigningAlgorithm(
-                        "%s != %s" % (_alg, kwargs["algs"]["sign"])
-                    )
+                    raise WrongSigningAlgorithm("%s != %s" % (_alg, kwargs["algs"]["sign"]))
             try:
                 _jwt = JWT().unpack(txt)
                 jso = _jwt.payload()
@@ -662,9 +642,7 @@ class Message(MutableMapping):
                     pass
                 elif verify:
                     if keyjar:
-                        key = self.get_verify_keys(
-                            keyjar, key, jso, _header, _jw, **kwargs
-                        )
+                        key = self.get_verify_keys(keyjar, key, jso, _header, _jw, **kwargs)
 
                     if "alg" in _header and _header["alg"] != "none":
                         if not key:
@@ -676,9 +654,7 @@ class Message(MutableMapping):
                     except NoSuitableSigningKeys:
                         if keyjar:
                             update_keyjar(keyjar)
-                            key = self.get_verify_keys(
-                                keyjar, key, jso, _header, _jw, **kwargs
-                            )
+                            key = self.get_verify_keys(keyjar, key, jso, _header, _jw, **kwargs)
                             _jw.verify_compact(txt, key)
             except Exception:
                 raise
@@ -743,9 +719,7 @@ class Message(MutableMapping):
                     else:
                         raise NotAllowedValue(val)
             else:
-                self._type_check(
-                    cparam.type, _allowed[attribute], val, cparam.null_allowed
-                )
+                self._type_check(cparam.type, _allowed[attribute], val, cparam.null_allowed)
 
         return True
 
@@ -818,9 +792,7 @@ class Message(MutableMapping):
         return len(self._dict)
 
     def extra(self):
-        return dict(
-            [(key, val) for key, val in self._dict.items() if key not in self.c_param]
-        )
+        return dict([(key, val) for key, val in self._dict.items() if key not in self.c_param])
 
     def only_extras(self):
         extras = [key for key in self._dict.keys() if key in self.c_param]
@@ -957,21 +929,11 @@ VNULLALLOWED = 4
 SINGLE_REQUIRED_STRING = ParamDefinition(str, True, None, None, False)
 SINGLE_OPTIONAL_STRING = ParamDefinition(str, False, None, None, False)
 SINGLE_OPTIONAL_INT = ParamDefinition(int, False, None, None, False)
-OPTIONAL_LIST_OF_STRINGS = ParamDefinition(
-    [str], False, list_serializer, list_deserializer, False
-)
-REQUIRED_LIST_OF_STRINGS = ParamDefinition(
-    [str], True, list_serializer, list_deserializer, False
-)
-OPTIONAL_LIST_OF_SP_SEP_STRINGS = ParamDefinition(
-    [str], False, sp_sep_list_serializer, sp_sep_list_deserializer, False
-)
-REQUIRED_LIST_OF_SP_SEP_STRINGS = ParamDefinition(
-    [str], True, sp_sep_list_serializer, sp_sep_list_deserializer, False
-)
-SINGLE_OPTIONAL_JSON = ParamDefinition(
-    str, False, json_serializer, json_deserializer, False
-)
+OPTIONAL_LIST_OF_STRINGS = ParamDefinition([str], False, list_serializer, list_deserializer, False)
+REQUIRED_LIST_OF_STRINGS = ParamDefinition([str], True, list_serializer, list_deserializer, False)
+OPTIONAL_LIST_OF_SP_SEP_STRINGS = ParamDefinition([str], False, sp_sep_list_serializer, sp_sep_list_deserializer, False)
+REQUIRED_LIST_OF_SP_SEP_STRINGS = ParamDefinition([str], True, sp_sep_list_serializer, sp_sep_list_deserializer, False)
+SINGLE_OPTIONAL_JSON = ParamDefinition(str, False, json_serializer, json_deserializer, False)
 
 REQUIRED = [
     SINGLE_REQUIRED_STRING,

@@ -101,16 +101,12 @@ class TestDictRefreshDB(object):
         self.rdb = DictRefreshDB()
 
     def test_verify_token(self):
-        token = self.rdb.create_token(
-            "client1", "uid", "openid", "sub1", "authzreq", "sid"
-        )
+        token = self.rdb.create_token("client1", "uid", "openid", "sub1", "authzreq", "sid")
         assert self.rdb.verify_token("client1", token)
         assert self.rdb.verify_token("client2", token) is False
 
     def test_revoke_token(self):
-        token = self.rdb.create_token(
-            "client1", "uid", "openid", "sub1", "authzreq", "sid"
-        )
+        token = self.rdb.create_token("client1", "uid", "openid", "sub1", "authzreq", "sid")
         self.rdb.remove(token)
         assert self.rdb.verify_token("client1", token) is False
         with pytest.raises(KeyError):
@@ -119,9 +115,7 @@ class TestDictRefreshDB(object):
     def test_get_token(self):
         with pytest.raises(KeyError):
             self.rdb.get("token")
-        token = self.rdb.create_token(
-            "client1", "uid", ["openid"], "sub1", "authzreq", "sid"
-        )
+        token = self.rdb.create_token("client1", "uid", ["openid"], "sub1", "authzreq", "sid")
         assert self.rdb.get(token) == {
             "client_id": "client1",
             "sub": "sub1",
@@ -216,9 +210,7 @@ class TestSessionBackend(TestCase):
     def test_get_by_sub_multiple(self):
         self.backend["session_id1"] = {"sub": "my_sub"}
         self.backend["session_id2"] = {"sub": "my_sub"}
-        self.assertEqual(
-            set(self.backend.get_by_sub("my_sub")), {"session_id1", "session_id2"}
-        )
+        self.assertEqual(set(self.backend.get_by_sub("my_sub")), {"session_id1", "session_id2"})
 
     def test_get_by_uid(self):
         aevent = AuthnEvent("my_uid", "some_salt").to_json()
@@ -232,16 +224,12 @@ class TestSessionBackend(TestCase):
         self.backend["session_id1"] = {"authn_event": aevent1}
         self.backend["session_id2"] = {"authn_event": aevent2}
 
-        self.assertEqual(
-            set(self.backend.get_by_uid("my_uid")), {"session_id1", "session_id2"}
-        )
+        self.assertEqual(set(self.backend.get_by_uid("my_uid")), {"session_id1", "session_id2"})
 
     def test_get_client_ids_for_uid(self):
         aevent = AuthnEvent("my_uid", "some_salt").to_json()
         self.backend["session_id"] = {"authn_event": aevent, "client_id": "my_client"}
-        self.assertEqual(
-            set(self.backend.get_client_ids_for_uid("my_uid")), {"my_client"}
-        )
+        self.assertEqual(set(self.backend.get_client_ids_for_uid("my_uid")), {"my_client"})
         self.assertEqual(set(self.backend.get_client_ids_for_uid("missing")), set())
 
     def test_get_client_ids_for_uid_multiple(self):
@@ -264,9 +252,7 @@ class TestSessionBackend(TestCase):
         }
         self.backend["session_id2"] = {"authn_event": aevent2}
 
-        self.assertEqual(
-            self.backend.get_verified_logout("my_uid1"), "verification key"
-        )
+        self.assertEqual(self.backend.get_verified_logout("my_uid1"), "verification key")
         self.assertIsNone(self.backend.get_verified_logout("my_uid2"))
         self.assertIsNone(self.backend.get_verified_logout("missing"))
 
@@ -294,9 +280,7 @@ class TestSessionBackend(TestCase):
         aevent2 = AuthnEvent("my_uid", "some_salt").to_json()
         self.backend["session_id1"] = {"authn_event": aevent1, "id_token": "Id token 1"}
         self.backend["session_id2"] = {"authn_event": aevent2, "id_token": "Id token 2"}
-        self.assertEqual(
-            set(self.backend.get_token_ids("my_uid")), {"Id token 1", "Id token 2"}
-        )
+        self.assertEqual(set(self.backend.get_token_ids("my_uid")), {"Id token 1", "Id token 2"})
 
     def test_is_revoke_uid_false(self):
         aevent = AuthnEvent("my_uid", "some_salt").to_json()
@@ -562,9 +546,7 @@ class TestSessionDB(object):
 
     def test_is_valid_refresh_db(self):
         refresh_db = DictRefreshDB()
-        token = refresh_db.create_token(
-            "client1", "uid", "openid", "sub1", "authzreq", "sid"
-        )
+        token = refresh_db.create_token("client1", "uid", "openid", "sub1", "authzreq", "sid")
         sdb = SessionDB("http://example.com", {}, refresh_db=refresh_db)
         assert sdb.is_valid(token, client_id="client1")
 
@@ -645,10 +627,7 @@ class TestSessionDB(object):
         self.sdb.do_sub(sid, "other_random_value")
 
         info = self.sdb[sid]
-        assert (
-            info["sub"]
-            == "179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013"
-        )
+        assert info["sub"] == "179670cdee6375c48e577317b2abd7d5cd26a5cdb1cfb7ef84af3d703c71d013"
 
         self.sdb.do_sub(
             sid,
@@ -657,10 +636,7 @@ class TestSessionDB(object):
             subject_type="pairwise",
         )
         info2 = self.sdb[sid]
-        assert (
-            info2["sub"]
-            == "aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53"
-        )
+        assert info2["sub"] == "aaa50d80f8780cf1c4beb39e8e126556292f5091b9e39596424fefa2b99d9c53"
 
         self.sdb.do_sub(
             sid,
@@ -670,10 +646,7 @@ class TestSessionDB(object):
         )
 
         info2 = self.sdb[sid]
-        assert (
-            info2["sub"]
-            == "62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b"
-        )
+        assert info2["sub"] == "62fb630e29f0d41b88e049ac0ef49a9c3ac5418c029d6e4f5417df7e9443976b"
 
     def test_get_authentication_event_dict(self):
         self.sdb._db["123"] = {}

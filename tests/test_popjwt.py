@@ -135,9 +135,7 @@ def test_pop_jku():
 
 
 def test_pjwt_with_jwk():
-    pj = PopJWT(
-        "https://server.example.com", "https://client.example.org", sub="12345678"
-    )
+    pj = PopJWT("https://server.example.com", "https://client.example.org", sub="12345678")
 
     jwk = {
         "kty": "EC",
@@ -160,9 +158,7 @@ def test_pjwt_with_jwk():
 
 
 def test_pjwt_with_jwe():
-    pj = PopJWT(
-        "https://server.example.com", "https://client.example.org", sub="12345678"
-    )
+    pj = PopJWT("https://server.example.com", "https://client.example.org", sub="12345678")
 
     jwk = {
         "kty": "oct",
@@ -223,9 +219,7 @@ def test_pjwt_with_jwe_jwk():
 
 
 def test_pjwt_with_kid():
-    pj = PopJWT(
-        "https://server.example.com", "https://client.example.org", sub="12345678"
-    )
+    pj = PopJWT("https://server.example.com", "https://client.example.org", sub="12345678")
 
     pjwt = pj.pack_kid("some-key-id")
 
@@ -240,9 +234,7 @@ def test_pjwt_with_kid():
 
 
 def test_pjwt_unpack_jwk():
-    pj = PopJWT(
-        "https://server.example.com", "https://client.example.org", sub="12345678"
-    )
+    pj = PopJWT("https://server.example.com", "https://client.example.org", sub="12345678")
 
     jwk = {
         "kty": "EC",
@@ -267,9 +259,7 @@ def test_pjwt_unpack_jwe():
     keys = KEYS()
     keys.append(RSAKey(use="enc", key=rsa, kid="some-key-id"))
 
-    pj = PopJWT(
-        "https://server.example.com", "https://client.example.org", sub="12345678"
-    )
+    pj = PopJWT("https://server.example.com", "https://client.example.org", sub="12345678")
 
     jwk = {
         "kty": "oct",

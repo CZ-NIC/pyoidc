@@ -39,9 +39,7 @@ class PoPProvider(Provider):
         if "token_type" not in atr or atr["token_type"] != "pop":
             return resp
 
-        client_public_key = base64.urlsafe_b64decode(atr["key"].encode("utf-8")).decode(
-            "utf-8"
-        )
+        client_public_key = base64.urlsafe_b64decode(atr["key"].encode("utf-8")).decode("utf-8")
         pop_key = json.loads(client_public_key)
         atr = AccessTokenResponse().deserialize(resp.message, method="json")
         data = self.sdb.read(atr["access_token"])
@@ -77,24 +75,18 @@ class PoPProvider(Provider):
                 strict_headers_verification=False,
             )
         except ValidationError:
-            return error_response(
-                "access_denied", descr="Could not verify proof of " "possession"
-            )
+            return error_response("access_denied", descr="Could not verify proof of " "possession")
 
         return self._do_user_info(self.access_tokens[access_token], **kwargs)
 
     def _get_client_public_key(self, access_token):
         _jws = jws.factory(access_token)
         if _jws:
-            data = _jws.verify_compact(
-                access_token, self.keyjar.get_verify_key(owner="")
-            )
+            data = _jws.verify_compact(access_token, self.keyjar.get_verify_key(owner=""))
             try:
                 return keyrep(data["cnf"]["jwk"])
             except KeyError:
-                raise NonPoPTokenError(
-                    "Could not extract public key as JWK from access token"
-                )
+                raise NonPoPTokenError("Could not extract public key as JWK from access token")
 
         raise NonPoPTokenError("Unsigned access token, maybe not PoP?")
 
@@ -133,10 +125,7 @@ class PoPProvider(Provider):
             return request["query"]["access_token"]
         elif "access_token" in request["body"]:
             return parse_qs(request["body"])["access_token"][0]
-        elif (
-            "Authorization" in request["headers"]
-            and request["headers"]["Authorization"]
-        ):
+        elif "Authorization" in request["headers"] and request["headers"]["Authorization"]:
             auth_header = request["headers"]["Authorization"]
             if auth_header.startswith("pop "):
                 return auth_header[len("pop ") :]

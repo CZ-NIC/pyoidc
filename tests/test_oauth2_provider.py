@@ -163,18 +163,12 @@ class TestProvider(object):
     def test_providerinfo(self):
         self.provider.baseurl = "http://example.com/path1/path2"
         resp = self.provider.create_providerinfo()
-        assert (
-            resp.to_dict()["authorization_endpoint"]
-            == "http://example.com/path1/path2/authorization"
-        )
+        assert resp.to_dict()["authorization_endpoint"] == "http://example.com/path1/path2/authorization"
 
     def test_providerinfo_trailing(self):
         self.provider.baseurl = "http://example.com/path1/path2/"
         resp = self.provider.create_providerinfo()
-        assert (
-            resp.to_dict()["authorization_endpoint"]
-            == "http://example.com/path1/path2/authorization"
-        )
+        assert resp.to_dict()["authorization_endpoint"] == "http://example.com/path1/path2/authorization"
 
     def test_verify_capabilities(self):
         capabilities = {
@@ -274,9 +268,7 @@ class TestProvider(object):
             **CONSUMER_CONFIG,
         )
 
-        sid, location = cons.begin(
-            "http://localhost:8087", "http://localhost:8088/authorization"
-        )
+        sid, location = cons.begin("http://localhost:8087", "http://localhost:8088/authorization")
 
         resp = self.provider.authorization_endpoint(urlparse(location).query)
         assert resp.status_code == 303
@@ -328,9 +320,7 @@ class TestProvider(object):
             **CONSUMER_CONFIG,
         )
 
-        sid, location = cons.begin(
-            "http://localhost:8087", "http://localhost:8088/authorization", "token"
-        )
+        sid, location = cons.begin("http://localhost:8087", "http://localhost:8088/authorization", "token")
 
         QUERY_STRING = location.split("?")[1]
         resp = self.provider.authorization_endpoint(QUERY_STRING)
@@ -340,9 +330,7 @@ class TestProvider(object):
         assert auth_resp["token_type"][0] == "Bearer"
 
     def test_token_endpoint(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -418,9 +406,7 @@ class TestProvider(object):
         assert _eq(eval(logcap.records[6].msg[21:]), expected5)
 
     def test_token_endpoint_no_cache(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -451,9 +437,7 @@ class TestProvider(object):
         ]
 
     def test_token_endpoint_unauth(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -637,9 +621,7 @@ class TestProvider(object):
         assert atr["error"] == "unauthorized_client"
 
     def test_token_endpoint_client_credentials(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -661,9 +643,7 @@ class TestProvider(object):
         assert parsed["error"] == "unsupported_grant_type"
 
     def test_token_endpoint_password(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -678,18 +658,14 @@ class TestProvider(object):
             "redirect_uri": "http://example.com/authz",
             "token_endpoint_auth_method": "client_secret_basic",
         }
-        areq = ROPCAccessTokenRequest(
-            grant_type="password", username="client1", password="password"
-        )
+        areq = ROPCAccessTokenRequest(grant_type="password", username="client1", password="password")
         authn = "Basic Y2xpZW50Mjp2ZXJ5c2VjcmV0="
         resp = self.provider.token_endpoint(request=areq.to_urlencoded(), authn=authn)
         parsed = TokenErrorResponse().from_json(resp.message)
         assert parsed["error"] == "unsupported_grant_type"
 
     def test_token_endpoint_other(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -746,9 +722,7 @@ class TestProvider(object):
         atr = TokenErrorResponse().deserialize(resp.message, "json")
         assert atr["error"] == "invalid_grant"
 
-    @pytest.mark.parametrize(
-        "response_types", [["token id_token", "id_token"], ["id_token token"]]
-    )
+    @pytest.mark.parametrize("response_types", [["token id_token", "id_token"], ["id_token token"]])
     def test_response_types(self, response_types):
         authreq = AuthorizationRequest(
             state="state",
@@ -825,9 +799,7 @@ class TestProvider(object):
             "code": access_code,
             "redirect_uri": "http://localhost:8087/authz",
         }
-        response, header, redirect, fragment = provider._complete_authz(
-            "sub", areq, sid
-        )
+        response, header, redirect, fragment = provider._complete_authz("sub", areq, sid)
         assert header == []
         assert not fragment
         assert redirect == "http://localhost:8087/authz"
@@ -857,9 +829,7 @@ class TestProvider(object):
             "code": access_code,
             "redirect_uri": "http://localhost:8087/authz",
         }
-        response, header, redirect, fragment = provider._complete_authz(
-            "sub", areq, sid
-        )
+        response, header, redirect, fragment = provider._complete_authz("sub", areq, sid)
         assert len(header) == 1
         cookie_header = header[0]
         assert cookie_header[0] == "Set-Cookie"
@@ -893,9 +863,7 @@ class TestProvider(object):
             "redirect_uri": "http://localhost:8087/authz",
         }
         cookie = "Some-cookie=test::test"
-        response, header, redirect, fragment = provider._complete_authz(
-            "sub", areq, sid, cookie=cookie
-        )
+        response, header, redirect, fragment = provider._complete_authz("sub", areq, sid, cookie=cookie)
         assert len(header) == 1
         cookie_header = header[0]
         assert cookie_header[1].startswith('pyoidc_sso="sub][client1')
@@ -928,9 +896,7 @@ class TestProvider(object):
             "redirect_uri": "http://localhost:8087/authz",
         }
         cookie = "pyoidc_sso=test::test"
-        response, header, redirect, fragment = provider._complete_authz(
-            "sub", areq, sid, cookie=cookie
-        )
+        response, header, redirect, fragment = provider._complete_authz("sub", areq, sid, cookie=cookie)
         assert len(header) == 0
         assert not fragment
         assert redirect == "http://localhost:8087/authz"

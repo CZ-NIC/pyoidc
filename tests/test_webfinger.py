@@ -73,16 +73,11 @@ class TestWebFinger(object):
     def test_query_device(self):
         wf = WebFinger()
         query = wf.query(resource="device:p1.example.com")
-        assert (
-            query == "https://p1.example.com/.well-known/webfinger"
-            "?resource=device%3Ap1.example.com"
-        )
+        assert query == "https://p1.example.com/.well-known/webfinger" "?resource=device%3Ap1.example.com"
 
     def test_query_rel(self):
         wf = WebFinger()
-        query = wf.query(
-            "acct:bob@example.com", ["http://webfinger.net/rel/profile-page", "vcard"]
-        )
+        query = wf.query("acct:bob@example.com", ["http://webfinger.net/rel/profile-page", "vcard"])
         assert (
             query == "https://example.com/.well-known/webfinger?resource"
             "=acct%3Abob%40example.com&rel=http%3A%2F%2Fwebfinger"
@@ -102,10 +97,7 @@ class TestWebFinger(object):
     def test_query_device_host_forced(self):
         wf = WebFinger()
         query = wf.query(resource="device:p1.example.com", host="forced.com")
-        assert (
-            query == "https://forced.com/.well-known/webfinger"
-            "?resource=device%3Ap1.example.com"
-        )
+        assert query == "https://forced.com/.well-known/webfinger" "?resource=device%3Ap1.example.com"
 
     def test_query_rel_host_forced(self):
         wf = WebFinger()

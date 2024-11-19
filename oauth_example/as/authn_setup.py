@@ -24,18 +24,14 @@ def cas_setup(item):
         _func = VALIDATOR[v_cnf["type"].upper()](item)
 
     _cnf = item["config"]
-    return CasAuthnMethod(
-        None, _cnf["cas_server"], item["URL"], _cnf["return_to"], _func
-    )
+    return CasAuthnMethod(None, _cnf["cas_server"], item["URL"], _cnf["return_to"], _func)
 
 
 def userpwd_setup(item):
     from oic.utils.authn.user import UsernamePasswordMako
 
     _conf = item["config"]
-    return UsernamePasswordMako(
-        None, "login.mako", _conf["lookup"], _conf["passwd"], _conf["return_to"]
-    )
+    return UsernamePasswordMako(None, "login.mako", _conf["lookup"], _conf["passwd"], _conf["return_to"])
 
 
 AUTH_METHOD = {
