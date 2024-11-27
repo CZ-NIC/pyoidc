@@ -39,9 +39,9 @@ def lv_unpack(txt):
     txt = txt.strip()
     res = []
     while txt:
-        l, v = txt.split(":", 1)
-        res.append(v[: int(l)])
-        txt = v[int(l) :]
+        length, v = txt.split(":", 1)
+        res.append(v[: int(length)])
+        txt = v[int(length) :]
     return res
 
 
@@ -62,16 +62,12 @@ class UnknownToken(Exception):
 
 
 def pairwise_id(sub, sector_identifier, seed):
-    return hashlib.sha256(
-        ("%s%s%s" % (sub, sector_identifier, seed)).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(("%s%s%s" % (sub, sector_identifier, seed)).encode("utf-8")).hexdigest()
 
 
 class Crypt(object):
     def __init__(self, password, mode=None):
-        self.key = base64.urlsafe_b64encode(
-            hashlib.sha256(password.encode("utf-8")).digest()
-        )
+        self.key = base64.urlsafe_b64encode(hashlib.sha256(password.encode("utf-8")).digest())
         self.core = Fernet(self.key)
 
     def encrypt(self, text):
@@ -92,9 +88,7 @@ class Token(object):
         self.args = kwargs
         if typ == "R":
             if token_storage is None:
-                raise ImproperlyConfigured(
-                    "token_storage kwarg must be passed in for refresh token."
-                )
+                raise ImproperlyConfigured("token_storage kwarg must be passed in for refresh token.")
         self.token_storage = token_storage
 
     def __call__(self, sid, *args, **kwargs):
@@ -204,9 +198,7 @@ class DefaultToken(Token):
             # kwargs["sinfo"] is a dictionary and we do not want updates...
             self.token_storage[sid] = copy.deepcopy(kwargs["sinfo"])
 
-        return base64.b64encode(
-            self.crypt.encrypt(lv_pack(rnd, ttype, sid, issued_at).encode())
-        ).decode("utf-8")
+        return base64.b64encode(self.crypt.encrypt(lv_pack(rnd, ttype, sid, issued_at).encode())).decode("utf-8")
 
     def key(self, user="", areq=None, **kwargs):
         """
@@ -400,9 +392,7 @@ def create_session_db(
     code_factory = DefaultToken(secret, password, typ="A", lifetime=grant_expires_in)
     token_factory = DefaultToken(secret, password, typ="T", lifetime=token_expires_in)
     db = DictSessionBackend() if db is None else db
-    refresh_token_factory = DefaultToken(
-        secret, password, typ="R", lifetime=refresh_token_expires_in, token_storage={}
-    )
+    refresh_token_factory = DefaultToken(secret, password, typ="R", lifetime=refresh_token_expires_in, token_storage={})
 
     return SessionDB(
         base_url,
@@ -456,9 +446,7 @@ class SessionDB(object):
 
         if refresh_token_factory:
             if refresh_db:
-                raise ImproperlyConfigured(
-                    "Only use one of refresh_db or refresh_token_factory"
-                )
+                raise ImproperlyConfigured("Only use one of refresh_db or refresh_token_factory")
             self._refresh_db = None
             self.token_factory["refresh_token"] = refresh_token_factory
             self.token_factory_order.append("refresh_token")
@@ -581,9 +569,7 @@ class SessionDB(object):
         user_salt = authn_event.salt
 
         if subject_type == "public":
-            sub = hashlib.sha256(
-                "{}{}".format(uid, user_salt).encode("utf-8")
-            ).hexdigest()
+            sub = hashlib.sha256("{}{}".format(uid, user_salt).encode("utf-8")).hexdigest()
         else:
             sub = pairwise_id(uid, sector_id, "{}{}".format(client_salt, user_salt))
 
@@ -964,9 +950,7 @@ class SessionDB(object):
         :param sid:
         :return: A session management ID
         """
-        return hashlib.sha256(
-            "{}{}".format(sid, self.sm_salt).encode("utf-8")
-        ).hexdigest()
+        return hashlib.sha256("{}{}".format(sid, self.sm_salt).encode("utf-8")).hexdigest()
 
     def get(self, attr: str, val: Any) -> List[str]:
         """Return session ids based on attribute name and value."""

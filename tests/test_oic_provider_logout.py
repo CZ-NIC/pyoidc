@@ -74,9 +74,7 @@ KC_SYM2 = KeyBundle(
 )
 
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
-KC_RSA = keybundle_from_local_file(
-    os.path.join(BASE_PATH, "rsa.key"), "RSA", ["ver", "sig"]
-)
+KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"), "RSA", ["ver", "sig"])
 
 KEYJAR = KeyJar()
 KEYJAR[CLIENT_ID] = [KC_SYM, KC_RSA]
@@ -164,9 +162,7 @@ class TestProvider(object):
         "client0": {
             "redirect_uris": [("http://www.example.org/authz", None)],
             "client_secret": "very_secret",
-            "post_logout_redirect_uris": [
-                ("https://www.example.org/post_logout", None)
-            ],
+            "post_logout_redirect_uris": [("https://www.example.org/post_logout", None)],
             "client_salt": "salted",
             "response_types": ["code", "token", "code id_token"],
         },
@@ -202,49 +198,31 @@ class TestProvider(object):
             CLIENT_CONFIG,
             server_info=SERVER_INFO,
         )
-        self.cons.behaviour = {
-            "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]
-        }
+        self.cons.behaviour = {"request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
         self.cons.keyjar[""] = KC_RSA
-        self.cons.keyjar.import_jwks(
-            self.provider.keyjar.export_jwks(), self.cons.issuer
-        )
+        self.cons.keyjar.import_jwks(self.provider.keyjar.export_jwks(), self.cons.issuer)
 
-        self.cons2 = Consumer(
-            {}, CONSUMER_CONFIG.copy(), CLIENT_CONFIG_2, server_info=SERVER_INFO
-        )
-        self.cons2.behaviour = {
-            "request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]
-        }
+        self.cons2 = Consumer({}, CONSUMER_CONFIG.copy(), CLIENT_CONFIG_2, server_info=SERVER_INFO)
+        self.cons2.behaviour = {"request_object_signing_alg": DEF_SIGN_ALG["openid_request_object"]}
         self.cons2.keyjar[""] = KC_RSA
 
     def _code_auth(self):
-        state, location = self.cons.begin(
-            "openid", "code", path="http://localhost:8087"
-        )
+        state, location = self.cons.begin("openid", "code", path="http://localhost:8087")
         return self.provider.authorization_endpoint(request=location.split("?")[1])
 
     def _code_auth2(self):
-        state, location = self.cons2.begin(
-            "openid", "code", path="http://www.example.org"
-        )
+        state, location = self.cons2.begin("openid", "code", path="http://www.example.org")
         return self.provider.authorization_endpoint(request=location.split("?")[1])
 
     def _auth_with_id_token(self):
-        state, location = self.cons.begin(
-            "openid", "id_token", path="http://localhost:8087"
-        )
+        state, location = self.cons.begin("openid", "id_token", path="http://localhost:8087")
         resp = self.provider.authorization_endpoint(request=location.split("?")[1])
-        aresp = self.cons.parse_response(
-            AuthorizationResponse, resp.message, sformat="urlencoded"
-        )
+        aresp = self.cons.parse_response(AuthorizationResponse, resp.message, sformat="urlencoded")
         return aresp["id_token"]
 
     def _create_cookie(self, user, client_id, c_type="sso"):
         cd = CookieDealer(self.provider)
-        set_cookie = cd.create_cookie(
-            "{}][{}".format(user, client_id), c_type, self.provider.sso_cookie_name
-        )
+        set_cookie = cd.create_cookie("{}][{}".format(user, client_id), c_type, self.provider.sso_cookie_name)
         cookies_string = set_cookie[1]
         all_cookies: SimpleCookie = SimpleCookie()
 
@@ -262,12 +240,8 @@ class TestProvider(object):
         assert self.provider.verify_post_logout_redirect_uri(esr, CLIENT_ID) is None
 
     def test_wrong_post_logout_redirect_uri(self):
-        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = [
-            "https://example.com/plru"
-        ]
-        esr = EndSessionRequest(
-            state="foo", post_logout_redirect_uri="https://localhost:8087/plru"
-        )
+        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = ["https://example.com/plru"]
+        esr = EndSessionRequest(state="foo", post_logout_redirect_uri="https://localhost:8087/plru")
         assert self.provider.verify_post_logout_redirect_uri(esr, CLIENT_ID) is None
 
     def test_no_post_logout_redirect_uri(self):
@@ -280,27 +254,17 @@ class TestProvider(object):
         assert self.provider.verify_post_logout_redirect_uri(esr, CLIENT_ID) is None
 
     def test_let_user_verify_logout(self):
-        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = [
-            "https://localhost:8087/plru"
-        ]
-        esr = EndSessionRequest(
-            state="foo", post_logout_redirect_uri="https://localhost:8087/plru"
-        )
+        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = ["https://localhost:8087/plru"]
+        esr = EndSessionRequest(state="foo", post_logout_redirect_uri="https://localhost:8087/plru")
         res = self.provider.let_user_verify_logout("user", esr, None, None)
         assert isinstance(res, Response)
         assert res.headers == [("Content-type", "text/html")]
         assert res.status_code == 200
 
     def test_let_user_verify_logout_with_cookie(self):
-        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = [
-            "https://localhost:8087/plru"
-        ]
-        esr = EndSessionRequest(
-            state="foo", post_logout_redirect_uri="https://localhost:8087/plru"
-        )
-        res = self.provider.let_user_verify_logout(
-            "user", esr, [("Set-Cookie", "kaka")], None
-        )
+        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = ["https://localhost:8087/plru"]
+        esr = EndSessionRequest(state="foo", post_logout_redirect_uri="https://localhost:8087/plru")
+        res = self.provider.let_user_verify_logout("user", esr, [("Set-Cookie", "kaka")], None)
         assert isinstance(res, Response)
         assert set(res.headers) == {
             ("Content-type", "text/html"),
@@ -309,15 +273,9 @@ class TestProvider(object):
         assert res.status_code == 200
 
     def test_let_user_verify_logout_with_redirect(self):
-        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = [
-            "https://localhost:8087/plru"
-        ]
-        esr = EndSessionRequest(
-            state="foo", post_logout_redirect_uri="https://localhost:8087/plru"
-        )
-        res = self.provider.let_user_verify_logout(
-            "user", esr, None, "https://example.com/redirect"
-        )
+        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = ["https://localhost:8087/plru"]
+        esr = EndSessionRequest(state="foo", post_logout_redirect_uri="https://localhost:8087/plru")
+        res = self.provider.let_user_verify_logout("user", esr, None, "https://example.com/redirect")
         assert isinstance(res, Response)
         assert set(res.headers) == {("Content-type", "text/html")}
         assert res.status_code == 200
@@ -328,9 +286,7 @@ class TestProvider(object):
         assert txt in res.message
 
     def test_let_user_verify_logout_with_id_token_hint(self):
-        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = [
-            "https://localhost:8087/plru"
-        ]
+        self.provider.cdb[CLIENT_ID]["post_logout_redirect_uris"] = ["https://localhost:8087/plru"]
 
         esr = EndSessionRequest(
             state="foo",
@@ -342,9 +298,7 @@ class TestProvider(object):
         assert set(res.headers) == {("Content-type", "text/html")}
         assert res.status_code == 200
         # make sure the id_token_hint was propagated
-        txt = '<input type="hidden" name="{}" value="{}"/>'.format(
-            "id_token_hint", "J.W.S"
-        )
+        txt = '<input type="hidden" name="{}" value="{}"/>'.format("id_token_hint", "J.W.S")
         assert txt in res.message
 
     def test_end_session_endpoint_with_cookie(self):
@@ -353,9 +307,7 @@ class TestProvider(object):
         self._code_auth()
         cookie = self._create_cookie("username", "number5")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"state": "abcde"}), cookie=cookie)
 
         # returns a SeeOther instance
         p = urlparse(resp.message)
@@ -371,16 +323,12 @@ class TestProvider(object):
     def test_end_session_endpoint_with_wrong_cookie(self):
         # Need cookie and ID Token to figure this out
         id_token = self._auth_with_id_token()
-        assert session_get(
-            self.provider.sdb, "sub", id_token["sub"]
-        )  # verify we got valid session
+        assert session_get(self.provider.sdb, "sub", id_token["sub"])  # verify we got valid session
 
         id_token_hint = id_token.to_jwt(algorithm="none")
         cookie = self._create_cookie("diggins", "number5")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}), cookie=cookie)
 
         assert isinstance(resp, Response)
         _err = ErrorResponse().from_json(resp.message)
@@ -395,9 +343,7 @@ class TestProvider(object):
         id_token_hint = id_token.to_jwt(algorithm="none")
         cookie = self._create_cookie("diggins", "number5")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}), cookie=cookie)
 
         assert isinstance(resp, Response)
         _err = ErrorResponse().from_json(resp.message)
@@ -413,9 +359,7 @@ class TestProvider(object):
         # Wrong client_id
         cookie = self._create_cookie("username", "a1b2c3")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}), cookie=cookie)
 
         assert isinstance(resp, Response)
         _err = ErrorResponse().from_json(resp.message)
@@ -426,9 +370,7 @@ class TestProvider(object):
         self._code_auth2()
         cookie = self._create_cookie("username", "client0")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"state": "abcde"}), cookie=cookie)
 
         # returns a SeeOther instance
         p = urlparse(resp.message)
@@ -448,9 +390,7 @@ class TestProvider(object):
         # statement is false.
         cookie = self._create_cookie("username", "a1b2c3")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"state": "abcde"}), cookie=cookie)
 
         assert isinstance(resp, Response)
         _err = ErrorResponse().from_json(resp.message)
@@ -462,9 +402,7 @@ class TestProvider(object):
 
         id_token_hint = id_token.to_jwt(algorithm="none")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint})
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}))
 
         # returns a SeeOther instance
         p = urlparse(resp.message)
@@ -483,9 +421,7 @@ class TestProvider(object):
         id_token_hint = id_token.to_jwt(algorithm="none")
         cookie = self._create_cookie("username", "number5")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}), cookie=cookie)
 
         # returns a SeeOther instance
         p = urlparse(resp.message)
@@ -501,13 +437,9 @@ class TestProvider(object):
         self._code_auth()
         cookie = self._create_cookie("username", "number5")
 
-        post_logout_redirect_uri = self.CDB[str(CLIENT_CONFIG["client_id"])][
-            "post_logout_redirect_uris"
-        ][0][0]
+        post_logout_redirect_uri = self.CDB[str(CLIENT_CONFIG["client_id"])]["post_logout_redirect_uris"][0][0]
         resp = self.provider.end_session_endpoint(
-            urlencode(
-                {"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde"}
-            ),
+            urlencode({"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde"}),
             cookie=cookie,
         )
 
@@ -531,9 +463,7 @@ class TestProvider(object):
         self._code_auth()
         cookie = self._create_cookie("username", "number5")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"state": "abcde"}), cookie=cookie)
 
         # returns a SeeOther instance
         p = urlparse(resp.message)
@@ -555,9 +485,7 @@ class TestProvider(object):
         self._code_auth()
         cookie = self._create_cookie("username", "number5")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"state": "abcde"}), cookie=cookie)
 
         assert isinstance(resp, Response)
         _err = ErrorResponse().from_json(resp.message)
@@ -569,13 +497,9 @@ class TestProvider(object):
         self._code_auth()
         cookie = self._create_cookie("username", "number5")
 
-        post_logout_redirect_uri = self.CDB[str(CLIENT_CONFIG["client_id"])][
-            "post_logout_redirect_uris"
-        ][0][0]
+        post_logout_redirect_uri = self.CDB[str(CLIENT_CONFIG["client_id"])]["post_logout_redirect_uris"][0][0]
         resp = self.provider.end_session_endpoint(
-            urlencode(
-                {"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde"}
-            ),
+            urlencode({"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde"}),
             cookie=cookie,
         )
 
@@ -594,9 +518,7 @@ class TestProvider(object):
 
         post_logout_redirect_uri = "https://www.example.com/logout"
         resp = self.provider.end_session_endpoint(
-            urlencode(
-                {"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde"}
-            ),
+            urlencode({"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde"}),
             cookie=cookie,
         )
 
@@ -615,9 +537,7 @@ class TestProvider(object):
         ]
 
         # No post_logout_redirect_uri in request
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"state": "abcde"}), cookie=cookie)
 
         assert isinstance(resp, Response)
         _qp = parse_qs(resp.message.split("?")[1])
@@ -627,9 +547,7 @@ class TestProvider(object):
     def test_back_channel_logout_no_uri(self):
         self._code_auth()
 
-        res = self.provider.do_back_channel_logout(
-            self.provider.cdb[CLIENT_ID], "username", "sid"
-        )
+        res = self.provider.do_back_channel_logout(self.provider.cdb[CLIENT_ID], "username", "sid")
         assert res is None
 
     def test_back_channel_logout(self):
@@ -654,9 +572,7 @@ class TestProvider(object):
         _cdb = copy.copy(self.provider.cdb[CLIENT_ID])
         _cdb["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         _cdb["client_id"] = CLIENT_ID
-        res = self.provider.do_front_channel_logout_iframe(
-            _cdb, str(SERVER_INFO["issuer"]), "_sid_"
-        )
+        res = self.provider.do_front_channel_logout_iframe(_cdb, str(SERVER_INFO["issuer"]), "_sid_")
         assert res == '<iframe src="https://example.com/fc_logout">'
 
     def test_front_channel_logout_session_required(self):
@@ -666,9 +582,7 @@ class TestProvider(object):
         _cdb["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         _cdb["frontchannel_logout_session_required"] = True
         _cdb["client_id"] = CLIENT_ID
-        res = self.provider.do_front_channel_logout_iframe(
-            _cdb, str(SERVER_INFO["issuer"]), "_sid_"
-        )
+        res = self.provider.do_front_channel_logout_iframe(_cdb, str(SERVER_INFO["issuer"]), "_sid_")
         m = re.match(r'<iframe src="([^"]+)">', str(res))
         assert m
         _q = parse_qs(str(m.group(1)).split("?")[1])
@@ -681,9 +595,7 @@ class TestProvider(object):
         _cdb["frontchannel_logout_uri"] = "https://example.com/fc_logout?foo=bar"
         _cdb["frontchannel_logout_session_required"] = True
         _cdb["client_id"] = CLIENT_ID
-        res = self.provider.do_front_channel_logout_iframe(
-            _cdb, str(SERVER_INFO["issuer"]), "_sid_"
-        )
+        res = self.provider.do_front_channel_logout_iframe(_cdb, str(SERVER_INFO["issuer"]), "_sid_")
         m = re.match(r'<iframe src="([^"]+)">', str(res))
         assert m
         _q = parse_qs(str(m.group(1)).split("?")[1])
@@ -694,16 +606,12 @@ class TestProvider(object):
 
         _cdb = copy.copy(self.provider.cdb[CLIENT_ID])
         _cdb["client_id"] = CLIENT_ID
-        res = self.provider.do_front_channel_logout_iframe(
-            _cdb, str(SERVER_INFO["issuer"]), "_sid_"
-        )
+        res = self.provider.do_front_channel_logout_iframe(_cdb, str(SERVER_INFO["issuer"]), "_sid_")
         assert res is None
 
     def test_logout_from_client_bc(self):
         self._code_auth()
-        self.provider.cdb[CLIENT_ID][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
+        self.provider.cdb[CLIENT_ID]["backchannel_logout_uri"] = "https://example.com/bc_logout"
         self.provider.cdb[CLIENT_ID]["client_id"] = CLIENT_ID
         # Get a session ID, anyone will do.
         # I know the session backend DB is a DictSessionBackend so I can use that
@@ -724,9 +632,7 @@ class TestProvider(object):
     def test_logout_from_client_fc(self):
         self._code_auth()
         del self.provider.cdb[CLIENT_ID]["backchannel_logout_uri"]
-        self.provider.cdb[CLIENT_ID][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb[CLIENT_ID]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb[CLIENT_ID]["client_id"] = CLIENT_ID
         # Get a session ID, anyone will do.
         # I know the session backend DB is a DictSessionBackend so I can use that
@@ -743,13 +649,9 @@ class TestProvider(object):
         self._code_auth2()
 
         # client0
-        self.provider.cdb["client0"][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
+        self.provider.cdb["client0"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
         self.provider.cdb["client0"]["client_id"] = "client0"
-        self.provider.cdb["number5"][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb["number5"]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb["number5"]["client_id"] = CLIENT_ID
 
         # Get a session ID, anyone will do.
@@ -774,13 +676,9 @@ class TestProvider(object):
         self._code_auth2()
 
         # client0
-        self.provider.cdb["client0"][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
+        self.provider.cdb["client0"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
         self.provider.cdb["client0"]["client_id"] = "client0"
-        self.provider.cdb["number5"][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb["number5"]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb["number5"]["client_id"] = CLIENT_ID
 
         # Get a session ID, anyone will do.
@@ -798,13 +696,9 @@ class TestProvider(object):
         self._code_auth2()
 
         # client0
-        self.provider.cdb["client0"][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
+        self.provider.cdb["client0"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
         self.provider.cdb["client0"]["client_id"] = "client0"
-        self.provider.cdb["number5"][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb["number5"]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb["number5"]["client_id"] = CLIENT_ID
 
         # Get a session ID, anyone will do.
@@ -824,13 +718,9 @@ class TestProvider(object):
         self._code_auth2()
 
         # client0
-        self.provider.cdb["client0"][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
+        self.provider.cdb["client0"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
         self.provider.cdb["client0"]["client_id"] = "client0"
-        self.provider.cdb["number5"][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb["number5"]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb["number5"]["client_id"] = CLIENT_ID
 
         # Get a session ID, anyone will do.
@@ -850,13 +740,9 @@ class TestProvider(object):
         self._code_auth2()
 
         # client0
-        self.provider.cdb["client0"][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
+        self.provider.cdb["client0"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
         self.provider.cdb["client0"]["client_id"] = "client0"
-        self.provider.cdb["number5"][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb["number5"]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb["number5"]["client_id"] = CLIENT_ID
 
         # Get a session ID, anyone will do.
@@ -875,13 +761,9 @@ class TestProvider(object):
         self._code_auth2()
 
         # client0
-        self.provider.cdb["client0"][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
+        self.provider.cdb["client0"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
         self.provider.cdb["client0"]["client_id"] = "client0"
-        self.provider.cdb["number5"][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb["number5"]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb["number5"]["client_id"] = CLIENT_ID
 
         # Get a session ID, anyone will do.
@@ -904,9 +786,7 @@ class TestProvider(object):
             ("https://example.com/plru2", ""),
         ]
 
-        res = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
+        res = self.provider.end_session_endpoint(urlencode({"state": "abcde"}), cookie=cookie)
         assert isinstance(res, Response)
         assert res.status_code == 400
 
@@ -925,37 +805,27 @@ class TestProvider(object):
         if "backchannel_logout_uri" in self.provider.cdb["number5"]:
             del self.provider.cdb["number5"]["backchannel_logout_uri"]
 
-        res = self.provider.do_back_channel_logout(
-            self.provider.cdb["number5"], _sub, _sid
-        )
+        res = self.provider.do_back_channel_logout(self.provider.cdb["number5"], _sub, _sid)
         assert res is None
 
     def test_id_token_hint_multiple_aud(self):
         id_token = self._auth_with_id_token()
-        assert session_get(
-            self.provider.sdb, "sub", id_token["sub"]
-        )  # verify we got valid session
+        assert session_get(self.provider.sdb, "sub", id_token["sub"])  # verify we got valid session
 
-        self.provider.cdb["number5"]["post_logout_redirect_uris"] = [
-            ("https://example.com/plru", "")
-        ]
+        self.provider.cdb["number5"]["post_logout_redirect_uris"] = [("https://example.com/plru", "")]
 
         # add another aud and an azp.
         id_token["azp"] = id_token["aud"][0]
         id_token["aud"].append("foobar")
         id_token_hint = id_token.to_jwt(algorithm="none")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint})
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}))
 
         assert isinstance(resp, SeeOther)
 
     def test_id_token_hint_aud_does_not_match_client_id(self):
         id_token = self._auth_with_id_token()
-        assert session_get(
-            self.provider.sdb, "sub", id_token["sub"]
-        )  # verify we got valid session
+        assert session_get(self.provider.sdb, "sub", id_token["sub"])  # verify we got valid session
 
         # add another aud and an azp.
         id_token_hint = id_token.to_jwt(algorithm="none")
@@ -963,9 +833,7 @@ class TestProvider(object):
         # Mess with the session DB
         _sid = list(self.provider.sdb._db.storage.keys())[0]
         self.provider.sdb[_sid]["client_id"] = "something else"
-        resp = self.provider.end_session_endpoint(
-            urlencode({"id_token_hint": id_token_hint})
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}))
 
         assert isinstance(resp, Response)
         assert resp.status_code == 400
@@ -978,9 +846,7 @@ class TestProvider(object):
             if c in self.provider.cdb["number5"]:
                 del self.provider.cdb["number5"][c]
 
-        resp = self.provider.do_verified_logout(
-            sid=list(self.provider.sdb._db.storage.keys())[0], client_id="number5"
-        )
+        resp = self.provider.do_verified_logout(sid=list(self.provider.sdb._db.storage.keys())[0], client_id="number5")
 
         # only cookies
         assert set(resp.keys()) == {"cookie"}
@@ -989,9 +855,7 @@ class TestProvider(object):
         self._code_auth()
 
         # client0
-        self.provider.cdb["client0"][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
+        self.provider.cdb["client0"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
         self.provider.cdb["client0"]["client_id"] = "client0"
 
         # Get a session ID, anyone will do.
@@ -1023,9 +887,7 @@ class TestProvider(object):
         self._code_auth()
         cookie = self._create_cookie("username", "unknown")
 
-        resp = self.provider.end_session_endpoint(
-            urlencode({"state": "abcde"}), cookie=cookie
-        )
+        resp = self.provider.end_session_endpoint(urlencode({"state": "abcde"}), cookie=cookie)
 
         assert isinstance(resp, Response)
         assert resp.status_code == 400
@@ -1042,12 +904,8 @@ class TestProvider(object):
         self._code_auth()
 
         # client0
-        self.provider.cdb["number5"][
-            "backchannel_logout_uri"
-        ] = "https://example.com/bc_logout"
-        self.provider.cdb["number5"][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb["number5"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
+        self.provider.cdb["number5"]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb["number5"]["client_id"] = "number5"
 
         # Get a session ID, anyone will do.
@@ -1074,9 +932,7 @@ class TestProvider(object):
         self.provider.cdb["client0"]["client_id"] = "client0"
 
         # both back channel and front channel
-        self.provider.cdb["number5"][
-            "frontchannel_logout_uri"
-        ] = "https://example.com/fc_logout"
+        self.provider.cdb["number5"]["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         self.provider.cdb["number5"]["client_id"] = "number5"
 
         # Get a session ID, anyone will do.

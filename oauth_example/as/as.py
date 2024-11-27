@@ -2,6 +2,7 @@
 """
 A very simple OAuth2 AS
 """
+
 import json
 import logging
 import os
@@ -257,7 +258,7 @@ if __name__ == "__main__":
         hostname=config.HOST,
         capabilities=capabilities,
         behavior=config.BEHAVIOR,
-        **kwargs
+        **kwargs,
     )
 
     try:

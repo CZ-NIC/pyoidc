@@ -129,9 +129,7 @@ class PoPRS(object):
         key = load_jwks(json.dumps({"keys": [json.loads(tir["key"])]}))
         self.token2key[access_token] = key
 
-    def eval_signed_http_request(
-        self, pop_token, access_token, method, url, headers, body=""
-    ):
+    def eval_signed_http_request(self, pop_token, access_token, method, url, headers, body=""):
         kwargs = sign_http_args(method, url, headers, body)
 
         shr = SignedHttpRequest(self.token2key[access_token][0])

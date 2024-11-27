@@ -1,23 +1,22 @@
 PORT = 8040
-ISSUER = 'https://localhost'  # do not include the port, it will be added in the code.
+ISSUER = "https://localhost"  # do not include the port, it will be added in the code.
 SERVICEURL = "{issuer}verify"  # do not manually add issuer or port number, these will be added in the code.
 SERVER_CERT = "certification/server.crt"
 SERVER_KEY = "certification/server.key"
 CERT_CHAIN = None
 
 AUTHENTICATION = {
-    "UserPassword":
-        {
-            "ACR": "PASSWORD",
-            "WEIGHT": 1,
-            "URL": SERVICEURL,
-            "EndPoints": ["verify"],
-        }
+    "UserPassword": {
+        "ACR": "PASSWORD",
+        "WEIGHT": 1,
+        "URL": SERVICEURL,
+        "EndPoints": ["verify"],
+    }
 }
 
-CLIENTDB = 'ClientDB'
-SYM_KEY = "SoLittleTime,Got" # used for Symmetric key authentication only.
-COOKIENAME = 'pyoic'
+CLIENTDB = "ClientDB"
+SYM_KEY = "SoLittleTime,Got"  # used for Symmetric key authentication only.
+COOKIENAME = "pyoic"
 COOKIETTL = 4 * 60  # 4 hours
 
 USERINFO = "SIMPLE"
@@ -36,7 +35,7 @@ USERDB = {
             "street_address": "address1",
             "locality": "locality1",
             "postal_code": "5719800000",
-            "country": "Iran"
+            "country": "Iran",
         },
     },
     "user2": {
@@ -54,7 +53,7 @@ USERDB = {
             "postal_code": "5719899999",
             "country": "Iran",
         },
-    }
+    },
 }
 
 # This is a JSON Web Key (JWK) object, and its members represent
@@ -62,8 +61,7 @@ USERDB = {
 keys = [
     {"type": "RSA", "key": "cryptography_keys/key.pem", "use": ["enc", "sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["enc"]}
-
+    {"type": "EC", "crv": "P-256", "use": ["enc"]},
     # "type" or "kty" identifies the cryptographic algorithm family used with the key.
     # The kty values are case sensitive. The kty values should either be registered
     # in the IANA "JSON Web Key Types" registery or be a value that contains a

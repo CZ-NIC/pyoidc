@@ -196,9 +196,7 @@ def test_do_token_revocation():
         status=200,
         headers={"content-length": "0"},
     )
-    resp = Client().do_token_revocation(
-        request_args=request_args, endpoint=token_revocation_endpoint
-    )
+    resp = Client().do_token_revocation(request_args=request_args, endpoint=token_revocation_endpoint)
     parsed_request: dict = parse_qs(responses.calls[0].request.body)
     assert resp == 200
     assert parsed_request["token"] == ["access_token"]
@@ -221,9 +219,7 @@ def test_do_token_revocation_error_unsupported_type():
         body=ErrorResponse(error="unsupported_token_type").serialize(),
         status=400,
     )
-    resp = Client().do_token_revocation(
-        request_args=request_args, endpoint=token_revocation_endpoint
-    )
+    resp = Client().do_token_revocation(request_args=request_args, endpoint=token_revocation_endpoint)
     assert isinstance(resp, ErrorResponse)
     assert resp["error"] == "unsupported_token_type"
 
@@ -246,6 +242,4 @@ def test_do_token_revocation_retry_later():
         headers={"content-length": "0"},
     )
     with pytest.raises(PyoidcError):
-        Client().do_token_revocation(
-            request_args=request_args, endpoint=token_revocation_endpoint
-        )
+        Client().do_token_revocation(request_args=request_args, endpoint=token_revocation_endpoint)

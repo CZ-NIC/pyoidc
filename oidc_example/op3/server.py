@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__author__ = 'Vahid Jalili'
+__author__ = "Vahid Jalili"
 
 from urllib.parse import parse_qs
 
@@ -10,6 +10,7 @@ import sys
 import traceback
 import argparse
 import importlib
+import time
 import logging
 
 from mako.lookup import TemplateLookup
@@ -29,7 +30,8 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.multi_auth import AuthnIndexedEndpointWrapper
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import *
+from oic.utils.http_util import NotFound, ServiceError, Response, BadRequest, wsgi_wrapper, get_post, Unauthorized
+from jwkest import as_unicode
 from oic.utils.keyio import keyjar_init
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import OIC_ISSUER
@@ -42,22 +44,19 @@ from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 from oic.utils.sdb import create_session_db
 
 
-
 LOGGER = logging.getLogger("")
-LOGFILE_NAME = 'oc.log'
+LOGFILE_NAME = "oc.log"
 hdlr = logging.FileHandler(LOGFILE_NAME)
-base_formatter = logging.Formatter(
-    "%(asctime)s %(name)s:%(levelname)s %(message)s")
+base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
 
-CPC = ('%(asctime)s %(name)s:%(levelname)s '
-       '[%(client)s,%(path)s,%(cid)s] %(message)s')
+CPC = "%(asctime)s %(name)s:%(levelname)s " "[%(client)s,%(path)s,%(cid)s] %(message)s"
 cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
-logger = logging.getLogger('oicServer')
+logger = logging.getLogger("oicServer")
 
 
 def static_file(path):
@@ -73,19 +72,19 @@ def static(self, environ, start_response, path):
     logger.info("[static]sending: %s" % (path,))
 
     try:
-        data = open(path, 'rb').read()
+        data = open(path, "rb").read()
         if path.endswith(".ico"):
-            start_response('200 OK', [('Content-Type', "image/x-icon")])
+            start_response("200 OK", [("Content-Type", "image/x-icon")])
         elif path.endswith(".html"):
-            start_response('200 OK', [('Content-Type', 'text/html')])
+            start_response("200 OK", [("Content-Type", "text/html")])
         elif path.endswith(".json"):
-            start_response('200 OK', [('Content-Type', 'application/json')])
+            start_response("200 OK", [("Content-Type", "application/json")])
         elif path.endswith(".txt"):
-            start_response('200 OK', [('Content-Type', 'text/plain')])
+            start_response("200 OK", [("Content-Type", "text/plain")])
         elif path.endswith(".css"):
-            start_response('200 OK', [('Content-Type', 'text/css')])
+            start_response("200 OK", [("Content-Type", "text/css")])
         else:
-            start_response('200 OK', [('Content-Type', "text/xml")])
+            start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
     except IOError:
         resp = NotFound()
@@ -130,17 +129,19 @@ class Application(object):
 
         self.provider.endp = self.endpoints
         self.urls = urls
-        self.urls.extend([
-            (r'^.well-known/openid-configuration', self.op_info),
-            (r'^.well-known/simple-web-discovery', self.swd_info),
-            (r'^.well-known/host-meta.json', self.meta_info),
-            (r'^.well-known/webfinger', self.webfinger),
-            (r'.+\.css$', self.css),
-            (r'safe', self.safe),
-            (r'^keyrollover', key_rollover),
-            (r'^clearkeys', clear_keys),
-            (r'^check_session', check_session_iframe)
-        ])
+        self.urls.extend(
+            [
+                (r"^.well-known/openid-configuration", self.op_info),
+                (r"^.well-known/simple-web-discovery", self.swd_info),
+                (r"^.well-known/host-meta.json", self.meta_info),
+                (r"^.well-known/webfinger", self.webfinger),
+                (r".+\.css$", self.css),
+                (r"safe", self.safe),
+                (r"^keyrollover", key_rollover),
+                (r"^clearkeys", clear_keys),
+                (r"^check_session", check_session_iframe),
+            ]
+        )
 
         for endp in self.endpoints:
             self.urls.append(("^%s" % endp.etype, endp.func))
@@ -158,9 +159,9 @@ class Application(object):
             resp = BadRequest("Missing authorization information")
             return resp(environ, start_response)
         else:
-           if typ != "Bearer":
-               resp = BadRequest("Unsupported authorization method")
-               return resp(environ, start_response)
+            if typ != "Bearer":
+                resp = BadRequest("Unsupported authorization method")
+                return resp(environ, start_response)
 
         try:
             _sinfo = _srv.sdb[code]
@@ -184,56 +185,47 @@ class Application(object):
 
     # noinspection PyUnusedLocal
     def token(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response, self.provider.token_endpoint,
-                            logger=logger)
+        return wsgi_wrapper(environ, start_response, self.provider.token_endpoint, logger=logger)
 
     # noinspection PyUnusedLocal
     def authorization(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response,
-                            self.provider.authorization_endpoint, logger=logger)  # cookies required.
+        return wsgi_wrapper(
+            environ, start_response, self.provider.authorization_endpoint, logger=logger
+        )  # cookies required.
 
     # noinspection PyUnusedLocal
     def userinfo(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response, self.provider.userinfo_endpoint,
-                            logger=logger)
+        return wsgi_wrapper(environ, start_response, self.provider.userinfo_endpoint, logger=logger)
 
     # noinspection PyUnusedLocal
     def op_info(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response,
-                            self.provider.providerinfo_endpoint, logger=logger)
+        return wsgi_wrapper(environ, start_response, self.provider.providerinfo_endpoint, logger=logger)
 
     # noinspection PyUnusedLocal
     def registration(self, environ, start_response):
         if environ["REQUEST_METHOD"] == "POST":
-            return wsgi_wrapper(environ, start_response,
-                                self.provider.registration_endpoint,
-                                logger=logger)
+            return wsgi_wrapper(environ, start_response, self.provider.registration_endpoint, logger=logger)
         elif environ["REQUEST_METHOD"] == "GET":
-            return wsgi_wrapper(environ, start_response,
-                                self.provider.read_registration, logger=logger)
+            return wsgi_wrapper(environ, start_response, self.provider.read_registration, logger=logger)
         else:
             resp = ServiceError("Method not supported")
             return resp(environ, start_response)
 
     # noinspection PyUnusedLocal
     def check_id(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response, self.provider.check_id_endpoint,
-                            logger=logger)
+        return wsgi_wrapper(environ, start_response, self.provider.check_id_endpoint, logger=logger)
 
     # noinspection PyUnusedLocal
     def swd_info(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response, self.provider.discovery_endpoint,
-                            logger=logger)
+        return wsgi_wrapper(environ, start_response, self.provider.discovery_endpoint, logger=logger)
 
     # noinspection PyUnusedLocal
     def trace_log(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response, self.provider.tracelog_endpoint,
-                            logger=logger)
+        return wsgi_wrapper(environ, start_response, self.provider.tracelog_endpoint, logger=logger)
 
     # noinspection PyUnusedLocal
     def endsession(self, environ, start_response):
-        return wsgi_wrapper(environ, start_response,
-                            self.provider.endsession_endpoint, logger=logger)
+        return wsgi_wrapper(environ, start_response, self.provider.endsession_endpoint, logger=logger)
 
     # noinspection PyUnusedLocal
     def meta_info(self, environ, start_response):
@@ -248,7 +240,7 @@ class Application(object):
              ]}
 
         """
-        print('\n in meta-info')
+        print("\n in meta-info")
         pass
 
     def webfinger(self, environ, start_response):
@@ -263,8 +255,7 @@ class Application(object):
                 resp = BadRequest("Bad issuer in request")
             else:
                 wf = WebFinger()
-                resp = Response(wf.response(subject=resource,
-                                            base=self.provider.baseurl))
+                resp = Response(wf.response(subject=resource, base=self.provider.baseurl))
         return resp(environ, start_response)
 
     def application(self, environ, start_response):
@@ -281,9 +272,9 @@ class Application(object):
             request is done
         :return: The response as a list of lines
         """
-        path = environ.get('PATH_INFO', '').lstrip('/')
+        path = environ.get("PATH_INFO", "").lstrip("/")
 
-        print('start_response: ', start_response)
+        print("start_response: ", start_response)
 
         if path == "robots.txt":
             return static(self, environ, start_response, "static/robots.txt")
@@ -296,9 +287,9 @@ class Application(object):
             match = re.search(regex, path)
             if match is not None:
                 try:
-                    environ['oic.url_args'] = match.groups()[0]
+                    environ["oic.url_args"] = match.groups()[0]
                 except IndexError:
-                    environ['oic.url_args'] = path
+                    environ["oic.url_args"] = path
                 try:
                     return callback(environ, start_response)
                 except Exception as err:
@@ -314,21 +305,20 @@ class Application(object):
         return resp(environ, start_response)
 
 
-if __name__ == '__main__':
-
-    root = './'
-    lookup = TemplateLookup(directories=[root + 'Templates', root + 'htdocs'],
-                            module_directory=root + 'modules',
-                            input_encoding='utf-8', output_encoding='utf-8')
+if __name__ == "__main__":
+    root = "./"
+    lookup = TemplateLookup(
+        directories=[root + "Templates", root + "htdocs"],
+        module_directory=root + "modules",
+        input_encoding="utf-8",
+        output_encoding="utf-8",
+    )
 
     def mako_renderer(template_name, context):
         mte = lookup.get_template(template_name)
         return mte.render(**context)
 
-    usernamePasswords = {
-        "user1": "1",
-        "user2": "2"
-    }
+    usernamePasswords = {"user1": "1", "user2": "2"}
 
     passwordEndPointIndex = 0  # what is this, and what does its value mean?
 
@@ -337,18 +327,18 @@ if __name__ == '__main__':
 
     # parse the parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', dest='config')
-    parser.add_argument('-d', dest='debug', action='store_true')
+    parser.add_argument("-c", dest="config")
+    parser.add_argument("-d", dest="debug", action="store_true")
     args = parser.parse_args()
 
     # parse and setup configuration
     config = importlib.import_module(args.config)
-    config.ISSUER = config.ISSUER + ':{}/'.format(config.PORT)
+    config.ISSUER = config.ISSUER + ":{}/".format(config.PORT)
     config.SERVICEURL = config.SERVICEURL.format(issuer=config.ISSUER)
     endPoints = config.AUTHENTICATION["UserPassword"]["EndPoints"]
     fullEndPointsPath = ["%s%s" % (config.ISSUER, ep) for ep in endPoints]
 
-# TODO: why this instantiation happens so early? can I move it later?
+    # TODO: why this instantiation happens so early? can I move it later?
     # An OIDC Authorization/Authentication server is designed to
     # allow more than one authentication method to be used by the server.
     # And that is what the AuthBroker is for.
@@ -362,44 +352,45 @@ if __name__ == '__main__':
     # UsernamePasswordMako: authenticas a user using the username/password form in a
     # WSGI environment using Mako as template system
     usernamePasswordAuthn = UsernamePasswordMako(
-        None,                               # server instance
-        "login.mako",                       # a mako template
-        lookup,                             # lookup template
-        usernamePasswords,                  # username/password dictionary-like database
+        None,  # server instance
+        "login.mako",  # a mako template
+        lookup,  # lookup template
+        usernamePasswords,  # username/password dictionary-like database
         "%sauthorization" % config.ISSUER,  # where to send the user after authentication
-        None,                               # templ_arg_func ??!!
-        fullEndPointsPath)                  # verification endpoints
+        None,  # templ_arg_func ??!!
+        fullEndPointsPath,
+    )  # verification endpoints
 
     # AuthnIndexedEndpointWrapper is a wrapper class for using an authentication module with multiple endpoints.
     authnIndexedEndPointWrapper = AuthnIndexedEndpointWrapper(usernamePasswordAuthn, passwordEndPointIndex)
 
-    authnBroker.add(config.AUTHENTICATION["UserPassword"]["ACR"],  # (?!)
-           authnIndexedEndPointWrapper,                      # (?!) method: an identifier of the authentication method.
-           config.AUTHENTICATION["UserPassword"]["WEIGHT"],  # security level
-           "")                                               # (?!) authentication authority
+    authnBroker.add(
+        config.AUTHENTICATION["UserPassword"]["ACR"],  # (?!)
+        authnIndexedEndPointWrapper,  # (?!) method: an identifier of the authentication method.
+        config.AUTHENTICATION["UserPassword"]["WEIGHT"],  # security level
+        "",
+    )  # (?!) authentication authority
 
     # ?!
     authz = AuthzHandling()
     clientDB = shelve_wrapper.open(config.CLIENTDB)
 
     # In-Memory non-persistent SessionDB issuing DefaultTokens
-    sessionDB = create_session_db(config.ISSUER,
-                                  secret=rndstr(32),
-                                  password=rndstr(32))
+    sessionDB = create_session_db(config.ISSUER, secret=rndstr(32), password=rndstr(32))
 
     provider = Provider(
-        name=config.ISSUER,                            # name
-        sdb=sessionDB,                                 # session database.
-        cdb=clientDB,                                  # client database
-        authn_broker=authnBroker,                      # authn broker
-        userinfo=None,                                 # user information
-        authz=authz,                                   # authz
-        client_authn=verify_client,                    # client authentication
-        symkey=config.SYM_KEY,                         # Used for Symmetric key authentication
+        name=config.ISSUER,  # name
+        sdb=sessionDB,  # session database.
+        cdb=clientDB,  # client database
+        authn_broker=authnBroker,  # authn broker
+        userinfo=None,  # user information
+        authz=authz,  # authz
+        client_authn=verify_client,  # client authentication
+        symkey=config.SYM_KEY,  # Used for Symmetric key authentication
         # urlmap = None,                               # ?
         # keyjar = None,                               # ?
         # hostname = "",                               # ?
-        template_renderer=mako_renderer,               # Rendering custom templates
+        template_renderer=mako_renderer,  # Rendering custom templates
         # verify_ssl = True,                           # Enable SSL certs
         # capabilities = None,                         # ?
         # schema = OpenIDSchema,                       # ?
@@ -407,7 +398,7 @@ if __name__ == '__main__':
         # jwks_name = '',                              # ?
         baseurl=config.ISSUER,
         # client_cert = None                           # ?
-        )
+    )
 
     # SessionDB:
     # This is database where the provider keeps information about
@@ -443,10 +434,11 @@ if __name__ == '__main__':
         # keyjar_init configures cryptographic key
         # based on the provided configuration "keys".
         jwks = keyjar_init(
-            provider,             # server/client instance
-            config.keys,          # key configuration
-            kid_template="op%d")  # template by which to build the kids (key ID parameter)
-    except Exception as err:
+            provider,  # server/client instance
+            config.keys,  # key configuration
+            kid_template="op%d",
+        )  # template by which to build the kids (key ID parameter)
+    except Exception:
         # LOGGER.error("Key setup failed: %s" % err)
         provider.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
@@ -470,12 +462,12 @@ if __name__ == '__main__':
     endPoint = config.AUTHENTICATION["UserPassword"]["EndPoints"][passwordEndPointIndex]
 
     _urls = []
-    _urls.append((r'^' + endPoint, make_auth_verify(authnIndexedEndPointWrapper.verify)))
+    _urls.append((r"^" + endPoint, make_auth_verify(authnIndexedEndPointWrapper.verify)))
 
     _app = Application(provider, _urls)
 
     # Setup the web server
-    server = wsgiserver.CherryPyWSGIServer(('0.0.0.0', config.PORT), _app.application) # nosec
+    server = wsgiserver.CherryPyWSGIServer(("0.0.0.0", config.PORT), _app.application)  # nosec
     server.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY)
 
     print("OIDC Provider server started (issuer={}, port={})".format(config.ISSUER, config.PORT))

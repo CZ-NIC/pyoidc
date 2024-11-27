@@ -48,9 +48,7 @@ class TestClaimsClient(object):
     def test_request_info(self):
         request_args = {"sub": "norah", "claims_names": ["gender", "birthdate"]}
 
-        uri, body, headers, ucr = self.cc.request_info(
-            UserClaimsRequest, method="POST", request_args=request_args
-        )
+        uri, body, headers, ucr = self.cc.request_info(UserClaimsRequest, method="POST", request_args=request_args)
         assert uri == "https://example.com/claims"
         assert query_string_compare(
             body,
@@ -82,9 +80,7 @@ class TestUserClaimsResponse(object):
         info = user_info(None, USERDB, "diana")
 
         keys = [SYMKey(key="hemlig")]
-        cresp = UserClaimsResponse(
-            jwt=info.to_jwt(key=keys, algorithm="HS256"), claims_names=list(info.keys())
-        )
+        cresp = UserClaimsResponse(jwt=info.to_jwt(key=keys, algorithm="HS256"), claims_names=list(info.keys()))
 
         assert _eq(list(cresp.keys()), ["jwt", "claims_names"])
         assert _eq(cresp["claims_names"], ["gender", "birthdate"])
@@ -110,9 +106,7 @@ class TestClaimsServer(object):
     def test_claims_endpoint(self):
         cc = ClaimsClient(client_id="client_1")
         cc.client_secret = "hemlig"
-        req = cc.construct_UserClaimsRequest(
-            request_args={"sub": "diana", "claims_names": ["gender", "birthdate"]}
-        )
+        req = cc.construct_UserClaimsRequest(request_args={"sub": "diana", "claims_names": ["gender", "birthdate"]})
 
         resp = self.srv.claims_endpoint(req.to_urlencoded(), "")
 
@@ -144,12 +138,8 @@ class TestClaimsServer(object):
                 {"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"},
             ]
         )
-        base_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "data/keys")
-        )
-        rsakey = keybundle_from_local_file(
-            os.path.abspath(os.path.join(base_path, "rsa.key")), "rsa", ["ver", "sig"]
-        )
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
+        rsakey = keybundle_from_local_file(os.path.abspath(os.path.join(base_path, "rsa.key")), "rsa", ["ver", "sig"])
         keyjar = KeyJar()
         keyjar["client1"] = [symkey, rsakey]
         keyjar[""] = rsakey

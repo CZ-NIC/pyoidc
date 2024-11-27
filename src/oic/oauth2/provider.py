@@ -226,8 +226,7 @@ class Provider(object):
         self.sdb = sdb
         if not isinstance(cdb, BaseClientDatabase):
             warnings.warn(
-                "ClientDatabase should be an instance of "
-                "oic.utils.clientdb.BaseClientDatabase to ensure proper API."
+                "ClientDatabase should be an instance of " "oic.utils.clientdb.BaseClientDatabase to ensure proper API."
             )
         self.cdb = cdb
         self.server = server_cls(
@@ -280,9 +279,7 @@ class Provider(object):
 
         if capabilities:
             self.verify_capabilities(capabilities)
-            self.capabilities = message_factory.get_response_type(
-                "configuration_endpoint"
-            )(**capabilities)
+            self.capabilities = message_factory.get_response_type("configuration_endpoint")(**capabilities)
         else:
             self.capabilities = self.provider_features()
         self.capabilities["issuer"] = self.name
@@ -405,9 +402,7 @@ class Provider(object):
                 if unsup:
                     not_supported[key] = unsup
         if not_supported:
-            logger.error(
-                "Server does not support the following features: %s", not_supported
-            )
+            logger.error("Server does not support the following features: %s", not_supported)
             return False
         return True
 
@@ -417,9 +412,7 @@ class Provider(object):
 
         :return: ProviderConfigurationResponse instance
         """
-        pcr_class = self.server.message_factory.get_response_type(
-            "configuration_endpoint"
-        )
+        pcr_class = self.server.message_factory.get_response_type("configuration_endpoint")
 
         _provider_info = pcr_class(**self.default_capabilities)
         _provider_info["scopes_supported"] = self.scopes
@@ -446,9 +439,7 @@ class Provider(object):
         :param setup:
         :return:
         """
-        pcr_class = self.server.message_factory.get_response_type(
-            "configuration_endpoint"
-        )
+        pcr_class = self.server.message_factory.get_response_type("configuration_endpoint")
         _provider_info = copy.deepcopy(self.capabilities.to_dict())
 
         if self.jwks_uri and self.keyjar:
@@ -459,9 +450,7 @@ class Provider(object):
                 baseurl = self.baseurl + "/"
             else:
                 baseurl = self.baseurl
-            _provider_info["{}_endpoint".format(endp.etype)] = urljoin(
-                baseurl, endp.url
-            )
+            _provider_info["{}_endpoint".format(endp.etype)] = urljoin(baseurl, endp.url)
 
         if setup and isinstance(setup, dict):
             for key in pcr_class.c_param.keys():
@@ -488,14 +477,10 @@ class Provider(object):
             if handle:
                 (key, timestamp) = handle
                 if key.startswith(STR) and key.endswith(STR):
-                    cookie = self.cookie_func(
-                        key, self.cookie_name, "pinfo", self.sso_ttl
-                    )
+                    cookie = self.cookie_func(key, self.cookie_name, "pinfo", self.sso_ttl)
                     headers.append(cookie)
 
-            resp = Response(
-                _response.to_json(), content="application/json", headers=headers
-            )
+            resp = Response(_response.to_json(), content="application/json", headers=headers)
         except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
@@ -515,9 +500,7 @@ class Provider(object):
             self._verify_redirect_uri(areq)
             uri = areq["redirect_uri"]
         else:
-            raise ParameterError(
-                "Missing redirect_uri and more than one or none registered"
-            )
+            raise ParameterError("Missing redirect_uri and more than one or none registered")
 
         return uri
 
@@ -544,9 +527,7 @@ class Provider(object):
 
                 for acr in areq["acr_values"]:
                     res = self.authn_broker.pick(acr, comparision_type)
-                    logger.debug(
-                        "Picked AuthN broker for ACR %s: %s" % (str(acr), str(res))
-                    )
+                    logger.debug("Picked AuthN broker for ACR %s: %s" % (str(acr), str(res)))
                     if res:
                         # Return the best guess by pick.
                         return res[0]
@@ -558,17 +539,13 @@ class Provider(object):
                 else:
                     for acr in acrs:
                         res = self.authn_broker.pick(acr, comparision_type)
-                        logger.debug(
-                            "Picked AuthN broker for ACR %s: %s" % (str(acr), str(res))
-                        )
+                        logger.debug("Picked AuthN broker for ACR %s: %s" % (str(acr), str(res)))
                         if res:
                             # Return the best guess by pick.
                             return res[0]
 
         except KeyError as exc:
-            logger.debug(
-                "An error occured while picking the authN broker: %s" % str(exc)
-            )
+            logger.debug("An error occured while picking the authN broker: %s" % str(exc))
 
         # return the best I have
         return None, None
@@ -583,9 +560,7 @@ class Provider(object):
         :param request: The AuthorizationRequest
         :return:
         """
-        request_class = self.server.message_factory.get_request_type(
-            "authorization_endpoint"
-        )
+        request_class = self.server.message_factory.get_request_type("authorization_endpoint")
         logger.debug("Request: '%s'" % sanitize(request))
         # Same serialization used for GET and POST
 
@@ -612,9 +587,7 @@ class Provider(object):
             except KeyError:
                 _state = ""
 
-            return redirect_authz_error(
-                "invalid_request", redirect_uri, "%s" % err, _state, _rtype
-            )
+            return redirect_authz_error("invalid_request", redirect_uri, "%s" % err, _state, _rtype)
         except KeyError:
             areq = request_class().deserialize(request, "urlencoded")
             # verify the redirect_uri
@@ -644,9 +617,7 @@ class Provider(object):
         try:
             _cinfo = self.cdb[areq["client_id"]]
         except KeyError:
-            logger.error(
-                "Client ID ({}) not in client database".format(areq["client_id"])
-            )
+            logger.error("Client ID ({}) not in client database".format(areq["client_id"]))
             return error_response("unauthorized_client", "unknown client")
         else:
             try:
@@ -658,17 +629,13 @@ class Provider(object):
 
             _wanted = set(areq["response_type"])
             if _wanted not in _registered:
-                return error_response(
-                    "invalid_request", "Trying to use unregistered response_typ"
-                )
+                return error_response("invalid_request", "Trying to use unregistered response_typ")
 
         logger.debug("AuthzRequest: %s" % (sanitize(areq.to_dict()),))
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError, UnknownClient) as err:
-            return error_response(
-                "invalid_request", "{}:{}".format(err.__class__.__name__, err)
-            )
+            return error_response("invalid_request", "{}:{}".format(err.__class__.__name__, err))
 
         try:
             keyjar = self.keyjar
@@ -721,9 +688,7 @@ class Provider(object):
             tup = (None, None)
             for acr in acrs:
                 res = self.authn_broker.pick(acr, "exact")
-                logger.debug(
-                    "Picked AuthN broker for ACR %s: %s" % (str(acr), str(res))
-                )
+                logger.debug("Picked AuthN broker for ACR %s: %s" % (str(acr), str(res)))
                 if res:  # Return the best guess by pick.
                     tup = res[0]
                     break
@@ -736,9 +701,7 @@ class Provider(object):
                     authn, authn_class_ref = self.pick_auth(areq, "any")
 
         if authn is None:
-            return redirect_authz_error(
-                "access_denied", redirect_uri, return_type=areq["response_type"]
-            )
+            return redirect_authz_error("access_denied", redirect_uri, return_type=areq["response_type"])
 
         try:
             try:
@@ -751,9 +714,7 @@ class Provider(object):
             else:
                 _max_age = max_age(areq)
 
-            identity, _ts = authn.authenticated_as(
-                cookie, authorization=_auth_info, max_age=_max_age
-            )
+            identity, _ts = authn.authenticated_as(cookie, authorization=_auth_info, max_age=_max_age)
         except (NoSuchAuthentication, TamperAllert):
             identity = None
             _ts = 0
@@ -793,9 +754,7 @@ class Provider(object):
         if identity is None:  # No!
             if "prompt" in areq and "none" in areq["prompt"]:
                 # Need to authenticate but not allowed
-                return redirect_authz_error(
-                    "login_required", redirect_uri, return_type=areq["response_type"]
-                )
+                return redirect_authz_error("login_required", redirect_uri, return_type=areq["response_type"])
             else:
                 return authn(**authn_args)
         else:
@@ -807,11 +766,7 @@ class Provider(object):
                 user = identity["uid"]
                 if "req_user" in kwargs:
                     sids_for_sub = self.sdb.get_by_sub(kwargs["req_user"])
-                    if (
-                        sids_for_sub
-                        and user
-                        != self.sdb.get_authentication_event(sids_for_sub[-1]).uid
-                    ):
+                    if sids_for_sub and user != self.sdb.get_authentication_event(sids_for_sub[-1]).uid:
                         logger.debug("Wanted to be someone else!")
                         if "prompt" in areq and "none" in areq["prompt"]:
                             # Need to authenticate but not allowed
@@ -846,9 +801,7 @@ class Provider(object):
         _cid = info["areq"]["client_id"]
         cinfo = self.cdb[_cid]
 
-        authnres = self.do_auth(
-            info["areq"], info["redirect_uri"], cinfo, request, cookie, **kwargs
-        )
+        authnres = self.do_auth(info["areq"], info["redirect_uri"], cinfo, request, cookie, **kwargs)
 
         if isinstance(authnres, Response):
             return authnres
@@ -866,9 +819,7 @@ class Provider(object):
     def create_authn_response(self, areq, sid):
         rtype = areq["response_type"][0]
         _func = self.response_type_map[rtype]
-        aresp = _func(
-            areq=areq, scode=self.sdb[sid]["code"], sdb=self.sdb, myself=self.baseurl
-        )
+        aresp = _func(areq=areq, scode=self.sdb[sid]["code"], sdb=self.sdb, myself=self.baseurl)
 
         if rtype == "code":
             fragment_enc = False
@@ -961,13 +912,9 @@ class Provider(object):
         cookie_header = None
         if _kaka is not None:
             if self.cookie_name not in _kaka:  # Don't overwrite
-                cookie_header = self.cookie_func(
-                    c_val, typ="sso", cookie_name=self.sso_cookie_name, ttl=self.sso_ttl
-                )
+                cookie_header = self.cookie_func(c_val, typ="sso", cookie_name=self.sso_cookie_name, ttl=self.sso_ttl)
         else:
-            cookie_header = self.cookie_func(
-                c_val, typ="sso", cookie_name=self.sso_cookie_name, ttl=self.sso_ttl
-            )
+            cookie_header = self.cookie_func(c_val, typ="sso", cookie_name=self.sso_cookie_name, ttl=self.sso_ttl)
 
         if cookie_header is not None:
             headers.append(cookie_header)
@@ -1007,18 +954,14 @@ class Provider(object):
         logger.debug("- token -")
         logger.debug("token_request: %s" % sanitize(request))
 
-        areq = self.server.message_factory.get_request_type(
-            "token_endpoint"
-        )().deserialize(request, dtype)
+        areq = self.server.message_factory.get_request_type("token_endpoint")().deserialize(request, dtype)
 
         # Verify client authentication
         try:
             client_id = self.client_authn(self, areq, authn)
         except (FailedAuthentication, AuthnFailure) as err:
             logger.error("%s", err)
-            error = TokenErrorResponse(
-                error="unauthorized_client", error_description="%s" % err
-            )
+            error = TokenErrorResponse(error="unauthorized_client", error_description="%s" % err)
             return Unauthorized(error.to_json(), content="application/json")
 
         logger.debug("AccessTokenRequest: %s" % sanitize(areq))
@@ -1029,19 +972,14 @@ class Provider(object):
                 _info = self.sdb[areq["code"]]
             except KeyError:
                 logger.error("Code not present in SessionDB")
-                error = TokenErrorResponse(
-                    error="unauthorized_client", error_description="Invalid code."
-                )
+                error = TokenErrorResponse(error="unauthorized_client", error_description="Invalid code.")
                 return Unauthorized(error.to_json(), content="application/json")
 
             resp = self.token_scope_check(areq, _info)
             if resp:
                 return resp
             # If redirect_uri was in the initial authorization request verify that they match
-            if (
-                "redirect_uri" in _info
-                and areq["redirect_uri"] != _info["redirect_uri"]
-            ):
+            if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
                 logger.error("Redirect_uri mismatch")
                 error = TokenErrorResponse(
                     error="unauthorized_client",
@@ -1080,9 +1018,7 @@ class Provider(object):
         try:
             _tinfo = self.sdb.upgrade_to_token(areq["code"], issue_refresh=True)
         except AccessCodeUsed:
-            error = TokenErrorResponse(
-                error="invalid_grant", error_description="Access grant used"
-            )
+            error = TokenErrorResponse(error="invalid_grant", error_description="Access grant used")
             return Unauthorized(error.to_json(), content="application/json")
 
         logger.debug("_tinfo: %s" % sanitize(_tinfo))
@@ -1091,9 +1027,7 @@ class Provider(object):
 
         logger.debug("AccessTokenResponse: %s" % sanitize(atr))
 
-        return Response(
-            atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS
-        )
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def refresh_token_grant_type(self, areq):
         """

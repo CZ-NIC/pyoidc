@@ -65,9 +65,7 @@ def test_rsa_init(tmpdir):
 
 
 def test_keybundle_from_local_jwk_file():
-    kb = keybundle_from_local_file(
-        "file://{}".format(os.path.join(BASE_PATH, "jwk.json")), "jwk", ["ver", "sig"]
-    )
+    kb = keybundle_from_local_file("file://{}".format(os.path.join(BASE_PATH, "jwk.json")), "jwk", ["ver", "sig"])
     assert len(kb) == 1
     kj = KeyJar()
     kj.issuer_keys[""] = [kb]
@@ -230,9 +228,7 @@ class TestKeyJar(object):
                 {"kty": "oct", "key": "e5f6g7h8", "use": "ver"},
             ]
         )
-        ks["http://www.example.org"].append(
-            keybundle_from_local_file(RSAKEY, "rsa", ["ver", "sig"])
-        )
+        ks["http://www.example.org"].append(keybundle_from_local_file(RSAKEY, "rsa", ["ver", "sig"]))
 
         verified_keys = ks.verify_keys("http://www.example.org")
         assert len(verified_keys) == 6
@@ -256,9 +252,7 @@ class TestKeyJar(object):
             ),
             keybundle_from_local_file(RSAKEY, "rsa", ["enc", "dec"]),
         ]
-        ks["http://www.example.com"] = keybundle_from_local_file(
-            RSA0, "rsa", ["enc", "dec"]
-        )
+        ks["http://www.example.com"] = keybundle_from_local_file(RSA0, "rsa", ["enc", "dec"])
 
         coll = ks["http://www.example.org"]
         # coll is list of KeyBundles
@@ -281,9 +275,7 @@ class TestKeyJar(object):
         assert keys == []
 
     def test_get_by_kid(self):
-        kb = keybundle_from_local_file(
-            "file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"]
-        )
+        kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
         kj = KeyJar()
         kj.issuer_keys["https://example.com"] = [kb]
 
@@ -306,9 +298,7 @@ class TestKeyJar(object):
     def test_get_inactive_sig(self):
         """get_signing_key cannot return inactive `sig` key."""
         ks = KeyJar()
-        ks["http://example.com"] = KeyBundle(
-            [{"kty": "oct", "key": "a1b2c3d4", "use": "sig"}]
-        )
+        ks["http://example.com"] = KeyBundle([{"kty": "oct", "key": "a1b2c3d4", "use": "sig"}])
         ks["http://example.com"][0]._keys[0].inactive_since = 1
         key = ks.get_signing_key(owner="http://example.com")
 
@@ -317,18 +307,14 @@ class TestKeyJar(object):
     def test_get_inactive_sig_for_ver(self):
         """get_verify_key can return inactive `sig` key."""
         ks = KeyJar()
-        ks["http://example.com"] = KeyBundle(
-            [{"kty": "oct", "key": "a1b2c3d4", "use": "sig"}]
-        )
+        ks["http://example.com"] = KeyBundle([{"kty": "oct", "key": "a1b2c3d4", "use": "sig"}])
         ks["http://example.com"][0]._keys[0].inactive_since = 1
         key = ks.get_verify_key(owner="http://example.com")
 
         assert len(key) == 1
 
     def test_dump_issuer_keys(self):
-        kb = keybundle_from_local_file(
-            "file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"]
-        )
+        kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
         assert len(kb) == 1
         kj = KeyJar()
         kj.issuer_keys[""] = [kb]
@@ -513,30 +499,22 @@ def test_parse_remote_response(
 
         res = FakeResponse("application/json;encoding=utf-8")
         kb_public._parse_remote_response(res)
-        assert caplog.record_tuples != [
-            ("oic.utils.keyio", logging.WARNING, "Wrong Content_type")
-        ]
+        assert caplog.record_tuples != [("oic.utils.keyio", logging.WARNING, "Wrong Content_type")]
         caplog.clear()
 
         res = FakeResponse("application/json")
         kb_public._parse_remote_response(res)
-        assert caplog.record_tuples != [
-            ("oic.utils.keyio", logging.WARNING, "Wrong Content_type")
-        ]
+        assert caplog.record_tuples != [("oic.utils.keyio", logging.WARNING, "Wrong Content_type")]
         caplog.clear()
 
         res = FakeResponse("Application/json")
         kb_public._parse_remote_response(res)
-        assert caplog.record_tuples != [
-            ("oic.utils.keyio", logging.WARNING, "Wrong Content_type")
-        ]
+        assert caplog.record_tuples != [("oic.utils.keyio", logging.WARNING, "Wrong Content_type")]
         caplog.clear()
 
         res = FakeResponse("text/plain")
         kb_public._parse_remote_response(res)
-        assert caplog.record_tuples == [
-            ("oic.utils.keyio", logging.WARNING, "Wrong Content_type")
-        ]
+        assert caplog.record_tuples == [("oic.utils.keyio", logging.WARNING, "Wrong Content_type")]
 
 
 def test_load_null_jwks():

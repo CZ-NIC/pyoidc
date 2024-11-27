@@ -65,20 +65,14 @@ class TestTokenHandler(object):
         self.th = TokenHandler(
             "https://example.com/as",
             {
-                "access_token": {
-                    "https://example.org/rp": {"client_credentials": 1200}
-                },
-                "refresh_token": {
-                    "https://example.org/rp": {"client_credentials": 86400}
-                },
+                "access_token": {"https://example.org/rp": {"client_credentials": 1200}},
+                "refresh_token": {"https://example.org/rp": {"client_credentials": 86400}},
             },
             keyjar=KEYJAR,
         )
 
     def test_construct_access_token(self):
-        token = self.th.get_access_token(
-            "https://example.org/rp", "foo bar", "client_credentials"
-        )
+        token = self.th.get_access_token("https://example.org/rp", "foo bar", "client_credentials")
 
         assert token
 
@@ -92,9 +86,7 @@ class TestTokenHandler(object):
     def test_construct_access_token_fail(self):
         # Unknown client
         try:
-            self.th.get_access_token(
-                "https://example.com/rp", "foo bar", "client_credentials"
-            )
+            self.th.get_access_token("https://example.com/rp", "foo bar", "client_credentials")
         except NotAllowed:
             pass
         # wrong grant_type
@@ -104,21 +96,15 @@ class TestTokenHandler(object):
             pass
 
     def test_from_access_to_refresh_token(self):
-        token = self.th.get_access_token(
-            "https://example.org/rp", "foo bar", "client_credentials"
-        )
+        token = self.th.get_access_token("https://example.org/rp", "foo bar", "client_credentials")
 
-        refresh_token = self.th.refresh_access_token(
-            "https://example.org/rp", token, "client_credentials"
-        )
+        refresh_token = self.th.refresh_access_token("https://example.org/rp", token, "client_credentials")
 
         assert refresh_token
 
     def test_construct_refresh_token(self):
         sid = "1234"
-        rtoken = self.th.get_refresh_token(
-            "https://example.org/rp", grant_type="client_credentials", sid=sid
-        )
+        rtoken = self.th.get_refresh_token("https://example.org/rp", grant_type="client_credentials", sid=sid)
 
         info = self.th.token_factory.get_info(rtoken)
 

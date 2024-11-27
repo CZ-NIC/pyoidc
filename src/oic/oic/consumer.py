@@ -293,24 +293,18 @@ class Consumer(Client):
 
         _claims = None
         if "user_info" in self.consumer_config:
-            _claims = ClaimsRequest(
-                userinfo=Claims(**self.consumer_config["user_info"])
-            )
+            _claims = ClaimsRequest(userinfo=Claims(**self.consumer_config["user_info"]))
         if "id_token" in self.consumer_config:
             if _claims:
                 _claims["id_token"] = Claims(**self.consumer_config["id_token"])
             else:
-                _claims = ClaimsRequest(
-                    id_token=Claims(**self.consumer_config["id_token"])
-                )
+                _claims = ClaimsRequest(id_token=Claims(**self.consumer_config["id_token"]))
 
         if _claims:
             args["claims"] = _claims
 
         if "request_method" in self.consumer_config:
-            areq = self.construct_AuthorizationRequest(
-                request_args=args, extra_args=None, request_param="request"
-            )
+            areq = self.construct_AuthorizationRequest(request_args=args, extra_args=None, request_param="request")
 
             if self.consumer_config["request_method"] == "file":
                 id_request = areq["request"]
@@ -333,9 +327,7 @@ class Consumer(Client):
             if "userinfo_claims" in args:  # can only be carried in an IDRequest
                 raise PyoidcError("Need a request method")
 
-            areq = self.construct_AuthorizationRequest(
-                AuthorizationRequest, request_args=args
-            )
+            areq = self.construct_AuthorizationRequest(AuthorizationRequest, request_args=args)
 
         location = areq.request(self.authorization_endpoint)
 
@@ -349,9 +341,7 @@ class Consumer(Client):
         _log_info = logger.info
         # Might be an error response
         _log_info("Expect Authorization Response")
-        aresp = self.parse_response(
-            AuthorizationResponse, info=query, sformat="urlencoded", keyjar=self.keyjar
-        )
+        aresp = self.parse_response(AuthorizationResponse, info=query, sformat="urlencoded", keyjar=self.keyjar)
         if isinstance(aresp, ErrorResponse):
             _log_info("ErrorResponse: %s" % sanitize(aresp))
             raise AuthzError(aresp.get("error"), aresp)
@@ -367,7 +357,9 @@ class Consumer(Client):
         self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
         return aresp, _state
 
-    def parse_authz(self, query="", **kwargs) -> Union[
+    def parse_authz(
+        self, query="", **kwargs
+    ) -> Union[
         http_util.BadRequest,
         Tuple[
             Optional[AuthorizationResponse],
@@ -554,9 +546,7 @@ class Consumer(Client):
 
     # LOGOUT related
 
-    def backchannel_logout(
-        self, request: Optional[str] = None, request_args: Optional[Dict] = None
-    ) -> str:
+    def backchannel_logout(self, request: Optional[str] = None, request_args: Optional[Dict] = None) -> str:
         """
         Receives a back channel logout request.
 
@@ -587,8 +577,6 @@ class Consumer(Client):
             sm_id = req["logout_token"]["sid"]
             _sid = session_get(self.sso_db, "smid", sm_id)
         else:
-            _sid = session_extended_get(
-                self.sso_db, sub, "issuer", req["logout_token"]["iss"]
-            )
+            _sid = session_extended_get(self.sso_db, sub, "issuer", req["logout_token"]["iss"])
 
         return _sid

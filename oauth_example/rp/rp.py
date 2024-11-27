@@ -39,9 +39,7 @@ CONSUMER = {}
 
 
 def as_choice(environ, start_response):
-    resp = Response(
-        mako_template="as_choice.mako", template_lookup=RP_CONF.LOOKUP, headers=[]
-    )
+    resp = Response(mako_template="as_choice.mako", template_lookup=RP_CONF.LOOKUP, headers=[])
     argv = {"as_list": RP_CONF.AS_CONF.keys(), "action": "as", "method": "POST"}
     return resp(environ, start_response, **argv)
 

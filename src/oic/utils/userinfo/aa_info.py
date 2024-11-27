@@ -22,8 +22,7 @@ else:
             self.sp_conf = importlib.import_module(spconf)
             ntf = NamedTemporaryFile(suffix="pyoidc.py", delete=True)
             ntf.write(
-                b"CONFIG = "
-                + str(self.sp_conf.CONFIG).replace("%s", url)  # type: ignore
+                b"CONFIG = " + str(self.sp_conf.CONFIG).replace("%s", url)  # type: ignore
             )
             ntf.seek(0)
             self.sp = Saml2Client(config_file="%s" % ntf.name)
@@ -48,8 +47,7 @@ else:
                         if (
                             self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST  # type: ignore
                             is None
-                            or key
-                            in self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST  # type: ignore
+                            or key in self.sp_conf.AA_ATTRIBUTE_SAML_IDP_WHITELIST  # type: ignore
                         ) and key not in response_dict:
                             response_dict[key] = value
 

@@ -34,9 +34,7 @@ ISSUER_ID = "https://example.org"
 KC_SYM_S = KeyBundle({"kty": "oct", "key": "abcdefghijklmnop", "use": "sig"})
 
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data/keys"))
-KC_RSA = keybundle_from_local_file(
-    os.path.join(BASE_PATH, "rsa.key"), "rsa", ["ver", "sig"]
-)
+KC_RSA = keybundle_from_local_file(os.path.join(BASE_PATH, "rsa.key"), "rsa", ["ver", "sig"])
 
 CLIKEYS = KeyJar()
 CLIKEYS[""] = [KC_RSA, KC_SYM_S]
@@ -130,9 +128,7 @@ class TestOICConsumerLogout:
             "client_authn_method": CLIENT_AUTHN_METHOD,
         }
 
-        self.consumer = Consumer(
-            DictSessionBackend(), CONFIG, client_config, SERVER_INFO
-        )
+        self.consumer = Consumer(DictSessionBackend(), CONFIG, client_config, SERVER_INFO)
         self.consumer.keyjar = CLIKEYS
         self.consumer.redirect_uris = ["https://example.com/authz"]
         self.consumer.client_secret = "hemlig"
@@ -155,9 +151,7 @@ class TestOICConsumerLogout:
 
     def test_logout_with_sub(self):
         # Simulate an authorization
-        sid, request_location = self.consumer.begin(
-            "openid", "code", path="https://example.com"
-        )
+        sid, request_location = self.consumer.begin("openid", "code", path="https://example.com")
         resp = self.provider.authorization_endpoint(request=request_location)
         part = self.consumer.parse_authz(resp.message)
         assert isinstance(part, tuple)
@@ -175,9 +169,7 @@ class TestOICConsumerLogout:
             grant_type="authorization_code",
         )
         token_resp = self.provider.code_grant_type(areq)
-        tresp = self.consumer.parse_response(
-            AccessTokenResponse, token_resp.message, sformat="json"
-        )
+        tresp = self.consumer.parse_response(AccessTokenResponse, token_resp.message, sformat="json")
 
         # Now, for the backchannel logout. This happens on the OP
         logout_info = {
@@ -227,9 +219,7 @@ class TestOICConsumerLogout:
 
     def test_logout_without_sub(self):
         # Simulate an authorization
-        sid, request_location = self.consumer.begin(
-            "openid", "code", path="https://example.com"
-        )
+        sid, request_location = self.consumer.begin("openid", "code", path="https://example.com")
         resp = self.provider.authorization_endpoint(request=request_location)
         part = self.consumer.parse_authz(resp.message)
         assert isinstance(part, tuple)
@@ -247,9 +237,7 @@ class TestOICConsumerLogout:
             grant_type="authorization_code",
         )
         token_resp = self.provider.code_grant_type(areq)
-        self.consumer.parse_response(
-            AccessTokenResponse, token_resp.message, sformat="json"
-        )
+        self.consumer.parse_response(AccessTokenResponse, token_resp.message, sformat="json")
         # Have to fake this until the provider changes are in place
         _smid = "session_management_id"
         self.consumer.sso_db.update(sid, "smid", _smid)
@@ -310,9 +298,7 @@ class TestOICConsumerLogout:
         _consumer.issuer = ISSUER_ID
 
         # Simulate an authorization
-        sid, request_location = _consumer.begin(
-            "openid", "code", path="https://example.com"
-        )
+        sid, request_location = _consumer.begin("openid", "code", path="https://example.com")
         resp = self.provider.authorization_endpoint(request=request_location)
         part = _consumer.parse_authz(resp.message)
         assert isinstance(part, tuple)
@@ -330,9 +316,7 @@ class TestOICConsumerLogout:
             grant_type="authorization_code",
         )
         token_resp = self.provider.code_grant_type(areq)
-        tresp = _consumer.parse_response(
-            AccessTokenResponse, token_resp.message, sformat="json"
-        )
+        tresp = _consumer.parse_response(AccessTokenResponse, token_resp.message, sformat="json")
 
         # Now, for the backchannel logout. This happens on the OP
         logout_info = {

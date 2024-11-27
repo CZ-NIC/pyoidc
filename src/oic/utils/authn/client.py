@@ -130,10 +130,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         except KeyError:
             pass
 
-        if (
-            ("client_id" not in cis.c_param.keys())
-            or cis.c_param["client_id"][VREQUIRED]
-        ) is False:
+        if (("client_id" not in cis.c_param.keys()) or cis.c_param["client_id"][VREQUIRED]) is False:
             try:
                 del cis["client_id"]
             except KeyError:
@@ -295,9 +292,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         algorithm = None
         if kwargs["authn_endpoint"] in ["token", "refresh"]:
             try:
-                algorithm = self.cli.registration_info[
-                    "token_endpoint_auth_signing_alg"
-                ]
+                algorithm = self.cli.registration_info["token_endpoint_auth_signing_alg"]
             except (KeyError, AttributeError):
                 pass
             audience = self.cli.provider_info["token_endpoint"]
@@ -313,9 +308,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                 signing_key = [self.get_key_by_kid(kwargs["kid"], algorithm)]
             elif ktype in self.cli.kid["sig"]:
                 try:
-                    signing_key = [
-                        self.get_key_by_kid(self.cli.kid["sig"][ktype], algorithm)
-                    ]
+                    signing_key = [self.get_key_by_kid(self.cli.kid["sig"][ktype], algorithm)]
                 except KeyError:
                     signing_key = self.get_signing_key(algorithm)
             else:
@@ -339,9 +332,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             except KeyError:
                 _args = {}
 
-            cis["client_assertion"] = assertion_jwt(
-                self.cli, signing_key, audience, algorithm, **_args
-            )
+            cis["client_assertion"] = assertion_jwt(self.cli, signing_key, audience, algorithm, **_args)
 
             cis["client_assertion_type"] = JWT_BEARER
 
@@ -364,9 +355,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                 argv = {"sender": areq["client_id"]}
             except KeyError:
                 argv = {}
-            bjwt = AuthnToken().from_jwt(
-                areq["client_assertion"], keyjar=self.cli.keyjar, **argv
-            )
+            bjwt = AuthnToken().from_jwt(areq["client_assertion"], keyjar=self.cli.keyjar, **argv)
         except (Invalid, MissingKey) as err:
             logger.info("%s" % sanitize(err))
             raise AuthnFailure("Could not verify client_assertion.")
@@ -429,9 +418,7 @@ class PrivateKeyJWT(JWSAuthnMethod):
         return JWSAuthnMethod.choose_algorithm(self, entity, **kwargs)
 
     def get_signing_key(self, algorithm):
-        return self.cli.keyjar.get_signing_key(
-            alg2keytype(algorithm), "", alg=algorithm
-        )
+        return self.cli.keyjar.get_signing_key(alg2keytype(algorithm), "", alg=algorithm)
 
 
 CLIENT_AUTHN_METHOD = {
@@ -470,9 +457,7 @@ def get_client_id(cdb, req, authn):
             raise FailedAuthentication("Missing client_id")
     elif authn.startswith("Basic "):
         logger.debug("Basic auth")
-        (_id, _secret) = (
-            base64.b64decode(authn[6:].encode("utf-8")).decode("utf-8").split(":")
-        )
+        (_id, _secret) = base64.b64decode(authn[6:].encode("utf-8")).decode("utf-8").split(":")
         # Either as string or encoded
         if _id not in cdb:
             _bid = as_bytes(_id)
@@ -527,9 +512,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
                 cid, auth_method = method(inst).verify(areq)
                 break
         else:
-            logger.error(
-                "UnknownAssertionType: {}".format(areq["client_assertion_type"])
-            )
+            logger.error("UnknownAssertionType: {}".format(areq["client_assertion_type"]))
             raise UnknownAssertionType(areq["client_assertion_type"], areq)
     else:
         logger.error("Missing client authentication.")
@@ -542,11 +525,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
             _method = "client_secret_basic"
 
         if _method != auth_method:
-            logger.error(
-                "Wrong authentication method used: {} != {}".format(
-                    auth_method, _method
-                )
-            )
+            logger.error("Wrong authentication method used: {} != {}".format(auth_method, _method))
             raise FailedAuthentication("Wrong authentication method used")
 
     # store which authn method was used where

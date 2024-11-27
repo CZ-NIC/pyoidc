@@ -56,9 +56,7 @@ class DeviceFlowServer(SingleService):
         self.device2user[device_code] = user_code
         self.user_auth[user_code] = False
         self.client_id2device[_req["client_id"]] = device_code
-        self.device_code_expire_at[device_code] = (
-            time_sans_frac() + self.device_code_life_time
-        )
+        self.device_code_expire_at[device_code] = time_sans_frac() + self.device_code_life_time
 
     def token_endpoint(self, request, authn=None):
         _req = TokenRequest(**request)
@@ -87,19 +85,13 @@ class DeviceFlowClient(SingleClient):
         }
 
     def authorization_request(self, scope=""):
-        req = AuthorizationRequest(
-            client_id=self.host.client_id, response_type="device_code"
-        )
+        req = AuthorizationRequest(client_id=self.host.client_id, response_type="device_code")
         if scope:
             req["scope"] = scope
 
-        http_response = self.host.http_request(
-            self.host.provider_info["device_endpoint"], "POST", req.to_urlencoded()
-        )
+        http_response = self.host.http_request(self.host.provider_info["device_endpoint"], "POST", req.to_urlencoded())
 
-        response = self.host.parse_request_response(
-            AuthorizationResponse, http_response, "json"
-        )
+        response = self.host.parse_request_response(AuthorizationResponse, http_response, "json")
 
         return response
 
@@ -110,12 +102,8 @@ class DeviceFlowClient(SingleClient):
             client_id=self.host.client_id,
         )
 
-        http_response = self.host.http_request(
-            self.host.provider_info["token_endpoint"], "POST", req.to_urlencoded()
-        )
+        http_response = self.host.http_request(self.host.provider_info["token_endpoint"], "POST", req.to_urlencoded())
 
-        response = self.host.parse_request_response(
-            AccessTokenResponse, http_response, "json"
-        )
+        response = self.host.parse_request_response(AccessTokenResponse, http_response, "json")
 
         return response

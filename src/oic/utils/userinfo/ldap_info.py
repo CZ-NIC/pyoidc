@@ -77,9 +77,7 @@ class UserInfoLDAP(UserInfo):
             self.ld.start_tls_s()
         self.ld.simple_bind_s(self.ldapuser, self.ldappasswd)
 
-    def __call__(
-        self, userid, client_id, user_info_claims=None, first_only=True, **kwargs
-    ):
+    def __call__(self, userid, client_id, user_info_claims=None, first_only=True, **kwargs):
         _filter = self.filter_pattern % userid
         logger.debug("CLAIMS: %s" % sanitize(user_info_claims))
         _attr = self.attr

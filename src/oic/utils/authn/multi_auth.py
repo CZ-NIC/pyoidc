@@ -16,9 +16,7 @@ class MultiAuthnMethod(UserAuthnMethod):
         self.auth_module = auth_module
 
     def __call__(self, **kwargs):
-        cookie = self.create_cookie(
-            kwargs["query"], "query", UserAuthnMethod.MULTI_AUTH_COOKIE
-        )
+        cookie = self.create_cookie(kwargs["query"], "query", UserAuthnMethod.MULTI_AUTH_COOKIE)
         resp = self.auth_module(**kwargs)
         resp.headers.append(cookie)
         return resp
@@ -71,9 +69,7 @@ class AuthnIndexedEndpointWrapper(UserAuthnMethod):
         return self.authn_instance(end_point_index=self.end_point_index, **kwargs)
 
     def verify(self, **kwargs):
-        return self.authn_instance.verify(
-            end_point_index=self.end_point_index, **kwargs
-        )
+        return self.authn_instance.verify(end_point_index=self.end_point_index, **kwargs)
 
     @property
     def srv(self):

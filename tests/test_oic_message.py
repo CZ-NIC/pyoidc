@@ -98,8 +98,7 @@ def test_openidschema_from_json(json_param):
     [
         '{"email_verified":false, "email":"foo@example.com", "sub":"abc"}',
         '{"email_verified":true, "email":"foo@example.com", "sub":"abc"}',
-        '{"phone_number_verified":false, "phone_number":"+1 555 200000", '
-        '"sub":"abc"}',
+        '{"phone_number_verified":false, "phone_number":"+1 555 200000", ' '"sub":"abc"}',
         '{"phone_number_verified":true, "phone_number":"+1 555 20000", ' '"sub":"abc"}',
     ],
 )
@@ -112,10 +111,8 @@ def test_claim_booleans(json_param):
     [
         '{"email_verified":"Not", "email":"foo@example.com", "sub":"abc"}',
         '{"email_verified":"Sure", "email":"foo@example.com", "sub":"abc"}',
-        '{"phone_number_verified":"Not", "phone_number":"+1 555 200000", '
-        '"sub":"abc"}',
-        '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", '
-        '"sub":"abc"}',
+        '{"phone_number_verified":"Not", "phone_number":"+1 555 200000", ' '"sub":"abc"}',
+        '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", ' '"sub":"abc"}',
     ],
 )
 def test_claim_not_booleans(json_param):
@@ -153,14 +150,10 @@ def test_claims_deser_dict():
     )
 
     claims = claims_deser(pre.to_json(), sformat="json")
-    assert _eq(
-        claims.keys(), ["name", "nickname", "email", "email_verified", "picture"]
-    )
+    assert _eq(claims.keys(), ["name", "nickname", "email", "email_verified", "picture"])
 
     claims = claims_deser(pre.to_dict(), sformat="dict")
-    assert _eq(
-        claims.keys(), ["name", "nickname", "email", "email_verified", "picture"]
-    )
+    assert _eq(claims.keys(), ["name", "nickname", "email", "email_verified", "picture"])
 
 
 def test_address_deser():
@@ -218,9 +211,7 @@ def test_claims_ser_json():
         picture=None,
     )
     claims = claims_deser(claims_ser(claims, "json"), sformat="json")
-    assert _eq(
-        claims.keys(), ["name", "nickname", "email", "email_verified", "picture"]
-    )
+    assert _eq(claims.keys(), ["name", "nickname", "email", "email_verified", "picture"])
 
 
 class TestProviderConfigurationResponse(object):
@@ -269,9 +260,7 @@ class TestProviderConfigurationResponse(object):
         pcr = ProviderConfigurationResponse().deserialize(json.dumps(resp), "json")
 
         assert _eq(pcr["user_id_types_supported"], ["public", "pairwise"])
-        assert _eq(
-            pcr["acrs_supported"], ["1", "2", "http://id.incommon.org/assurance/bronze"]
-        )
+        assert _eq(pcr["acrs_supported"], ["1", "2", "http://id.incommon.org/assurance/bronze"])
 
     def test_example_response(self):
         resp = {
@@ -432,10 +421,7 @@ class TestRegistrationRequest(object):
             "userinfo_encrypted_response_alg": "RSA1_5",
             "userinfo_encrypted_response_enc": "A128CBC+HS256",
             "contacts": ["ve7jtb@example.org", "mary@example.org"],
-            "request_uris": [
-                "https://client.example.org/rf.txt"
-                "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"
-            ],
+            "request_uris": ["https://client.example.org/rf.txt" "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"],
         }
 
         reg = RegistrationRequest().deserialize(json.dumps(msg), "json")
@@ -463,9 +449,7 @@ class TestRegistrationRequest(object):
         }
         assert js_obj == expected_js_obj
 
-        flattened_list_dict = {
-            k: v[0] if isinstance(v, list) else v for k, v in expected_js_obj.items()
-        }
+        flattened_list_dict = {k: v[0] if isinstance(v, list) else v for k, v in expected_js_obj.items()}
         assert query_string_compare(req.to_urlencoded(), urlencode(flattened_list_dict))
 
     @pytest.mark.parametrize(
@@ -493,8 +477,7 @@ class TestRegistrationResponse(object):
             "client_secret": "ZJYCqe3GGRvdrudKyZS0XhGv_Z45DuKhCUk0gBR1vZk",
             "client_secret_expires_at": 1577858400,
             "registration_access_token": "this.is.an.access.token.value.ffx83",
-            "registration_client_uri": "https://server.example.com/connect/register?client_id"
-            "=s6BhdRkqt3",
+            "registration_client_uri": "https://server.example.com/connect/register?client_id" "=s6BhdRkqt3",
             "token_endpoint_auth_method": "client_secret_basic",
             "application_type": "web",
             "redirect_uris": [
@@ -510,10 +493,7 @@ class TestRegistrationResponse(object):
             "userinfo_encrypted_response_alg": "RSA1_5",
             "userinfo_encrypted_response_enc": "A128CBC+HS256",
             "contacts": ["ve7jtb@example.org", "mary@example.org"],
-            "request_uris": [
-                "https://client.example.org/rf.txt"
-                "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"
-            ],
+            "request_uris": ["https://client.example.org/rf.txt" "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"],
         }
 
         resp = RegistrationResponse().deserialize(json.dumps(msg), "json")

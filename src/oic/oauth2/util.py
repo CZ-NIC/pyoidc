@@ -57,9 +57,7 @@ ATTRS: Dict[str, Any] = {
 ENCODINGS = Literal["json", "urlencoded", "dict", "jwt", "jwe"]
 
 
-def get_or_post(
-    uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept=None, **kwargs
-):
+def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept=None, **kwargs):
     """
     Construct HTTP request.
 
@@ -79,9 +77,7 @@ def get_or_post(
                 _req.update(parse_qs(comp.query))
 
             _query = str(_req.to_urlencoded())
-            path = urlunsplit(
-                (comp.scheme, comp.netloc, comp.path, _query, comp.fragment)
-            )
+            path = urlunsplit((comp.scheme, comp.netloc, comp.path, _query, comp.fragment))
         else:
             path = uri
         body = None
@@ -144,10 +140,7 @@ def set_cookie(cookiejar, kaka):
                         std_attr["expires"] = http2time(morsel[attr])
         except TimeFormatError:
             # Ignore cookie
-            logger.info(
-                "Time format error on %s parameter in received cookie"
-                % (sanitize(attr),)
-            )
+            logger.info("Time format error on %s parameter in received cookie" % (sanitize(attr),))
             continue
 
         for att, spec in PAIRS.items():
@@ -223,14 +216,13 @@ def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS
             if match_to_("application/jwt", reqresp.headers["content-type"]):
                 body_type = "jwt"
             else:
-                raise ValueError(
-                    "content-type: %s" % (reqresp.headers["content-type"],)
-                )
+                raise ValueError("content-type: %s" % (reqresp.headers["content-type"],))
     elif body_type == "jwt":
         if not match_to_("application/jwt", reqresp.headers["content-type"]):
             raise ValueError(
-                "Wrong content-type in header, got: {} expected "
-                "'application/jwt'".format(reqresp.headers["content-type"])
+                "Wrong content-type in header, got: {} expected " "'application/jwt'".format(
+                    reqresp.headers["content-type"]
+                )
             )
     elif body_type == "urlencoded":
         if not match_to_(DEFAULT_POST_CONTENT_TYPE, reqresp.headers["content-type"]):

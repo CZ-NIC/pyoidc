@@ -25,14 +25,11 @@ class UserPass(AuthnModule):
 
     def __call__(self, *args, **kwargs):
         template = self.template_env.get_template(self.template)
-        return Response(template.render(action=self.url_endpoint,
-                                        state=json.dumps(kwargs),
-                                        **self.kwargs))
+        return Response(template.render(action=self.url_endpoint, state=json.dumps(kwargs), **self.kwargs))
 
     def verify(self, *args, **kwargs):
         username = kwargs["username"]
-        if username in self.user_db and self.user_db[username] == kwargs[
-            "password"]:
+        if username in self.user_db and self.user_db[username] == kwargs["password"]:
             return username, True
         else:
             return self.FAILED_AUTHN

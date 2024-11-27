@@ -47,9 +47,7 @@ class TestJWT(object):
         # Remove the signing key from keyjar
         keyjar.remove_key("", "RSA", "")
         # And add it back as verify
-        kb = keybundle_from_local_file(
-            os.path.join(BASE_PATH, "cert.key"), "RSA", ["ver"]
-        )
+        kb = keybundle_from_local_file(os.path.join(BASE_PATH, "cert.key"), "RSA", ["ver"])
         # keybundle_from_local_file doesn'assign kid, so assign manually
         kb._keys[0].kid = kidd["sig"]["RSA"]
         keyjar.add_kb("", kb)

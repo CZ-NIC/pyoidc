@@ -40,9 +40,7 @@ class TestResponse(object):
             assert response_header in headers
 
         resp = Response(message=message, headers=[response_header], template=template)
-        assert resp({}, start_response) == [
-            '&lt;script&gt;alert("hi");&lt;/script&gt;'.encode("utf8")
-        ]
+        assert resp({}, start_response) == ['&lt;script&gt;alert("hi");&lt;/script&gt;'.encode("utf8")]
 
 
 @pytest.fixture
@@ -116,9 +114,7 @@ class TestCookieDealer(object):
         cookie_expiration = kaka[1].split(";")[1].split("=")[1]
 
         now = datetime.datetime.utcnow()  #
-        cookie_timestamp = datetime.datetime.strptime(
-            cookie_expiration, "%a, %d-%b-%Y %H:%M:%S GMT"
-        )
+        cookie_timestamp = datetime.datetime.strptime(cookie_expiration, "%a, %d-%b-%Y %H:%M:%S GMT")
         assert cookie_timestamp < now
 
     def test_cookie_dealer_improperly_configured(self):
@@ -184,10 +180,7 @@ def test_broken_cookie_signature():
 
 
 def test_parse_cookie():
-    kaka = (
-        "pyoidc=bjmc::1463043535::upm|"
-        "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
-    )
+    kaka = "pyoidc=bjmc::1463043535::upm|" "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
     seed = ""
     name = "pyoidc"
     result = parse_cookie(name, seed, kaka)
@@ -195,10 +188,7 @@ def test_parse_cookie():
 
 
 def test_parse_manipulated_cookie_payload():
-    kaka = (
-        "pyoidc=bjmc::1463043536::upm|"
-        "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
-    )
+    kaka = "pyoidc=bjmc::1463043536::upm|" "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
     seed = ""
     name = "pyoidc"
     with pytest.raises(InvalidCookieSign):
@@ -206,10 +196,7 @@ def test_parse_manipulated_cookie_payload():
 
 
 def test_parse_manipulated_cookie_timestamp():
-    kaka = (
-        "pyoidc=bjmc::1463043535::upm|"
-        "1463043537|18a201305fa15a96ce4048e1fbb03f7715f86499"
-    )
+    kaka = "pyoidc=bjmc::1463043535::upm|" "1463043537|18a201305fa15a96ce4048e1fbb03f7715f86499"
     seed = ""
     name = "pyoidc"
     with pytest.raises(InvalidCookieSign):
@@ -218,10 +205,7 @@ def test_parse_manipulated_cookie_timestamp():
 
 def test_cookie_parts():
     name = "pyoidc"
-    kaka = (
-        "pyoidc=bjmc::1463043535::upm|"
-        "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
-    )
+    kaka = "pyoidc=bjmc::1463043535::upm|" "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
     result = cookie_parts(name, kaka)
     assert result == [
         "bjmc::1463043535::upm",

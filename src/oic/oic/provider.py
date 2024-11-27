@@ -289,9 +289,7 @@ class Provider(AProvider):
             settings=self.settings,
         )
         # Should be a OIC Server not an OAuth2 server
-        self.server = Server(
-            keyjar=keyjar, message_factory=message_factory, settings=self.settings
-        )
+        self.server = Server(keyjar=keyjar, message_factory=message_factory, settings=self.settings)
         # Same keyjar
         self.keyjar: KeyJar = self.server.keyjar
 
@@ -618,9 +616,7 @@ class Provider(AProvider):
                 raise InvalidRequest("Contains unsupported response mode")
 
         if "response_type" in req:
-            if not self.match_sp_sep(
-                [" ".join(req["response_type"])], _cap["response_types_supported"]
-            ):
+            if not self.match_sp_sep([" ".join(req["response_type"])], _cap["response_types_supported"]):
                 raise InvalidRequest("Contains unsupported response type")
 
         if before != req.to_dict():
@@ -667,9 +663,7 @@ class Provider(AProvider):
 
             kwargs["req_user"] = req_user
 
-        authnres = self.do_auth(
-            info["areq"], info["redirect_uri"], cinfo, request, cookie, **kwargs
-        )
+        authnres = self.do_auth(info["areq"], info["redirect_uri"], cinfo, request, cookie, **kwargs)
 
         if isinstance(authnres, Response):
             return authnres
@@ -691,12 +685,8 @@ class Provider(AProvider):
             salt = rndstr()
             authn_event = self.sdb.get_authentication_event(sid)  # use the last session
             state = str(authn_event.authn_time)
-            aresp["session_state"] = self._compute_session_state(
-                state, salt, areq["client_id"], redirect_uri
-            )
-            headers.append(
-                self.write_session_cookie(state, http_only=False, same_site="None")
-            )
+            aresp["session_state"] = self._compute_session_state(state, salt, areq["client_id"], redirect_uri)
+            headers.append(self.write_session_cookie(state, http_only=False, same_site="None"))
 
         # as per the mix-up draft don't add iss and client_id if they are
         # already in the id_token.
@@ -742,9 +732,7 @@ class Provider(AProvider):
 
         self.keyjar.issuer_keys[cid] = []
         # Add client secret as a symmetric key
-        self.keyjar.add_symmetric(
-            cid, client_info["client_secret"], usage=["enc", "sig"]
-        )
+        self.keyjar.add_symmetric(cid, client_info["client_secret"], usage=["enc", "sig"])
         # Try to renew from jwks or jwks_uri
         if client_info.get("jwks_uri") is not None:
             self.keyjar.add(cid, client_info["jwks_uri"])
@@ -789,9 +777,7 @@ class Provider(AProvider):
         _jwe = JWE(payload, **kwargs)
         return _jwe.encrypt(keys, context="public")
 
-    def sign_encrypt_id_token(
-        self, sinfo, client_info, areq, code=None, access_token=None, user_info=None
-    ):
+    def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None, access_token=None, user_info=None):
         """
         Sign and or encrypt a IDToken.
 
@@ -827,9 +813,7 @@ class Provider(AProvider):
 
         # Then encrypt
         if "id_token_encrypted_response_alg" in client_info:
-            id_token = self.encrypt(
-                id_token, client_info, areq["client_id"], "id_token", "JWT"
-            )
+            id_token = self.encrypt(id_token, client_info, areq["client_id"], "id_token", "JWT")
 
         return id_token
 
@@ -882,14 +866,10 @@ class Provider(AProvider):
         if "openid" in _info["scope"]:
             userinfo = self.userinfo_in_id_token_claims(_info)
             try:
-                _idtoken = self.sign_encrypt_id_token(
-                    _info, client_info, areq, user_info=userinfo
-                )
+                _idtoken = self.sign_encrypt_id_token(_info, client_info, areq, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning("%s", err)
-                return error_response(
-                    "invalid_request", descr="Could not sign/encrypt id_token"
-                )
+                return error_response("invalid_request", descr="Could not sign/encrypt id_token")
 
             _sdb.update_by_token(_access_code, "id_token", _idtoken)
 
@@ -903,9 +883,7 @@ class Provider(AProvider):
 
         logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
-        return Response(
-            atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS
-        )
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def refresh_token_grant_type(self, areq):
         """
@@ -930,14 +908,10 @@ class Provider(AProvider):
         if "openid" in _info["scope"] and "authn_event" in _info:
             userinfo = self.userinfo_in_id_token_claims(_info)
             try:
-                _idtoken = self.sign_encrypt_id_token(
-                    _info, client_info, areq, user_info=userinfo
-                )
+                _idtoken = self.sign_encrypt_id_token(_info, client_info, areq, user_info=userinfo)
             except (JWEException, NoSuitableSigningKeys) as err:
                 logger.warning("%s", err)
-                return error_response(
-                    "invalid_request", descr="Could not sign/encrypt id_token"
-                )
+                return error_response("invalid_request", descr="Could not sign/encrypt id_token")
 
             sid = _sdb.access_token.get_key(_info["access_token"])
             _sdb.update(sid, "id_token", _idtoken)
@@ -949,9 +923,7 @@ class Provider(AProvider):
 
         logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
 
-        return Response(
-            atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS
-        )
+        return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def client_credentials_grant_type(self, areq):
         """
@@ -1038,9 +1010,7 @@ class Provider(AProvider):
             key: List[KEYS] = []
         else:
             if algo.startswith("HS"):
-                key = self.keyjar.get_signing_key(
-                    alg2keytype(algo), client_info["client_id"], alg=algo
-                )
+                key = self.keyjar.get_signing_key(alg2keytype(algo), client_info["client_id"], alg=algo)
             else:
                 # Use my key for signing
                 key = self.keyjar.get_signing_key(alg2keytype(algo), "", alg=algo)
@@ -1050,9 +1020,7 @@ class Provider(AProvider):
         jinfo = userinfo.to_jwt(key, algo)
         if "userinfo_encrypted_response_alg" in client_info:
             # encrypt with clients public key
-            jinfo = self.encrypt(
-                jinfo, client_info, session["client_id"], "userinfo", "JWT"
-            )
+            jinfo = self.encrypt(jinfo, client_info, session["client_id"], "userinfo", "JWT")
         return jinfo
 
     def userinfo_endpoint(self, request="", **kwargs):
@@ -1097,9 +1065,7 @@ class Provider(AProvider):
         try:
             typ, key = _sdb.access_token.type_and_key(token)
         except Exception:
-            return error_response(
-                "invalid_token", descr="Invalid Token", status_code=401
-            )
+            return error_response("invalid_token", descr="Invalid Token", status_code=401)
 
         _log_debug("access_token type: '%s'" % (typ,))
 
@@ -1108,14 +1074,10 @@ class Provider(AProvider):
             raise FailedAuthentication("Wrong type of token")
 
         if _sdb.access_token.is_expired(token):
-            return error_response(
-                "invalid_token", descr="Token is expired", status_code=401
-            )
+            return error_response("invalid_token", descr="Token is expired", status_code=401)
 
         if _sdb.is_revoked(key):
-            return error_response(
-                "invalid_token", descr="Token is revoked", status_code=401
-            )
+            return error_response("invalid_token", descr="Token is revoked", status_code=401)
         session = _sdb[key]
 
         # Scope can translate to userinfo_claims
@@ -1133,9 +1095,7 @@ class Provider(AProvider):
                 content_type = "application/jwt"
             elif "userinfo_encrypted_response_alg" in _cinfo:
                 jinfo = info.to_json()
-                jinfo = self.encrypt(
-                    jinfo, _cinfo, session["client_id"], "userinfo", ""
-                )
+                jinfo = self.encrypt(jinfo, _cinfo, session["client_id"], "userinfo", "")
                 content_type = "application/jwt"
             else:
                 jinfo = info.to_json()
@@ -1191,9 +1151,7 @@ class Provider(AProvider):
                         if request[_pref] not in self.capabilities[_prov]:
                             raise CapabilitiesMisMatch(_pref)
                     else:
-                        if not set(request[_pref]).issubset(
-                            set(self.capabilities[_prov])
-                        ):
+                        if not set(request[_pref]).issubset(set(self.capabilities[_prov])):
                             raise CapabilitiesMisMatch(_pref)
 
     def do_client_registration(self, request, client_id, ignore=None):
@@ -1226,12 +1184,8 @@ class Provider(AProvider):
                 ruri = self.verify_redirect_uris(request)
                 _cinfo["redirect_uris"] = ruri
             except InvalidRedirectURIError as e:
-                error = ClientRegistrationErrorResponse(
-                    error="invalid_redirect_uri", error_description=str(e)
-                )
-                return Response(
-                    error.to_json(), content="application/json", status_code=400
-                )
+                error = ClientRegistrationErrorResponse(error="invalid_redirect_uri", error_description=str(e))
+                return Response(error.to_json(), content="application/json", status_code=400)
 
         if "sector_identifier_uri" in request:
             try:
@@ -1292,9 +1246,7 @@ class Provider(AProvider):
             error = ClientRegistrationErrorResponse(
                 error="invalid_configuration_parameter", error_description="%s" % err
             )
-            return Response(
-                error.to_json(), content="application/json", status="400 Bad Request"
-            )
+            return Response(error.to_json(), content="application/json", status="400 Bad Request")
 
         return _cinfo
 
@@ -1330,9 +1282,7 @@ class Provider(AProvider):
                         p.scheme,
                         p.hostname,
                     )
-                    raise InvalidRedirectURIError(
-                        "Redirect_uri must use custom scheme or http and localhost"
-                    )
+                    raise InvalidRedirectURIError("Redirect_uri must use custom scheme or http and localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError("None https redirect_uri not allowed")
             elif p.fragment:
@@ -1353,9 +1303,7 @@ class Provider(AProvider):
         for uri in request["post_logout_redirect_uris"]:
             part = urlparse(uri)
             if part.fragment:
-                raise InvalidPostLogoutUri(
-                    "post_logout_redirect_uris contains fragment"
-                )
+                raise InvalidPostLogoutUri("post_logout_redirect_uris contains fragment")
             query = part.query if part.query else None
             base = part._replace(query="").geturl()
             if query:
@@ -1387,17 +1335,13 @@ class Provider(AProvider):
         try:
             si_redirects = json.loads(res.text)
         except ValueError:
-            raise InvalidSectorIdentifier(
-                "Error deserializing sector_identifier_uri content"
-            )
+            raise InvalidSectorIdentifier("Error deserializing sector_identifier_uri content")
 
         if "redirect_uris" in request:
             logger.debug("redirect_uris: %s", request["redirect_uris"])
             for uri in request["redirect_uris"]:
                 if uri not in si_redirects:
-                    raise InvalidSectorIdentifier(
-                        "redirect_uri missing from sector_identifiers"
-                    )
+                    raise InvalidSectorIdentifier("redirect_uri missing from sector_identifiers")
 
         return si_redirects, si_url
 
@@ -1410,9 +1354,7 @@ class Provider(AProvider):
             val = []
             for base, query_dict in args[param]:
                 if query_dict:
-                    query_string = urlencode(
-                        [(key, v) for key in query_dict for v in query_dict[key]]
-                    )
+                    query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
                     val.append("%s?%s" % (base, query_string))
                 else:
                     val.append(base)
@@ -1422,9 +1364,7 @@ class Provider(AProvider):
     def create_registration(self, authn=None, request=None, **kwargs):
         logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
 
-        request_cls = self.server.message_factory.get_request_type(
-            "registration_endpoint"
-        )
+        request_cls = self.server.message_factory.get_request_type("registration_endpoint")
         try:
             request = request_cls().deserialize(request, "json")
         except MessageException:
@@ -1458,17 +1398,13 @@ class Provider(AProvider):
             if "type" not in request:
                 return error_response("invalid_type", descr="%s" % err)
             else:
-                return error_response(
-                    "invalid_configuration_parameter", descr="%s" % err
-                )
+                return error_response("invalid_configuration_parameter", descr="%s" % err)
 
         request.rm_blanks()
         try:
             self.match_client_request(request)
         except CapabilitiesMisMatch as err:
-            return error_response(
-                "invalid_request", descr="Don't support proposed %s" % err
-            )
+            return error_response("invalid_request", descr="Don't support proposed %s" % err)
 
         # create new id och secret
         client_id = rndstr(12)
@@ -1502,9 +1438,7 @@ class Provider(AProvider):
         if isinstance(_cinfo, Response):
             return _cinfo
 
-        response_cls = self.server.message_factory.get_response_type(
-            "registration_endpoint"
-        )
+        response_cls = self.server.message_factory.get_response_type("registration_endpoint")
         args = dict([(k, v) for k, v in _cinfo.items() if k in response_cls.c_param])
 
         self.comb_uri(args)
@@ -1571,16 +1505,8 @@ class Provider(AProvider):
             return Unauthorized()
 
         logger.debug("Client '%s' reads client info" % client_id)
-        response_cls = self.server.message_factory.get_response_type(
-            "registration_endpoint"
-        )
-        args = dict(
-            [
-                (k, v)
-                for k, v in self.cdb[client_id].items()
-                if k in response_cls.c_param
-            ]
-        )
+        response_cls = self.server.message_factory.get_response_type("registration_endpoint")
+        args = dict([(k, v) for k, v in self.cdb[client_id].items() if k in response_cls.c_param])
 
         self.comb_uri(args)
         response = response_cls(**args)
@@ -1677,9 +1603,9 @@ class Provider(AProvider):
 
         _log_debug("@discovery_endpoint")
 
-        request = self.server.message_factory.get_request_type(
-            "discovery_endpoint"
-        )().deserialize(request, "urlencoded")
+        request = self.server.message_factory.get_request_type("discovery_endpoint")().deserialize(
+            request, "urlencoded"
+        )
         _log_debug("discovery_request:%s" % (sanitize(request.to_dict()),))
 
         if request["service"] != SWD_ISSUER:
@@ -1687,9 +1613,7 @@ class Provider(AProvider):
 
         # verify that the principal is one of mine
 
-        _response = self.server.message_factory.get_response_type("discovery_endpoint")(
-            locations=[self.baseurl]
-        )
+        _response = self.server.message_factory.get_response_type("discovery_endpoint")(locations=[self.baseurl])
 
         _log_debug("discovery_response:%s" % (sanitize(_response.to_dict()),))
 
@@ -1699,9 +1623,7 @@ class Provider(AProvider):
             cookie = self.cookie_func(key, self.cookie_name, "disc", self.sso_ttl)
             headers.append(cookie)
 
-        return Response(
-            _response.to_json(), content="application/json", headers=headers
-        )
+        return Response(_response.to_json(), content="application/json", headers=headers)
 
     def aresp_check(self, aresp, areq):
         # Use of the nonce is REQUIRED for all requests where an ID Token is
@@ -1718,16 +1640,12 @@ class Provider(AProvider):
                 "action": kwargs["redirect_uri"],
                 "inputs": kwargs["aresp"].to_dict(),
             }
-            return Response(
-                self.template_renderer("form_post", context), headers=kwargs["headers"]
-            )
+            return Response(self.template_renderer("form_post", context), headers=kwargs["headers"])
         return None
 
     def create_authn_response(self, areq, sid):
         # create the response
-        aresp = self.server.message_factory.get_response_type(
-            "authorization_endpoint"
-        )()
+        aresp = self.server.message_factory.get_response_type("authorization_endpoint")()
         try:
             aresp["state"] = areq["state"]
         except KeyError:
@@ -1794,14 +1712,10 @@ class Provider(AProvider):
 
                 # or 'code id_token'
                 try:
-                    id_token = self.sign_encrypt_id_token(
-                        _sinfo, client_info, areq, user_info=user_info, **hargs
-                    )
+                    id_token = self.sign_encrypt_id_token(_sinfo, client_info, areq, user_info=user_info, **hargs)
                 except (JWEException, NoSuitableSigningKeys) as err:
                     logger.warning("%s", err)
-                    return error_response(
-                        "invalid_request", descr="Could not sign/encrypt id_token"
-                    )
+                    return error_response("invalid_request", descr="Could not sign/encrypt id_token")
 
                 aresp["id_token"] = id_token
                 _sinfo["id_token"] = id_token
@@ -1913,9 +1827,7 @@ class Provider(AProvider):
 
     # Below are LOGOUT related methods
 
-    def verify_post_logout_redirect_uri(
-        self, esreq: Message, client_id: str
-    ) -> Optional[str]:
+    def verify_post_logout_redirect_uri(self, esreq: Message, client_id: str) -> Optional[str]:
         """
         Verify a post logout URI.
 
@@ -1978,9 +1890,7 @@ class Provider(AProvider):
             "redirect": redirect,
             "action": "/" + EndSessionEndpoint("").etype,
         }
-        return Response(
-            self.template_renderer("verify_logout", context), headers=headers
-        )
+        return Response(self.template_renderer("verify_logout", context), headers=headers)
 
     def _get_uid_from_cookie(
         self, cookie: Optional[Union[str, SimpleCookie]]
@@ -2005,9 +1915,7 @@ class Provider(AProvider):
 
         return cookie_dealer, client_id, uid
 
-    def do_back_channel_logout(
-        self, cinfo: dict, sub: str, sid: str
-    ) -> Optional[Tuple[str, str]]:
+    def do_back_channel_logout(self, cinfo: dict, sub: str, sid: str) -> Optional[Tuple[str, str]]:
         """
         Prepare information to be used to do a back-channel logout.
 
@@ -2052,9 +1960,7 @@ class Provider(AProvider):
         for sid in usids:
             del _sdb[sid]
 
-    def logout_info_for_all_clients(
-        self, uid: Optional[str] = "", sid: Optional[str] = ""
-    ) -> Dict:
+    def logout_info_for_all_clients(self, uid: Optional[str] = "", sid: Optional[str] = "") -> Dict:
         """
         Collect information necessary to logout one user from all clients he/she has been using.
 
@@ -2089,9 +1995,7 @@ class Provider(AProvider):
                 bc_logouts[_cid] = self.do_back_channel_logout(_cdb[_cid], _sub, _csid)
             if "frontchannel_logout_uri" in _cdb[_cid]:
                 # Construct an IFrame
-                fc_iframes[_cid] = self.do_front_channel_logout_iframe(
-                    _cdb[_cid], _iss, _csid
-                )
+                fc_iframes[_cid] = self.do_front_channel_logout_iframe(_cdb[_cid], _iss, _csid)
 
         return {"back_channel": bc_logouts, "front_channel": fc_iframes}
 
@@ -2113,15 +2017,11 @@ class Provider(AProvider):
         if "backchannel_logout_uri" in self.cdb[client_id]:
             _subject_id = self.sdb[session_id]["sub"]
             logout_spec["back_channel"] = {
-                client_id: self.do_back_channel_logout(
-                    self.cdb[client_id], _subject_id, session_id
-                )
+                client_id: self.do_back_channel_logout(self.cdb[client_id], _subject_id, session_id)
             }
         elif "frontchannel_logout_uri" in self.cdb[client_id]:
             # Construct an IFrame
-            _iframe = self.do_front_channel_logout_iframe(
-                self.cdb[client_id], self.name, session_id
-            )
+            _iframe = self.do_front_channel_logout_iframe(self.cdb[client_id], self.name, session_id)
             logout_spec["front_channel"] = {client_id: _iframe}
 
         return logout_spec
@@ -2161,9 +2061,7 @@ class Provider(AProvider):
         sid = ""
 
         if "id_token_hint" in esr:
-            id_token_hint = IdToken().from_jwt(
-                esr["id_token_hint"], keyjar=self.keyjar, verify=True
-            )
+            id_token_hint = IdToken().from_jwt(esr["id_token_hint"], keyjar=self.keyjar, verify=True)
             far_away = 86400 * 30  # 30 days
 
             if client_id:
@@ -2172,9 +2070,7 @@ class Provider(AProvider):
                 args = {}
 
             try:
-                id_token_hint.verify(
-                    iss=self.baseurl, skew=far_away, nonce_storage_time=far_away, **args
-                )
+                id_token_hint.verify(iss=self.baseurl, skew=far_away, nonce_storage_time=far_away, **args)
             except (VerificationError, NotForMe) as err:
                 logger.warning("Verification error on id_token_hint: %s", err)
                 return error_response("invalid_request", "Bad Id Token hint")
@@ -2203,9 +2099,7 @@ class Provider(AProvider):
                     break
 
             if not matching_client_id:
-                return error_response(
-                    "invalid_request", "Could not find a matching client ID"
-                )
+                return error_response("invalid_request", "Could not find a matching client ID")
 
         if not client_id:
             return error_response("invalid_request", "Could not find client ID")
@@ -2223,18 +2117,14 @@ class Provider(AProvider):
             except KeyError:
                 if self.post_logout_page is None:
                     logger.warning("No post logout page configured for %s", client_id)
-                    return error_response(
-                        "server_error", "Have no post logout page configured"
-                    )
+                    return error_response("server_error", "Have no post logout page configured")
                 else:
                     redirect_uri = self.post_logout_page
             else:
                 if len(_ruri) == 1:
                     _base, _query = _ruri[0]
                     if _query:
-                        query_string = urlencode(
-                            [(key, v) for key in _query for v in _query[key]]
-                        )
+                        query_string = urlencode([(key, v) for key in _query for v in _query[key]])
                         redirect_uri = "%s?%s" % (_base, query_string)
                     else:
                         redirect_uri = _base
@@ -2258,9 +2148,7 @@ class Provider(AProvider):
             self.events.store("object args", "{}".format(payload))
 
         # From me to me
-        _jws = JWT(
-            self.keyjar, iss=self.name, lifetime=86400, sign_alg=self.signing_alg
-        )
+        _jws = JWT(self.keyjar, iss=self.name, lifetime=86400, sign_alg=self.signing_alg)
         sjwt = _jws.pack(aud=[self.name], **payload)
 
         location = "{}?{}".format(self.logout_verify_url, urlencode({"sjwt": sjwt}))
@@ -2292,9 +2180,7 @@ class Provider(AProvider):
             # Find all the session IDs this user has gotten
             sids = session_get(self.sdb, "uid", uid)
         else:
-            logout_spec = self.logout_info_for_one_client(
-                session_id=sid, client_id=client_id
-            )
+            logout_spec = self.logout_info_for_one_client(session_id=sid, client_id=client_id)
             sids = [sid]
 
         if self.events:
@@ -2302,12 +2188,8 @@ class Provider(AProvider):
 
         if not logout_spec["back_channel"] and not logout_spec["front_channel"]:
             # kill cookies
-            kaka1 = self.write_session_cookie(
-                "removed", http_only=False, same_site="None"
-            )
-            kaka2 = self.cookie_func(
-                "", typ="sso", cookie_name=self.sso_cookie_name, kill=True
-            )
+            kaka1 = self.write_session_cookie("removed", http_only=False, same_site="None")
+            kaka2 = self.cookie_func("", typ="sso", cookie_name=self.sso_cookie_name, kill=True)
             return {"cookie": [kaka1, kaka2]}
 
         # take care of Back channel logout first
@@ -2349,9 +2231,7 @@ class Provider(AProvider):
 
         # kill cookies
         kaka1 = self.write_session_cookie("removed", http_only=False, same_site="None")
-        kaka2 = self.cookie_func(
-            "", typ="sso", cookie_name=self.sso_cookie_name, kill=True
-        )
+        kaka2 = self.cookie_func("", typ="sso", cookie_name=self.sso_cookie_name, kill=True)
         res = {"cookie": [kaka1, kaka2]}
 
         if logout_spec["front_channel"]:
@@ -2365,9 +2245,7 @@ class Provider(AProvider):
         return res
 
     @staticmethod
-    def do_front_channel_logout_iframe(
-        client_info: Dict, issuer: str, session_id: str
-    ) -> Optional[str]:
+    def do_front_channel_logout_iframe(client_info: Dict, issuer: str, session_id: str) -> Optional[str]:
         """
         Construct a front channel logout IFrame.
 
@@ -2396,9 +2274,7 @@ class Provider(AProvider):
                 _np = p._replace(query="")
                 frontchannel_logout_uri = _np.geturl()
 
-            _iframe = '<iframe src="{}?{}">'.format(
-                frontchannel_logout_uri, urlencode(_query)
-            )
+            _iframe = '<iframe src="{}?{}">'.format(frontchannel_logout_uri, urlencode(_query))
         else:
             _iframe = '<iframe src="{}">'.format(frontchannel_logout_uri)
 

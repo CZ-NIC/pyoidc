@@ -44,27 +44,9 @@ test:
 	@pipenv run pytest $(TESTDIR)
 .PHONY: test
 
-isort:
-	@pipenv run isort $(OICDIR) $(TESTDIR) $(OAUTH_EXAMPLE)
-
-check-isort:
-	@pipenv run isort --diff --check-only $(OICDIR) $(TESTDIR) $(OAUTH_EXAMPLE)
-.PHONY: isort check-isort
-
-blacken:
-	@pipenv run black src/ tests/ oauth_example/
-
-check-black:
-	@pipenv run black src/ tests/ oauth_example/ --check
-.PHONY: blacken check-black
-
 bandit:
 	@pipenv run bandit -a file -r src/ oauth_example/ oidc_example/ 
 .PHONY: bandit
-
-check-pylama:
-	@pipenv run pylama $(OICDIR) $(TESTDIR) $(OAUTH_EXAMPLE)
-.PHONY: check-pylama
 
 release:
 	@pipenv run python setup.py sdist upload -r pypi

@@ -1,1 +1,2 @@
 include src/oic/py.typed
+include pyproject.toml

@@ -168,20 +168,12 @@ class DictSessionBackend(SessionBackend):
 
     def get_by_sub(self, sub: str) -> List[str]:
         """Return session ids based on sub."""
-        return [
-            sid for sid, session in self.storage.items() if session.get("sub") == sub
-        ]
+        return [sid for sid, session in self.storage.items() if session.get("sub") == sub]
 
     def get_by_uid(self, uid: str) -> List[str]:
         """Return session ids based on uid."""
-        return [
-            sid
-            for sid, session in self.storage.items()
-            if AuthnEvent.from_json(session["authn_event"]).uid == uid
-        ]
+        return [sid for sid, session in self.storage.items() if AuthnEvent.from_json(session["authn_event"]).uid == uid]
 
     def get(self, attr: str, val: str) -> List[str]:
         """Return session ids based on attribute name and value."""
-        return [
-            sid for sid, session in self.storage.items() if session.get(attr) == val
-        ]
+        return [sid for sid, session in self.storage.items() if session.get(attr) == val]

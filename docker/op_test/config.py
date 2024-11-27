@@ -11,13 +11,13 @@ VERIFY_SSL = False
 PORT_MIN = 60001
 PORT_MAX = 61000
 
-BASE_URL = 'https://op-test'
+BASE_URL = "https://op-test"
 
 # The variables below are all passed on to the test tool instance
-ENT_PATH = 'entities'
-ENT_INFO = 'entity_info'
+ENT_PATH = "entities"
+ENT_INFO = "entity_info"
 
-FLOWDIR = 'flows'
+FLOWDIR = "flows"
 
-PATH2PORT = 'path2port.csv'
-TEST_SCRIPT = './op_test_tool.py'
+PATH2PORT = "path2port.csv"
+TEST_SCRIPT = "./op_test_tool.py"

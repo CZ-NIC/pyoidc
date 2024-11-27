@@ -44,9 +44,7 @@ class OAuthClient(client.Client):
         jwks_uri="",
         kid=None,
     ):
-        client.Client.__init__(
-            self, client_id, client_authn_method, keyjar=keyjar, verify_ssl=verify_ssl
-        )
+        client.Client.__init__(self, client_id, client_authn_method, keyjar=keyjar, verify_ssl=verify_ssl)
         self.behaviour = behaviour or {}
         self.userinfo_request_method = ""
         self.allow_sign_alg_none = False
@@ -78,9 +76,7 @@ class OAuthClient(client.Client):
 
         url, body, ht_args, cis = cast(
             AuthorizationRequest,
-            self.uri_and_body(
-                AuthorizationRequest, cis, method="GET", request_args=request_args
-            ),
+            self.uri_and_body(AuthorizationRequest, cis, method="GET", request_args=request_args),
         )
 
         self.authz_req[request_args["state"]] = cis
@@ -116,16 +112,12 @@ class OAuthClient(client.Client):
         :return:
         """
         if self.behaviour["response_type"] == "code":
-            respcls: Union[Type[AuthorizationResponse], Type[AccessTokenResponse]] = (
-                AuthorizationResponse
-            )
+            respcls: Union[Type[AuthorizationResponse], Type[AccessTokenResponse]] = AuthorizationResponse
         else:
             respcls = AccessTokenResponse
 
         try:
-            authresp = self.parse_response(
-                respcls, response, sformat=format, keyjar=self.keyjar
-            )
+            authresp = self.parse_response(respcls, response, sformat=format, keyjar=self.keyjar)
         except ResponseError:
             msg = "Could not parse response: '{}'"
             logger.error(msg.format(sanitize(response)))
@@ -148,9 +140,7 @@ class OAuthClient(client.Client):
             try:
                 args = {
                     "code": authresp["code"],
-                    "redirect_uri": self.registration_response["redirect_uris"][
-                        0
-                    ],  # type: ignore
+                    "redirect_uri": self.registration_response["redirect_uris"][0],  # type: ignore
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
                 }
@@ -163,9 +153,7 @@ class OAuthClient(client.Client):
                 atresp = self.do_access_token_request(
                     state=authresp["state"],
                     request_args=args,
-                    authn_method=self.registration_response[
-                        "token_endpoint_auth_method"
-                    ],
+                    authn_method=self.registration_response["token_endpoint_auth_method"],
                 )
                 logger.info("Access token response: {}".format(sanitize(atresp)))
             except Exception as err:
@@ -260,20 +248,14 @@ class OAuthClients(object):
             # Gather OP information
             _client.provider_config(kwargs["srv_discovery_url"])
             # register the client
-            _client.register(
-                _client.provider_info["registration_endpoint"], **kwargs["client_info"]
-            )
-            self.get_path(
-                kwargs["client_info"]["redirect_uris"], kwargs["srv_discovery_url"]
-            )
+            _client.register(_client.provider_info["registration_endpoint"], **kwargs["client_info"])
+            self.get_path(kwargs["client_info"]["redirect_uris"], kwargs["srv_discovery_url"])
         elif _key_set == {"provider_info", "client_info"}:
             _client.handle_provider_config(
                 ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
             )
-            _client.register(
-                _client.provider_info["registration_endpoint"], **kwargs["client_info"]
-            )
+            _client.register(_client.provider_info["registration_endpoint"], **kwargs["client_info"])
 
             self.get_path(
                 kwargs["client_info"]["redirect_uris"],
@@ -284,18 +266,14 @@ class OAuthClients(object):
                 ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
             )
-            _client.store_registration_info(
-                ClientInfoResponse(**kwargs["client_registration"])
-            )
+            _client.store_registration_info(ClientInfoResponse(**kwargs["client_registration"]))
             self.get_path(
                 kwargs["client_info"]["redirect_uris"],
                 kwargs["provider_info"]["issuer"],
             )
         elif _key_set == {"srv_discovery_url", "client_registration"}:
             _client.provider_config(kwargs["srv_discovery_url"])
-            _client.store_registration_info(
-                ClientInfoResponse(**kwargs["client_registration"])
-            )
+            _client.store_registration_info(ClientInfoResponse(**kwargs["client_registration"]))
             self.get_path(
                 kwargs["client_registration"]["redirect_uris"],
                 kwargs["srv_discovery_url"],
@@ -334,13 +312,10 @@ class OAuthClients(object):
             h.update(issuer.encode("utf8"))  # issuer has to be bytes
             base_urls = _cinfo["redirect_uris"]
 
-            reg_args["redirect_uris"] = [
-                u.format(base=self.base_url, iss=h.hexdigest()) for u in base_urls
-            ]
+            reg_args["redirect_uris"] = [u.format(base=self.base_url, iss=h.hexdigest()) for u in base_urls]
             try:
                 reg_args["post_logout_redirect_uris"] = [
-                    u.format(base=self.base_url, iss=h.hexdigest())
-                    for u in reg_args["post_logout_redirect_uris"]
+                    u.format(base=self.base_url, iss=h.hexdigest()) for u in reg_args["post_logout_redirect_uris"]
                 ]
             except KeyError:
                 pass

@@ -135,9 +135,7 @@ class TestMDQClient(object):
             rsps.add(rsps.GET, url, body=json.dumps(metadata))
             result = self.md.items()
 
-        assert sorted(metadata, key=itemgetter("client_id")) == sorted(
-            result, key=itemgetter("client_id")
-        )
+        assert sorted(metadata, key=itemgetter("client_id")) == sorted(result, key=itemgetter("client_id"))
 
     def test_items_errors(self):
         url = TestMDQClient.URL + "entities"

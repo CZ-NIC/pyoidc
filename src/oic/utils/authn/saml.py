@@ -144,9 +144,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             if done == 0:
                 entity_id = response
                 # Do the AuthnRequest
-                resp = self._redirect_to_auth(
-                    self.sp, entity_id, query, end_point_index
-                )
+                resp = self._redirect_to_auth(self.sp, entity_id, query, end_point_index)
                 return resp, False
             return response, False
 
@@ -299,18 +297,16 @@ class SAMLAuthnMethod(UserAuthnMethod):
                     eid = _cli.config.entityid
 
                     disco_end_point_index = end_point_index["disco_end_point_index"]
-                    ret = _cli.config.getattr("endpoints", "sp")["discovery_response"][
-                        disco_end_point_index
-                    ][0]
+                    ret = _cli.config.getattr("endpoints", "sp")["discovery_response"][disco_end_point_index][0]
                     ret += "?sid=%s" % sid_
                     loc = _cli.create_discovery_service_request(
-                        self.sp_conf.DISCOSRV, eid, **{"return": ret}  # type: ignore
+                        self.sp_conf.DISCOSRV,
+                        eid,
+                        **{"return": ret},  # type: ignore
                     )
                     return -1, SeeOther(loc, headers=[cookie])
             elif not len(idps):
-                raise ServiceErrorException(
-                    "Misconfiguration for the SAML Service Provider!"
-                )
+                raise ServiceErrorException("Misconfiguration for the SAML Service Provider!")
             else:
                 return -1, NotImplemented
         return 0, idp_entity_id
@@ -339,9 +335,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             kwargs = {}
 
             if end_point_index:
-                kwargs["assertion_consumer_service_index"] = str(
-                    end_point_index[binding]
-                )
+                kwargs["assertion_consumer_service_index"] = str(end_point_index[binding])
 
             if _cli.authn_requests_signed:
                 _sid = saml2.s_utils.sid(_cli.seed)
@@ -355,23 +349,17 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 )
                 _sid = req_id
             else:
-                req_id, req = _cli.create_authn_request(
-                    destination, vorg=vorg_name, sign=False, **kwargs
-                )
+                req_id, req = _cli.create_authn_request(destination, vorg=vorg_name, sign=False, **kwargs)
                 msg_str = "%s" % req
                 _sid = req_id
 
             _rstate = rndstr()
-            ht_args = _cli.apply_binding(
-                binding, msg_str, destination, relay_state=_rstate
-            )
+            ht_args = _cli.apply_binding(binding, msg_str, destination, relay_state=_rstate)
 
             logger.debug("ht_args: %s" % ht_args)
         except Exception as exc:
             logger.exception("%s", exc)
-            raise ServiceErrorException(
-                "Failed to construct the AuthnRequest: %s" % exc
-            )
+            raise ServiceErrorException("Failed to construct the AuthnRequest: %s" % exc)
 
         # remember the request
         self.cache_outstanding_queries[_sid] = self.return_to

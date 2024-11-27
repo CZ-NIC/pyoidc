@@ -29,9 +29,7 @@ def inputs(form_args):
     """Create list of input elements."""
     element = []
     for name, value in form_args.items():
-        element.append(
-            '<input type="hidden" name="{}" value="{}"/>'.format(name, value)
-        )
+        element.append('<input type="hidden" name="{}" value="{}"/>'.format(name, value))
     return "\n".join(element)
 
 

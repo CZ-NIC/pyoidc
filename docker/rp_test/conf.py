@@ -6,7 +6,7 @@ keys = [
     {"type": "RSA", "key": "keys/pyoidc_enc", "use": ["enc"]},
     {"type": "RSA", "key": "keys/pyoidc_sig", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["enc"]}
+    {"type": "EC", "crv": "P-256", "use": ["enc"]},
 ]
 
 multi_keys = [
@@ -17,36 +17,41 @@ multi_keys = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["enc"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["enc"]}
+    {"type": "EC", "crv": "P-256", "use": ["enc"]},
 ]
 
-FOS = ['https://swamid.sunet.se/oidc',
-       'https://surfnet.nl/oidc']
+FOS = ["https://swamid.sunet.se/oidc", "https://surfnet.nl/oidc"]
 
-KEYDEFS = [
-    {"type": "RSA", "key": '', "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]}
-]
+KEYDEFS = [{"type": "RSA", "key": "", "use": ["sig"]}, {"type": "EC", "crv": "P-256", "use": ["sig"]}]
 
 GRPS = [
-    "Discovery", "Dynamic Client Registration",
-    "Response Type and Response Mode", "claims Request Parameter",
-    "request_uri Request Parameter", "scope Request Parameter",
-    "nonce Request Parameter", "Client Authentication",
-    "ID Token", "Key Rotation", "Claims Types", "UserInfo Endpoint",
-    "3rd-Party Init SSO", "RP Initiated BackChannel Logout",
-    "RP Initiated FrontChannel Logout", "RP Initiated Logout",
+    "Discovery",
+    "Dynamic Client Registration",
+    "Response Type and Response Mode",
+    "claims Request Parameter",
+    "request_uri Request Parameter",
+    "scope Request Parameter",
+    "nonce Request Parameter",
+    "Client Authentication",
+    "ID Token",
+    "Key Rotation",
+    "Claims Types",
+    "UserInfo Endpoint",
+    "3rd-Party Init SSO",
+    "RP Initiated BackChannel Logout",
+    "RP Initiated FrontChannel Logout",
+    "RP Initiated Logout",
 ]
 
-#Only Username and password.
+# Only Username and password.
 AUTHENTICATION = {
-    #"UserPassword": {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL}
+    # "UserPassword": {"ACR": "PASSWORD", "WEIGHT": 1, "URL": SERVICE_URL}
     "NoAuthn": {"ACR": "PASSWORD", "WEIGHT": 1, "user": "diana"}
 }
 
 COOKIE = {
-    'name': 'pyoic',
-    'ttl': 4 * 60  # 4 hours
+    "name": "pyoic",
+    "ttl": 4 * 60,  # 4 hours
 }
 SYM_KEY = "SoLittleTime,Got"
 
@@ -56,7 +61,7 @@ CA_BUNDLE = None
 
 CLIENT_DB = "client_db"
 
-LOGOUT_PATH = 'logout'
+LOGOUT_PATH = "logout"
 CHECK_SESSION_IFRAME = "{}:{{}}/<PATH>/check_session_iframe".format(baseurl)
 
 # =======  SIMPLE DATABASE ==============
@@ -77,7 +82,7 @@ USERDB = {
             "street_address": "Umeå Universitet",
             "locality": "Umeå",
             "postal_code": "SE-90187",
-            "country": "Sweden"
+            "country": "Sweden",
         },
     },
     "babs": {
@@ -103,5 +108,5 @@ USERDB = {
         "family_name": "Crust",
         "email": "uc@example.com",
         "email_verified": True,
-    }
+    },
 }

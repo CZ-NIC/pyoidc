@@ -172,9 +172,7 @@ class SignedHttpRequest(object):
         if "b" not in unpacked_req and "body" not in kwargs:
             pass
         elif "b" in unpacked_req and "body" in kwargs:
-            _equals(
-                b64_hash(kwargs.get("body", ""), hash_size), unpacked_req.get("b", "")
-            )
+            _equals(b64_hash(kwargs.get("body", ""), hash_size), unpacked_req.get("b", ""))
         else:
             if "b" in unpacked_req:
                 raise ValidationError("Body sent but not received!!")

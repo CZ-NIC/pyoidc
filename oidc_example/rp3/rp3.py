@@ -23,23 +23,20 @@ from oic.utils.rp.oauth2 import OAuthClients
 urllib3.disable_warnings()
 
 LOGGER = logging.getLogger("")
-LOGFILE_NAME = 'rp.log'
+LOGFILE_NAME = "rp.log"
 hdlr = logging.FileHandler(LOGFILE_NAME)
-base_formatter = logging.Formatter(
-    "%(asctime)s %(name)s:%(levelname)s %(message)s")
+base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
 
-CPC = ('%(asctime)s %(name)s:%(levelname)s '
-       '[%(client)s,%(path)s,%(cid)s] %(message)s')
+CPC = "%(asctime)s %(name)s:%(levelname)s " "[%(client)s,%(path)s,%(cid)s] %(message)s"
 cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)
 LOGGER.addHandler(hdlr)
 LOGGER.setLevel(logging.DEBUG)
 
-LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
-                        module_directory='modules',
-                        input_encoding='utf-8',
-                        output_encoding='utf-8')
+LOOKUP = TemplateLookup(
+    directories=["templates", "htdocs"], module_directory="modules", input_encoding="utf-8", output_encoding="utf-8"
+)
 
 SERVER_ENV = {}
 
@@ -50,17 +47,17 @@ class JLog(object):
         self.id = sid
 
     def info(self, info):
-        _dict = {'id': self.id}
+        _dict = {"id": self.id}
         _dict.update(info)
         self.logger.info(json.dumps(_dict))
 
     def error(self, info):
-        _dict = {'id': self.id}
+        _dict = {"id": self.id}
         _dict.update(info)
         self.logger.error(json.dumps(_dict))
 
     def warning(self, info):
-        _dict = {'id': self.id}
+        _dict = {"id": self.id}
         _dict.update(info)
         self.logger.warning(json.dumps(_dict))
 
@@ -70,19 +67,19 @@ def static(environ, start_response, logger, path):
     logger.info("[static]sending: %s" % (path,))
 
     try:
-        data = open(path, 'rb').read()
+        data = open(path, "rb").read()
         if path.endswith(".ico"):
-            start_response('200 OK', [('Content-Type', "image/x-icon")])
+            start_response("200 OK", [("Content-Type", "image/x-icon")])
         elif path.endswith(".html"):
-            start_response('200 OK', [('Content-Type', 'text/html')])
+            start_response("200 OK", [("Content-Type", "text/html")])
         elif path.endswith(".json"):
-            start_response('200 OK', [('Content-Type', 'application/json')])
+            start_response("200 OK", [("Content-Type", "application/json")])
         elif path.endswith(".txt"):
-            start_response('200 OK', [('Content-Type', 'text/plain')])
+            start_response("200 OK", [("Content-Type", "text/plain")])
         elif path.endswith(".css"):
-            start_response('200 OK', [('Content-Type', 'text/css')])
+            start_response("200 OK", [("Content-Type", "text/css")])
         else:
-            start_response('200 OK', [('Content-Type', "text/xml")])
+            start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
     except IOError:
         resp = NotFound()
@@ -90,22 +87,16 @@ def static(environ, start_response, logger, path):
 
 
 def opchoice(environ, start_response, clients):
-    resp = Response(mako_template="opchoice.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {
-        "op_list": list(clients.keys())
-    }
+    resp = Response(mako_template="opchoice.mako", template_lookup=LOOKUP, headers=[])
+    argv = {"op_list": list(clients.keys())}
     return resp(environ, start_response, **argv)
 
 
 def opresult(environ, start_response, **kwargs):
-    resp = Response(mako_template="opresult.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
+    resp = Response(mako_template="opresult.mako", template_lookup=LOOKUP, headers=[])
 
     _args = {}
-    for param in ['userinfo', 'userid', 'id_token']:
+    for param in ["userinfo", "userid", "id_token"]:
         try:
             _args[param] = kwargs[param]
         except KeyError:
@@ -115,29 +106,20 @@ def opresult(environ, start_response, **kwargs):
 
 
 def operror(environ, start_response, error=None):
-    resp = Response(mako_template="operror.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {
-        "error": error
-    }
+    resp = Response(mako_template="operror.mako", template_lookup=LOOKUP, headers=[])
+    argv = {"error": error}
     return resp(environ, start_response, **argv)
 
 
 def opresult_fragment(environ, start_response):
-    resp = Response(mako_template="opresult_repost.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
+    resp = Response(mako_template="opresult_repost.mako", template_lookup=LOOKUP, headers=[])
     argv = {}
     return resp(environ, start_response, **argv)
 
 
 def sorry_response(environ, start_response, homepage, err):
-    resp = Response(mako_template="sorry.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {"htmlpage": homepage,
-            "error": str(err)}
+    resp = Response(mako_template="sorry.mako", template_lookup=LOOKUP, headers=[])
+    argv = {"htmlpage": homepage, "error": str(err)}
     return resp(environ, start_response, **argv)
 
 
@@ -153,19 +135,19 @@ def id_token_as_signed_jwt(client, id_token, alg="RS256"):
 
 
 def url_eq(a, b):
-    if a.endswith('/'):
-        if b.endswith('/'):
+    if a.endswith("/"):
+        if b.endswith("/"):
             return a == b
         else:
             return a[:-1] == b
     else:
-        if b.endswith('/'):
+        if b.endswith("/"):
             return a == b[:-1]
         else:
             return a == b
 
 
-KEY_MAP = {'state': 'state', 'iss': 'op'}
+KEY_MAP = {"state": "state", "iss": "op"}
 
 
 class Application(object):
@@ -200,14 +182,14 @@ class Application(object):
     def init_client(self, client, session, query, environ, start_response):
         client.get_userinfo = self.userinfo
         try:
-            client.resource_server = session['resource_server']
+            client.resource_server = session["resource_server"]
         except KeyError:
             pass
 
         try:
-            session['response_format'] = query["response_format"][0]
+            session["response_format"] = query["response_format"][0]
         except KeyError:
-            session['response_format'] = 'html'
+            session["response_format"] = "html"
 
         session["op"] = client.provider_info["issuer"]
 
@@ -220,40 +202,39 @@ class Application(object):
             return resp(environ, start_response)
 
     def application(self, environ, start_response):
-        b_session = environ['beaker.session']
+        b_session = environ["beaker.session"]
 
         jlog = JLog(LOGGER, b_session.id)
 
-        path = environ.get('PATH_INFO', '').lstrip('/')
+        path = environ.get("PATH_INFO", "").lstrip("/")
         try:
-            jlog.info({'cookie': environ['HTTP_COOKIE'].split(';'),
-                       'path': path})
+            jlog.info({"cookie": environ["HTTP_COOKIE"].split(";"), "path": path})
         except KeyError:
-            jlog.info({'path': path})
+            jlog.info({"path": path})
 
         if path == "robots.txt":
             return static(environ, start_response, LOGGER, "static/robots.txt")
         elif path.startswith("static/"):
             return static(environ, start_response, LOGGER, path)
-        elif '/static/' in path:
-            pre, post = path.split('static')
-            return static(environ, start_response, LOGGER, 'static' + post)
+        elif "/static/" in path:
+            pre, post = path.split("static")
+            return static(environ, start_response, LOGGER, "static" + post)
 
         query = parse_qs(environ["QUERY_STRING"])
 
         try:
-            session = b_session['session_info']
+            session = b_session["session_info"]
         except KeyError:
             session = self.find_session(**query)
             if session:
-                b_session['session_info'] = session
+                b_session["session_info"] = session
             else:
                 session = {}
-                b_session['session_info'] = session
+                b_session["session_info"] = session
                 self.session[b_session.id] = session
 
-        if path == '':
-            if 'access_token' not in session:
+        if path == "":
+            if "access_token" not in session:
                 return opchoice(environ, start_response, self.clients)
             else:
                 client = self.clients[session["op"]]
@@ -265,15 +246,12 @@ class Application(object):
                     session["session_management"] = {
                         "session_state": query["session_state"][0],
                         "client_id": client.client_id,
-                        "issuer": client.provider_info["issuer"]
+                        "issuer": client.provider_info["issuer"],
                     }
                 except KeyError:
                     pass
 
-                kwargs = dict(
-                    [(p, session[p]) for p in
-                     ['id_token', 'userinfo', 'user_id'] if
-                     p in session])
+                kwargs = dict([(p, session[p]) for p in ["id_token", "userinfo", "user_id"] if p in session])
 
                 return opresult(environ, start_response, **kwargs)
         elif path == "rp":  # After having chosen which OP to authenticate at
@@ -281,23 +259,21 @@ class Application(object):
                 try:
                     client = self.clients.dynamic_client(userid=query["uid"][0])
                 except (ConnectionError, OIDCError) as err:
-                    return operror(environ, start_response, '{}'.format(err))
-            elif 'issuer' in query:
+                    return operror(environ, start_response, "{}".format(err))
+            elif "issuer" in query:
                 try:
                     client = self.clients[query["issuer"][0]]
                 except (ConnectionError, OIDCError) as err:
-                    return operror(environ, start_response, '{}'.format(err))
+                    return operror(environ, start_response, "{}".format(err))
             else:
                 client = self.clients[query["op"][0]]
 
-            return self.init_client(client, session, query, environ,
-                                    start_response)
-        elif path.endswith('authz_post'):
+            return self.init_client(client, session, query, environ, start_response)
+        elif path.endswith("authz_post"):
             try:
-                _iss = session['op']
+                _iss = session["op"]
             except KeyError:
-                jlog.error({'reason': 'No active session',
-                            'remote_addr': environ['REMOTE_ADDR']})
+                jlog.error({"reason": "No active session", "remote_addr": environ["REMOTE_ADDR"]})
 
                 return opchoice(environ, start_response, self.clients)
             else:
@@ -307,75 +283,66 @@ class Application(object):
             try:
                 info = query["fragment"][0]
             except KeyError:
-                return sorry_response(environ, start_response, self.base,
-                                      "missing fragment ?!")
-            if info == ['x']:
-                return sorry_response(environ, start_response, self.base,
-                                      "Expected fragment didn't get one ?!")
+                return sorry_response(environ, start_response, self.base, "missing fragment ?!")
+            if info == ["x"]:
+                return sorry_response(environ, start_response, self.base, "Expected fragment didn't get one ?!")
 
-            jlog.info({'fragment': info})
+            jlog.info({"fragment": info})
 
             try:
-                result = client.callback(info, session, 'urlencoded')
+                result = client.callback(info, session, "urlencoded")
                 if isinstance(result, SeeOther):
                     return result(environ, start_response)
             except OIDCError as err:
                 return operror(environ, start_response, "%s" % err)
-            except Exception as err:
+            except Exception:
                 raise
             else:
                 session.update(result)
-                res = SeeOther(self.conf['base_url'])
+                res = SeeOther(self.conf["base_url"])
                 return res(environ, start_response)
         elif path in self.clients.return_paths():  # After having
             # authenticated at the OP
-            jlog.info({'query': query})
+            jlog.info({"query": query})
 
             _client = None
             for cli in self.clients.client.values():
-                if query['state'][0] in cli.authz_req:
+                if query["state"][0] in cli.authz_req:
                     _client = cli
                     break
 
             if not _client:
-                jlog.error({
-                    'reason': 'No active session',
-                    'remote_addr': environ['REMOTE_ADDR'],
-                    'state': query['state'][0]
-                })
+                jlog.error(
+                    {"reason": "No active session", "remote_addr": environ["REMOTE_ADDR"], "state": query["state"][0]}
+                )
                 return opchoice(environ, start_response, self.clients)
 
-            if 'error' in query:  # something amiss
-                if query['error'][0] == 'access_denied':  # Try reregistering
-                    _iss = _client.provider_info['issuer']
+            if "error" in query:  # something amiss
+                if query["error"][0] == "access_denied":  # Try reregistering
+                    _iss = _client.provider_info["issuer"]
                     del self.clients[_iss]
                     try:
                         client = self.clients[_iss]
                     except (ConnectionError, OIDCError) as err:
-                        return operror(environ, start_response,
-                                       '{}'.format(err))
-                    return self.init_client(client, session, query, environ,
-                                            start_response)
+                        return operror(environ, start_response, "{}".format(err))
+                    return self.init_client(client, session, query, environ, start_response)
 
             try:
-                _iss = query['iss'][0]
+                _iss = query["iss"][0]
             except KeyError:
                 pass
             else:
-                if _iss != _client.provider_info['issuer']:
-                    jlog.error({'reason': 'Got response from wrong OP'})
+                if _iss != _client.provider_info["issuer"]:
+                    jlog.error({"reason": "Got response from wrong OP"})
                     return opchoice(environ, start_response, self.clients)
 
             _response_type = _client.behaviour["response_type"]
             try:
-                _response_mode = _client.authz_req[session['state']][
-                    'response_mode']
+                _response_mode = _client.authz_req[session["state"]]["response_mode"]
             except KeyError:
-                _response_mode = ''
+                _response_mode = ""
 
-            jlog.info({
-                "response_type": _response_type,
-                "response_mode": _response_mode})
+            jlog.info({"response_type": _response_type, "response_mode": _response_mode})
 
             if _response_type and _response_type != "code":
                 # Fall through if it's a query response anyway
@@ -397,19 +364,17 @@ class Application(object):
                 raise
             else:
                 session.update(result)
-                res = SeeOther(self.conf['base_url'])
+                res = SeeOther(self.conf["base_url"])
                 return res(environ, start_response)
         elif path == "logout":  # After the user has pressed the logout button
             try:
-                _iss = session['op']
+                _iss = session["op"]
             except KeyError:
-                jlog.error(
-                    {'reason': 'No active session',
-                     'remote_addr': environ['REMOTE_ADDR']})
+                jlog.error({"reason": "No active session", "remote_addr": environ["REMOTE_ADDR"]})
                 return opchoice(environ, start_response, self.clients)
             client = self.clients[_iss]
             try:
-                del client.authz_req[session['state']]
+                del client.authz_req[session["state"]]
             except KeyError:
                 pass
 
@@ -419,21 +384,17 @@ class Application(object):
                 # log out. That URL must be registered with the OP at client
                 # registration.
                 logout_url += "?" + urlencode(
-                    {"post_logout_redirect_uri": client.registration_response[
-                        "post_logout_redirect_uris"][0]})
+                    {"post_logout_redirect_uri": client.registration_response["post_logout_redirect_uris"][0]}
+                )
             except KeyError:
                 pass
             else:
                 # If there is an ID token send it along as a id_token_hint
                 _idtoken = get_id_token(client, session)
                 if _idtoken:
-                    logout_url += "&" + urlencode({
-                        "id_token_hint": id_token_as_signed_jwt(client,
-                                                                _idtoken,
-                                                                "HS256")})
+                    logout_url += "&" + urlencode({"id_token_hint": id_token_as_signed_jwt(client, _idtoken, "HS256")})
                 # Also append the ACR values
-                logout_url += "&" + urlencode({"acr_values": self.acr_values},
-                                              True)
+                logout_url += "&" + urlencode({"acr_values": self.acr_values}, True)
 
             session.delete()
             resp = SeeOther(str(logout_url))
@@ -442,19 +403,15 @@ class Application(object):
             return Response("Logout successful!")(environ, start_response)
         elif path == "session_iframe":  # session management
             kwargs = session["session_management"]
-            resp = Response(mako_template="rp_session_iframe.mako",
-                            template_lookup=LOOKUP)
-            return resp(environ, start_response,
-                        session_change_url="{}session_change".format(
-                            self.conf["base_url"]),
-                        **kwargs)
+            resp = Response(mako_template="rp_session_iframe.mako", template_lookup=LOOKUP)
+            return resp(
+                environ, start_response, session_change_url="{}session_change".format(self.conf["base_url"]), **kwargs
+            )
         elif path == "session_change":
             try:
-                _iss = session['op']
+                _iss = session["op"]
             except KeyError:
-                jlog.error({
-                    'reason': 'No active session',
-                    'remote_addr': environ['REMOTE_ADDR']})
+                jlog.error({"reason": "No active session", "remote_addr": environ["REMOTE_ADDR"]})
                 return opchoice(environ, start_response, self.clients)
 
             try:
@@ -466,16 +423,14 @@ class Application(object):
             # If there is an ID token send it along as a id_token_hint
             idt = get_id_token(client, session)
             if idt:
-                kwargs["id_token_hint"] = id_token_as_signed_jwt(client, idt,
-                                                                 "HS256")
-            resp = client.create_authn_request(session, self.acr_values,
-                                               **kwargs)
+                kwargs["id_token_hint"] = id_token_as_signed_jwt(client, idt, "HS256")
+            resp = client.create_authn_request(session, self.acr_values, **kwargs)
             return resp(environ, start_response)
 
         return opchoice(environ, start_response, self.clients)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from oic.utils.rp import OIDCClients
     from oic.utils.rp import OIDCError
     from beaker.middleware import SessionMiddleware
@@ -485,7 +440,7 @@ if __name__ == '__main__':
     parser.add_argument(dest="config")
     parser.add_argument("-p", default=8666, dest="port", help="port of the RP")
     parser.add_argument("-b", dest="base_url", help="base url of the RP")
-    parser.add_argument('-k', dest='verify_ssl', action='store_false')
+    parser.add_argument("-k", dest="verify_ssl", action="store_false")
     args = parser.parse_args()
     _conf = importlib.import_module(args.config)
 
@@ -496,16 +451,13 @@ if __name__ == '__main__':
     for _client, client_conf in _conf.CLIENTS.items():
         if "client_registration" in client_conf:
             client_reg = client_conf["client_registration"]
-            client_reg["redirect_uris"] = [
-                url.format(base=_conf.BASE) for url in
-                client_reg["redirect_uris"]]
+            client_reg["redirect_uris"] = [url.format(base=_conf.BASE) for url in client_reg["redirect_uris"]]
 
     session_opts = {
-        'session.type': 'memory',
-        'session.cookie_expires': True,
-        'session.auto': True,
-        'session.key': "{}.beaker.session.id".format(
-            urlparse(_conf.BASE).netloc.replace(":", "."))
+        "session.type": "memory",
+        "session.cookie_expires": True,
+        "session.auto": True,
+        "session.key": "{}.beaker.session.id".format(urlparse(_conf.BASE).netloc.replace(":", ".")),
     }
 
     try:
@@ -514,50 +466,46 @@ if __name__ == '__main__':
         jwks_info = {}
     else:
         jwks, keyjar, kidd = build_keyjar(key_spec)
-        jwks_info = {
-            'jwks_uri': '{}static/jwks_uri.json'.format(_base),
-            'keyjar': keyjar,
-            'kid': kidd
-        }
-        f = open('static/jwks_uri.json', 'w')
+        jwks_info = {"jwks_uri": "{}static/jwks_uri.json".format(_base), "keyjar": keyjar, "kid": kidd}
+        f = open("static/jwks_uri.json", "w")
         f.write(json.dumps(jwks))
         f.close()
 
     try:
         ctype = _conf.CLIENT_TYPE
     except KeyError:
-        ctype = 'OIDC'
+        ctype = "OIDC"
 
-    if ctype == 'OIDC':
-        _clients = OIDCClients(_conf, _base, jwks_info=jwks_info,
-                               verify_ssl=args.verify_ssl)
+    if ctype == "OIDC":
+        _clients = OIDCClients(_conf, _base, jwks_info=jwks_info, verify_ssl=args.verify_ssl)
     else:
-        _clients = OAuthClients(_conf, _base, jwks_info=jwks_info,
-                                verify_ssl=args.verify_ssl)
+        _clients = OAuthClients(_conf, _base, jwks_info=jwks_info, verify_ssl=args.verify_ssl)
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": _base})
 
-    app_args = {'clients': _clients,
-                'acrs': _conf.ACR_VALUES,
-                'conf': SERVER_ENV,
-                'userinfo': _conf.USERINFO,
-                'base': _conf.BASE}
+    app_args = {
+        "clients": _clients,
+        "acrs": _conf.ACR_VALUES,
+        "conf": SERVER_ENV,
+        "userinfo": _conf.USERINFO,
+        "base": _conf.BASE,
+    }
     try:
-        app_args['resource_server'] = _conf.RESOURCE_SERVER
+        app_args["resource_server"] = _conf.RESOURCE_SERVER
     except AttributeError:
         pass
 
     _app = Application(**app_args)
 
     SRV = wsgiserver.CherryPyWSGIServer(
-        ('0.0.0.0', int(args.port)), # nosec
-        SessionMiddleware(_app.application, session_opts))
+        ("0.0.0.0", int(args.port)),  # nosec
+        SessionMiddleware(_app.application, session_opts),
+    )
 
     if _conf.BASE.startswith("https"):
         from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 
-        SRV.ssl_adapter = BuiltinSSLAdapter(_conf.SERVER_CERT, _conf.SERVER_KEY,
-                                            _conf.CERT_CHAIN)
+        SRV.ssl_adapter = BuiltinSSLAdapter(_conf.SERVER_CERT, _conf.SERVER_KEY, _conf.CERT_CHAIN)
         extra = " using SSL/TLS"
     else:
         extra = ""

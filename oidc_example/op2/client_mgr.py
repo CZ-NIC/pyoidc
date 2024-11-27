@@ -3,13 +3,13 @@ import json
 
 from oic.utils.client_management import CDB
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', dest='list', action='store_true')
-    parser.add_argument('-a', dest='add')
-    parser.add_argument('-d', dest='delete')
+    parser.add_argument("-l", dest="list", action="store_true")
+    parser.add_argument("-a", dest="add")
+    parser.add_argument("-d", dest="delete")
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     if args.list:
         for key, val in cdb.items():
-            print('{}:{}'.format(key, val['redirect_uris']))
+            print("{}:{}".format(key, val["redirect_uris"]))
 
     if args.add:
         fp = open(args.add)

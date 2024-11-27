@@ -148,9 +148,7 @@ class TestProvider(object):
         _sdb = SessionDB(
             "https://example.com/",
             db=DictSessionBackend(),
-            code_factory=DefaultToken(
-                "supersecret", "verybadpassword", typ="A", lifetime=600
-            ),
+            code_factory=DefaultToken("supersecret", "verybadpassword", typ="A", lifetime=600),
             token_factory=JWTToken(
                 "T",
                 keyjar=kj,
@@ -203,9 +201,7 @@ class TestProvider(object):
             "response_type": "code",
         }
 
-        url, body, ht_args, csi = client.request_info(
-            AuthorizationRequest, "GET", request_args=args
-        )
+        url, body, ht_args, csi = client.request_info(AuthorizationRequest, "GET", request_args=args)
 
         resp = self.provider.authorization_endpoint(urlparse(url).query)
         assert resp.status_code == 303
@@ -230,9 +226,7 @@ class TestProvider(object):
             "response_type": "token",
         }
 
-        url, body, ht_args, csi = client.request_info(
-            AuthorizationRequest, "GET", request_args=args
-        )
+        url, body, ht_args, csi = client.request_info(AuthorizationRequest, "GET", request_args=args)
 
         QUERY_STRING = url.split("?")[1]
         resp = self.provider.authorization_endpoint(QUERY_STRING)
@@ -242,9 +236,7 @@ class TestProvider(object):
         assert auth_resp["token_type"][0] == "Bearer"
 
     def test_token_endpoint(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -274,9 +266,7 @@ class TestProvider(object):
         assert _eq(atr.keys(), ["access_token", "token_type"])
 
     def test_token_endpoint_no_cache(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -344,9 +334,7 @@ class TestProvider(object):
         assert _eq(atr.keys(), ["error_description", "error"])
 
     def test_token_introspection(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -397,18 +385,14 @@ class TestProvider(object):
         assert ti_resp["active"] is False
 
     def test_token_introspection_bad_token_no_hint(self):
-        req = TokenIntrospectionRequest(
-            token="access_token", client_id="client1", client_secret="hemlighet"
-        )
+        req = TokenIntrospectionRequest(token="access_token", client_id="client1", client_secret="hemlighet")
         resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
         assert resp
         ti_resp = TokenIntrospectionResponse().deserialize(resp.message, "json")
         assert ti_resp["active"] is False
 
     def test_token_introspection_missing(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client2"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client2")
 
         _sdb = self.provider.sdb
         self.provider.cdb["client2"] = {
@@ -455,9 +439,7 @@ class TestProvider(object):
         assert ti_resp["error"] == "unauthorized_client"
 
     def test_token_revocation_and_introspection(self):
-        authreq = AuthorizationRequest(
-            state="state", redirect_uri="http://example.com/authz", client_id="client1"
-        )
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
 
         _sdb = self.provider.sdb
         sid = _sdb.access_token.key(user="sub", areq=authreq)
@@ -509,12 +491,8 @@ class TestProvider(object):
         # Set a not so dummy Authn method and token policy
         self.provider.authn_broker = AUTHN_BROKER2
         self.provider.set_token_policy("client1", {"grant_type": ["password"]})
-        areq = ROPCAccessTokenRequest(
-            grant_type="password", username="username", password="password"
-        )
-        areq["client_id"] = (
-            "client1"  # Token endpoint would fill that in based on client_authn
-        )
+        areq = ROPCAccessTokenRequest(grant_type="password", username="username", password="password")
+        areq["client_id"] = "client1"  # Token endpoint would fill that in based on client_authn
         resp = self.provider.password_grant_type(areq)
 
         atr = AccessTokenResponse().deserialize(resp.message, "json")
@@ -524,12 +502,8 @@ class TestProvider(object):
         # Set a blank AuthnBroker
         self.provider.authn_broker = AuthnBroker()
         self.provider.set_token_policy("client1", {"grant_type": ["password"]})
-        areq = ROPCAccessTokenRequest(
-            grant_type="password", username="username", password="password"
-        )
-        areq["client_id"] = (
-            "client1"  # Token endpoint would fill that in based on client_authn
-        )
+        areq = ROPCAccessTokenRequest(grant_type="password", username="username", password="password")
+        areq["client_id"] = "client1"  # Token endpoint would fill that in based on client_authn
         resp = self.provider.password_grant_type(areq)
 
         atr = TokenErrorResponse().deserialize(resp.message, "json")
@@ -539,12 +513,8 @@ class TestProvider(object):
         # Set a not so dummy Authn method and token policy
         self.provider.authn_broker = AUTHN_BROKER2
         self.provider.set_token_policy("client1", {"grant_type": ["password"]})
-        areq = ROPCAccessTokenRequest(
-            grant_type="password", username="username", password="bad_password"
-        )
-        areq["client_id"] = (
-            "client1"  # Token endpoint would fill that in based on client_authn
-        )
+        areq = ROPCAccessTokenRequest(grant_type="password", username="username", password="bad_password")
+        areq["client_id"] = "client1"  # Token endpoint would fill that in based on client_authn
         resp = self.provider.password_grant_type(areq)
 
         atr = TokenErrorResponse().deserialize(resp.message, "json")

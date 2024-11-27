@@ -81,9 +81,7 @@ class Client(oic.Client):
         cis = self.construct_AuthorizationRequest(request_args=request_args)
         logger.debug("request: %s" % sanitize(cis))
 
-        url, body, ht_args, cis = self.uri_and_body(
-            AuthorizationRequest, cis, method="GET", request_args=request_args
-        )
+        url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis, method="GET", request_args=request_args)
 
         self.authz_req[request_args["state"]] = cis
         logger.debug("body: %s" % sanitize(body))
@@ -154,9 +152,7 @@ class Client(oic.Client):
         :return:
         """
         try:
-            authresp = self.parse_response(
-                AuthorizationResponse, response, sformat=format, keyjar=self.keyjar
-            )
+            authresp = self.parse_response(AuthorizationResponse, response, sformat=format, keyjar=self.keyjar)
         except ResponseError:
             msg = "Could not parse response: '{}'"
             logger.error(msg.format(sanitize(response)))
@@ -172,10 +168,7 @@ class Client(oic.Client):
         _state = authresp["state"]
 
         _id_token = authresp.get("id_token")
-        if (
-            _id_token is not None
-            and _id_token["nonce"] != self.authz_req[_state]["nonce"]
-        ):
+        if _id_token is not None and _id_token["nonce"] != self.authz_req[_state]["nonce"]:
             self._err("Received nonce not the same as expected.")
 
         if self.behaviour["response_type"] == "code":
@@ -330,29 +323,21 @@ class OIDCClients(object):
             # Gather OP information
             client.provider_config(issuer)
             # register the client
-            client.register(
-                client.provider_info["registration_endpoint"], **kwargs["client_info"]
-            )
+            client.register(client.provider_info["registration_endpoint"], **kwargs["client_info"])
             self.get_path(kwargs["client_info"]["redirect_uris"], issuer)
         elif _key_set == set(["client_info", "srv_discovery_url"]):
             # Ship the webfinger part
             # Gather OP information
             client.provider_config(kwargs["srv_discovery_url"])
             # register the client
-            client.register(
-                client.provider_info["registration_endpoint"], **kwargs["client_info"]
-            )
-            self.get_path(
-                kwargs["client_info"]["redirect_uris"], kwargs["srv_discovery_url"]
-            )
+            client.register(client.provider_info["registration_endpoint"], **kwargs["client_info"])
+            self.get_path(kwargs["client_info"]["redirect_uris"], kwargs["srv_discovery_url"])
         elif _key_set == set(["provider_info", "client_info"]):
             client.handle_provider_config(
                 ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
             )
-            client.register(
-                client.provider_info["registration_endpoint"], **kwargs["client_info"]
-            )
+            client.register(client.provider_info["registration_endpoint"], **kwargs["client_info"])
 
             self.get_path(
                 kwargs["client_info"]["redirect_uris"],
@@ -363,18 +348,14 @@ class OIDCClients(object):
                 ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
             )
-            client.store_registration_info(
-                RegistrationResponse(**kwargs["client_registration"])
-            )
+            client.store_registration_info(RegistrationResponse(**kwargs["client_registration"]))
             self.get_path(
                 kwargs["client_info"]["redirect_uris"],
                 kwargs["provider_info"]["issuer"],
             )
         elif _key_set == set(["srv_discovery_url", "client_registration"]):
             client.provider_config(kwargs["srv_discovery_url"])
-            client.store_registration_info(
-                RegistrationResponse(**kwargs["client_registration"])
-            )
+            client.store_registration_info(RegistrationResponse(**kwargs["client_registration"]))
             self.get_path(
                 kwargs["client_registration"]["redirect_uris"],
                 kwargs["srv_discovery_url"],
@@ -411,13 +392,10 @@ class OIDCClients(object):
             h.update(issuer.encode("utf8"))  # issuer has to be bytes
             base_urls = _cinfo["redirect_uris"]
 
-            reg_args["redirect_uris"] = [
-                u.format(base=self.base_url, iss=h.hexdigest()) for u in base_urls
-            ]
+            reg_args["redirect_uris"] = [u.format(base=self.base_url, iss=h.hexdigest()) for u in base_urls]
             try:
                 reg_args["post_logout_redirect_uris"] = [
-                    u.format(base=self.base_url, iss=h.hexdigest())
-                    for u in reg_args["post_logout_redirect_uris"]
+                    u.format(base=self.base_url, iss=h.hexdigest()) for u in reg_args["post_logout_redirect_uris"]
                 ]
             except KeyError:
                 pass

@@ -65,9 +65,7 @@ class TestClientManagementRun(object):
                 "client_secret": "hardToGuess",
                 "client_id": client_id,
                 "client_salt": "saltedAndReady!",
-                "redirect_uris": pack_redirect_uri(
-                    ["file:///dev/null", "http://localhost:1337/"]
-                ),
+                "redirect_uris": pack_redirect_uri(["file:///dev/null", "http://localhost:1337/"]),
             }
         client_db.cdb.close()
 

@@ -16,9 +16,17 @@ from oic.utils.http_util import Response
 class MailTwoFactor(AuthnModule):
     url_endpoint = "/two_factor/verify"
 
-    def __init__(self, user_db, passwd_db, smtp_server, outgoing_sender,
-                 template_env, code_ttl=2, template="mail_two_factor.jinja2",
-                 **kwargs):
+    def __init__(
+        self,
+        user_db,
+        passwd_db,
+        smtp_server,
+        outgoing_sender,
+        template_env,
+        code_ttl=2,
+        template="mail_two_factor.jinja2",
+        **kwargs,
+    ):
         """
 
         :param user_db:
@@ -81,15 +89,14 @@ class MailTwoFactor(AuthnModule):
             # Generate code and send it
             now = time.time()
             secret = "%d%s" % (now, rndstr(16))
-            code = hashlib.sha256(secret.encode('utf-8')).hexdigest()
+            code = hashlib.sha256(secret.encode("utf-8")).hexdigest()
             self.codes[code] = {"username": username, "time": now}
             self._send_mail(code, receiver)
 
             template = self.template_env.get_template(self.template)
-            response = Response(template.render(mail=receiver,
-                                                action=self.url_endpoint,
-                                                state=json.dumps(
-                                                    kwargs["state"])))
+            response = Response(
+                template.render(mail=receiver, action=self.url_endpoint, state=json.dumps(kwargs["state"]))
+            )
             return response, False
 
     def _send_mail(self, code, receiver):
