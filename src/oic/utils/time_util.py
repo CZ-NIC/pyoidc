@@ -17,7 +17,7 @@ import calendar
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from datetime import timedelta
 from typing import Dict
 
@@ -175,7 +175,7 @@ def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0
     :return: UTC time
     """
     delta = timedelta(days, seconds, microseconds, milliseconds, minutes, hours, weeks)
-    return datetime.utcnow() + delta
+    return datetime.now(timezone.utc) + delta
 
 
 def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
@@ -196,7 +196,7 @@ def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=
     :return: datetime instance
     """
     delta = timedelta(days, seconds, microseconds, milliseconds, minutes, hours, weeks)
-    return datetime.utcnow() - delta
+    return datetime.now(timezone.utc) - delta
 
 
 def in_a_while(
@@ -350,7 +350,7 @@ def later_than(after, before):
 
 
 def utc_time_sans_frac():
-    return int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
+    return int(datetime.now(timezone.utc).timestamp())
 
 
 def time_sans_frac():
@@ -371,4 +371,4 @@ def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=
     :return: Seconds since epoch (1970-01-01)
     """
     dt = time_in_a_while(days, seconds, microseconds, milliseconds, minutes, hours, weeks)
-    return int((dt - datetime(1970, 1, 1)).total_seconds())
+    return int(dt.timestamp())
