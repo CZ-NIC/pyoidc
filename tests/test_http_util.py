@@ -113,8 +113,10 @@ class TestCookieDealer(object):
         kaka = cookie_dealer.delete_cookie(cookie_name)
         cookie_expiration = kaka[1].split(";")[1].split("=")[1]
 
-        now = datetime.datetime.utcnow()  #
-        cookie_timestamp = datetime.datetime.strptime(cookie_expiration, "%a, %d-%b-%Y %H:%M:%S GMT")
+        now = datetime.datetime.now(datetime.timezone.utc)
+        cookie_timestamp = datetime.datetime.strptime(cookie_expiration, "%a, %d-%b-%Y %H:%M:%S GMT").astimezone(
+            datetime.timezone.utc
+        )
         assert cookie_timestamp < now
 
     def test_cookie_dealer_improperly_configured(self):
