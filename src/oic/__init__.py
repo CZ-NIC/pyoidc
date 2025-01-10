@@ -18,8 +18,7 @@ except ImportError:
 
         choice = random.choice
         warnings.warn(
-            "No good random number generator available on this platform. "
-            "Security tokens will be weak and guessable.",
+            "No good random number generator available on this platform. Security tokens will be weak and guessable.",
             RuntimeWarning,
         )
 

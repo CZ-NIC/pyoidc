@@ -75,7 +75,7 @@ class PoPProvider(Provider):
                 strict_headers_verification=False,
             )
         except ValidationError:
-            return error_response("access_denied", descr="Could not verify proof of " "possession")
+            return error_response("access_denied", descr="Could not verify proof of possession")
 
         return self._do_user_info(self.access_tokens[access_token], **kwargs)
 

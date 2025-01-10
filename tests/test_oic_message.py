@@ -98,8 +98,8 @@ def test_openidschema_from_json(json_param):
     [
         '{"email_verified":false, "email":"foo@example.com", "sub":"abc"}',
         '{"email_verified":true, "email":"foo@example.com", "sub":"abc"}',
-        '{"phone_number_verified":false, "phone_number":"+1 555 200000", ' '"sub":"abc"}',
-        '{"phone_number_verified":true, "phone_number":"+1 555 20000", ' '"sub":"abc"}',
+        '{"phone_number_verified":false, "phone_number":"+1 555 200000", "sub":"abc"}',
+        '{"phone_number_verified":true, "phone_number":"+1 555 20000", "sub":"abc"}',
     ],
 )
 def test_claim_booleans(json_param):
@@ -111,8 +111,8 @@ def test_claim_booleans(json_param):
     [
         '{"email_verified":"Not", "email":"foo@example.com", "sub":"abc"}',
         '{"email_verified":"Sure", "email":"foo@example.com", "sub":"abc"}',
-        '{"phone_number_verified":"Not", "phone_number":"+1 555 200000", ' '"sub":"abc"}',
-        '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", ' '"sub":"abc"}',
+        '{"phone_number_verified":"Not", "phone_number":"+1 555 200000", "sub":"abc"}',
+        '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", "sub":"abc"}',
     ],
 )
 def test_claim_not_booleans(json_param):
@@ -421,7 +421,7 @@ class TestRegistrationRequest(object):
             "userinfo_encrypted_response_alg": "RSA1_5",
             "userinfo_encrypted_response_enc": "A128CBC+HS256",
             "contacts": ["ve7jtb@example.org", "mary@example.org"],
-            "request_uris": ["https://client.example.org/rf.txt" "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"],
+            "request_uris": ["https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"],
         }
 
         reg = RegistrationRequest().deserialize(json.dumps(msg), "json")
@@ -477,7 +477,7 @@ class TestRegistrationResponse(object):
             "client_secret": "ZJYCqe3GGRvdrudKyZS0XhGv_Z45DuKhCUk0gBR1vZk",
             "client_secret_expires_at": 1577858400,
             "registration_access_token": "this.is.an.access.token.value.ffx83",
-            "registration_client_uri": "https://server.example.com/connect/register?client_id" "=s6BhdRkqt3",
+            "registration_client_uri": "https://server.example.com/connect/register?client_id=s6BhdRkqt3",
             "token_endpoint_auth_method": "client_secret_basic",
             "application_type": "web",
             "redirect_uris": [
@@ -493,7 +493,7 @@ class TestRegistrationResponse(object):
             "userinfo_encrypted_response_alg": "RSA1_5",
             "userinfo_encrypted_response_enc": "A128CBC+HS256",
             "contacts": ["ve7jtb@example.org", "mary@example.org"],
-            "request_uris": ["https://client.example.org/rf.txt" "#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"],
+            "request_uris": ["https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"],
         }
 
         resp = RegistrationResponse().deserialize(json.dumps(msg), "json")

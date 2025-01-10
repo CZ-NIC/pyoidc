@@ -56,7 +56,7 @@ LOGFILE_NAME = "oc.log"
 hdlr = logging.FileHandler(LOGFILE_NAME)
 base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
 
-CPC = "%(asctime)s %(name)s:%(levelname)s " "[%(client)s,%(path)s,%(cid)s] %(message)s"
+CPC = "%(asctime)s %(name)s:%(levelname)s [%(client)s,%(path)s,%(cid)s] %(message)s"
 cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)
@@ -381,7 +381,7 @@ if __name__ == "__main__":
         "-c",
         "--capabilities",
         dest="capabilities",
-        help="A file containing a JSON representation of " "server capabilities",
+        help="A file containing a JSON representation of server capabilities",
     )
     parser.add_argument("-i", "--issuer", dest="issuer", help="Issuer ID of the OpenID Connect Provider [OP]", nargs=1)
     parser.add_argument(dest="config", help="Python config file (see examples)")
