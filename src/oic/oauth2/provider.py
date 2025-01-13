@@ -226,7 +226,7 @@ class Provider(object):
         self.sdb = sdb
         if not isinstance(cdb, BaseClientDatabase):
             warnings.warn(
-                "ClientDatabase should be an instance of " "oic.utils.clientdb.BaseClientDatabase to ensure proper API."
+                "ClientDatabase should be an instance of oic.utils.clientdb.BaseClientDatabase to ensure proper API."
             )
         self.cdb = cdb
         self.server = server_cls(

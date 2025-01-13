@@ -1021,7 +1021,7 @@ class Client(oauth2.Client):
                     claims = [value for value, src in userinfo["_claim_names"].items() if src == csrc]
 
                     if set(claims) != set(list(aggregated_claims.keys())):
-                        logger.warning("Claims from claim source doesn't match what's in " "the userinfo")
+                        logger.warning("Claims from claim source doesn't match what's in the userinfo")
 
                     for key, vals in aggregated_claims.items():
                         userinfo[key] = vals
@@ -1061,7 +1061,7 @@ class Client(oauth2.Client):
                 claims = [value for value, src in userinfo["_claim_names"].items() if src == csrc]
 
                 if set(claims) != set(list(_uinfo.keys())):
-                    logger.warning("Claims from claim source doesn't match what's in " "the userinfo")
+                    logger.warning("Claims from claim source doesn't match what's in the userinfo")
 
                 for key, vals in _uinfo.items():
                     userinfo[key] = vals

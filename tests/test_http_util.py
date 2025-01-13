@@ -180,7 +180,7 @@ def test_broken_cookie_signature():
 
 
 def test_parse_cookie():
-    kaka = "pyoidc=bjmc::1463043535::upm|" "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
+    kaka = "pyoidc=bjmc::1463043535::upm|1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
     seed = ""
     name = "pyoidc"
     result = parse_cookie(name, seed, kaka)
@@ -188,7 +188,7 @@ def test_parse_cookie():
 
 
 def test_parse_manipulated_cookie_payload():
-    kaka = "pyoidc=bjmc::1463043536::upm|" "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
+    kaka = "pyoidc=bjmc::1463043536::upm|1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
     seed = ""
     name = "pyoidc"
     with pytest.raises(InvalidCookieSign):
@@ -196,7 +196,7 @@ def test_parse_manipulated_cookie_payload():
 
 
 def test_parse_manipulated_cookie_timestamp():
-    kaka = "pyoidc=bjmc::1463043535::upm|" "1463043537|18a201305fa15a96ce4048e1fbb03f7715f86499"
+    kaka = "pyoidc=bjmc::1463043535::upm|1463043537|18a201305fa15a96ce4048e1fbb03f7715f86499"
     seed = ""
     name = "pyoidc"
     with pytest.raises(InvalidCookieSign):
@@ -205,7 +205,7 @@ def test_parse_manipulated_cookie_timestamp():
 
 def test_cookie_parts():
     name = "pyoidc"
-    kaka = "pyoidc=bjmc::1463043535::upm|" "1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
+    kaka = "pyoidc=bjmc::1463043535::upm|1463043535|18a201305fa15a96ce4048e1fbb03f7715f86499"
     result = cookie_parts(name, kaka)
     assert result == [
         "bjmc::1463043535::upm",

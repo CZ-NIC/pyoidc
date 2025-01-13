@@ -500,8 +500,9 @@ class TestOICConsumer:
             nonce="nonce",
         )
         location = (
-            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
-            "scope=openid&id_token={}".format(token.to_jwt(key=[SYMKey(key="hemlig")], algorithm="HS256"))
+            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&scope=openid&id_token={}".format(
+                token.to_jwt(key=[SYMKey(key="hemlig")], algorithm="HS256")
+            )
         )
         with responses.RequestsMock() as rsps:
             rsps.add(
@@ -564,8 +565,9 @@ class TestOICConsumer:
             nonce="nonce",
         )
         location = (
-            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
-            "scope=openid&id_token={}".format(token.to_jwt(key=[SYMKey(key="hemlig")], algorithm="HS256"))
+            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&scope=openid&id_token={}".format(
+                token.to_jwt(key=[SYMKey(key="hemlig")], algorithm="HS256")
+            )
         )
         with responses.RequestsMock() as rsps:
             rsps.add(
@@ -632,8 +634,9 @@ class TestOICConsumer:
         )
         # Downgrade the algorithm to `none`
         location = (
-            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
-            "scope=openid&id_token={}".format(token.to_jwt(key=KC_RSA.keys(), algorithm="none"))
+            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&scope=openid&id_token={}".format(
+                token.to_jwt(key=KC_RSA.keys(), algorithm="none")
+            )
         )
         with responses.RequestsMock() as rsps:
             rsps.add(
@@ -689,8 +692,9 @@ class TestOICConsumer:
         )
         # Downgrade the algorithm to `none`
         location = (
-            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
-            "scope=openid&id_token={}".format(token.to_jwt(key=KC_RSA.keys(), algorithm="none"))
+            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&scope=openid&id_token={}".format(
+                token.to_jwt(key=KC_RSA.keys(), algorithm="none")
+            )
         )
         with responses.RequestsMock() as rsps:
             rsps.add(
@@ -736,8 +740,9 @@ class TestOICConsumer:
         )
         # Downgrade the algorithm to `none`
         location = (
-            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&"
-            "scope=openid&id_token={}".format(token.to_jwt(key=KC_RSA.keys(), algorithm="none"))
+            "https://example.com/cb?state=state0&access_token=token&token_type=bearer&scope=openid&id_token={}".format(
+                token.to_jwt(key=KC_RSA.keys(), algorithm="none")
+            )
         )
         with responses.RequestsMock() as rsps:
             rsps.add(

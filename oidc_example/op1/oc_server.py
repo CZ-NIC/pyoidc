@@ -38,7 +38,7 @@ LOGFILE_NAME = "oc.log"
 hdlr = logging.FileHandler(LOGFILE_NAME)
 base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
 
-CPC = "%(asctime)s %(name)s:%(levelname)s " "[%(client)s,%(path)s,%(cid)s] %(message)s"
+CPC = "%(asctime)s %(name)s:%(levelname)s [%(client)s,%(path)s,%(cid)s] %(message)s"
 cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)

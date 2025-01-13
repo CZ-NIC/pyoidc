@@ -54,7 +54,7 @@ BASE_ENVIRON = {
     "SERVER_PORT": "8087",
     "PATH_INFO": "/register",
     "HTTP_HOST": "localhost:8087",
-    "HTTP_ACCEPT": "text/html,application/xhtml+xml," "application/xml;q=0.9,*/*;q=0.8",
+    "HTTP_ACCEPT": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "HTTP_ACCEPT_LANGUAGE": "sv-se",
     "CONTENT_TYPE": "text/plain",
     "REMOTE_HOST": "1.0.0.127.in-addr.arpa",

@@ -220,7 +220,7 @@ def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS
     elif body_type == "jwt":
         if not match_to_("application/jwt", reqresp.headers["content-type"]):
             raise ValueError(
-                "Wrong content-type in header, got: {} expected " "'application/jwt'".format(
+                "Wrong content-type in header, got: {} expected 'application/jwt'".format(
                     reqresp.headers["content-type"]
                 )
             )

@@ -157,7 +157,7 @@ class TestMessage(object):
         )
 
     def test_from_json(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' '"opt_int": 9}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "opt_int": 9}'
         item = DummyMessage().deserialize(jso, "json")
 
         assert _eq(item.keys(), ["req_str", "req_str_list", "opt_int"])
@@ -174,12 +174,12 @@ class TestMessage(object):
             DummyMessage().from_json(jso)
 
     def test_single_optional(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], ' '"opt_int": [9, 10]}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "opt_int": [9, 10]}'
         with pytest.raises(MessageException):
             DummyMessage().deserialize(jso, "json")
 
     def test_extra_param(self):
-        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "extra": ' '"out"}'
+        jso = '{"req_str": "Fair", "req_str_list": ["spike", "lee"], "extra": "out"}'
         item = DummyMessage().deserialize(jso, "json")
 
         assert _eq(item.keys(), ["req_str", "req_str_list", "extra"])
@@ -380,7 +380,7 @@ class TestAuthorizationRequest(object):
         ue = ar.to_urlencoded()
         assert query_string_compare(
             ue,
-            "state=cold&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&" "response_type=code&client_id=foobar",
+            "state=cold&redirect_uri=http%3A%2F%2Ffoobar.example.com%2Foaclient&response_type=code&client_id=foobar",
         )
 
     def test_urlencoded_resp_type_token(self):
@@ -394,7 +394,7 @@ class TestAuthorizationRequest(object):
         ue = ar.to_urlencoded()
         assert query_string_compare(
             ue,
-            "state=xyz&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&response_type=token&" "client_id=s6BhdRkqt3",
+            "state=xyz&redirect_uri=https%3A%2F%2Fclient.example.com%2Fcb&response_type=token&client_id=s6BhdRkqt3",
         )
 
     def test_deserialize_urlencoded(self):
@@ -520,7 +520,7 @@ class TestAuthorizationRequest(object):
         assert ar == ar2
 
     def test_verify(self):
-        query = "redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz" "&response_type=code&client_id=0123456789"
+        query = "redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauthz&response_type=code&client_id=0123456789"
         ar = AuthorizationRequest().deserialize(query, "urlencoded")
         assert ar.verify()
 
@@ -629,7 +629,7 @@ class TestAuthorizationErrorResponse(object):
     def test_extra_params(self):
         aer = AuthorizationErrorResponse(
             error="access_denied",
-            error_description="brewers has a " "four game series",
+            error_description="brewers has a four game series",
             foo="bar",
         )
         assert aer["error"] == "access_denied"
@@ -647,7 +647,7 @@ class TestTokenErrorResponse(object):
     def test_extra_params(self):
         ter = TokenErrorResponse(
             error="access_denied",
-            error_description="brewers has a four game " "series",
+            error_description="brewers has a four game series",
             foo="bar",
         )
 

@@ -680,7 +680,7 @@ class RegistrationResponse(Message):
         has_reg_at = "registration_access_token" in self
         if has_reg_uri != has_reg_at:
             raise VerificationError(
-                ("Only one of registration_client_uri" " and registration_access_token present"),
+                ("Only one of registration_client_uri and registration_access_token present"),
                 self,
             )
 
