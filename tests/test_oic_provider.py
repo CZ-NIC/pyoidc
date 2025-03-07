@@ -1579,7 +1579,7 @@ class TestProvider(object):
 
         all_cookies.load(cookies_string)
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         for c in [self.provider.cookie_name, self.provider.session_cookie_name]:
             dt = datetime.datetime.strptime(all_cookies[c]["expires"], "%a, %d-%b-%Y %H:%M:%S GMT")
             assert dt < now  # make sure the cookies have expired to be cleared
