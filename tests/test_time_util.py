@@ -1,6 +1,6 @@
 import calendar
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -193,8 +193,8 @@ def test_parse_duration_error(duration):
 
 
 def test_time_a_while_ago():
-    dt = datetime.utcnow()
-    t = time_a_while_ago(seconds=10)
+    dt = datetime.now(timezone.utc)
+    t = time_a_while_ago(seconds=10).astimezone(timezone.utc)
     delta = dt - t  # slightly less than 10
     assert (delta.seconds == 9 and delta.microseconds > 0) or delta.seconds == 10
 
@@ -208,7 +208,7 @@ def test_a_while_ago():
 
 
 def test_shift_time():
-    dt = datetime.utcnow()
+    dt = datetime.now(timezone.utc)
     t = shift_time(dt, 10)
     delta = t - dt  # exactly 10
     assert delta.seconds == 10
@@ -250,5 +250,5 @@ def test_later_than_str():
 
 def test_utc_time():
     utc_now = utc_time_sans_frac()
-    expected_utc_now = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
+    expected_utc_now = int((datetime.now(timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds())
     assert utc_now == expected_utc_now
