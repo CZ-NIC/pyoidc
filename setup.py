@@ -52,7 +52,7 @@ setup(
     include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",
-        "License :: OSI Approved :: Apache Software License",
+        "Apache 2.0",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",

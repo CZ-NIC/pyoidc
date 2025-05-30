@@ -48,7 +48,7 @@ class DistributedAggregatedUserInfo(UserInfo):
                     cc.keyjar.add(specs["client_id"], specs["jwks_uri"])
                 except KeyError:
                     pass
-                cc.userclaims_endpoint = specs["userclaims_endpoint"]
+                cc.userclaims_endpoint = specs["userclaims_endpoint"]  # type: ignore[attr-defined]
             res[cid] = cc
         return res
 
