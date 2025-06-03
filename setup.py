@@ -34,8 +34,8 @@ setup(
     long_description=open("README.rst", encoding="utf-8").read(),
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
-    license="Apache-2.0",
     license_files=["LICENSE.txt"],
+    license="Apache-2.0",
     url="https://github.com/CZ-NIC/pyoidc/",
     packages=[
         "oic",
