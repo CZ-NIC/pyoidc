@@ -92,7 +92,7 @@ class UserInfoLDAP(UserInfo):
                     try:
                         attr = self.openid2ldap[key]
                     except KeyError:
-                        logger.warn("OIDC attribute '%s' not defined in map" % key)
+                        logger.warning("OIDC attribute '%s' not defined in map" % key)
                     else:
                         try:
                             avaspec[attr].append(val)
