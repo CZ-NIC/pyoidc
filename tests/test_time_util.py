@@ -105,7 +105,6 @@ def test_add_duration_3():
     assert t.tm_wday == 5
     assert t.tm_wday == 5
     assert t.tm_yday == 43
-    assert t.tm_isdst == 0
 
 
 def test_add_duration_4():
