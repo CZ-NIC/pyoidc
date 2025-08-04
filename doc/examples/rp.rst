@@ -58,7 +58,7 @@ address (local@domain) but is not necessarily one.
 
 At this point in time let us assume that you will instantiate an OIDC RP.
 
-.. Note::Oh, by the way I will probably alternate between talking about the RP
+.. Note:: Oh, by the way I will probably alternate between talking about the RP
     and the client, don't get caught up on that, they are the same thing.
 
 As stated above, depending on the OP and the return_type you
@@ -89,7 +89,7 @@ A description of the whole set of metadata can be found here__:
 
 __ http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
 
-.. Note::One parameter of the provider info is the issuer parameter. This
+.. Note:: One parameter of the provider info is the issuer parameter. This
      is supposed to be *exactly* the same as the URL you used to fetch the
      information. Now, this isn't valid for some providers. You can tell the
      client to not care about this by setting
