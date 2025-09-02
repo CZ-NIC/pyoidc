@@ -191,7 +191,7 @@ class TestOICConsumer:
     def test_begin(self):
         srv = Server()
         srv.keyjar = SRVKEYS
-        sid, location = self.consumer.begin("openid", "code")
+        sid, location = self.consumer.begin("openid", "code", prompt="login")
         authreq = srv.parse_authorization_request(url=location)
         assert _eq(
             list(authreq.keys()),
@@ -209,6 +209,7 @@ class TestOICConsumer:
         assert authreq["state"] == sid
         assert authreq["scope"] == self.consumer.consumer_config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
+        assert authreq["prompt"] == "login"
 
     def test_begin_file(self, tmpdir):
         path = tmpdir.strpath
