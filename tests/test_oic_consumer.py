@@ -203,6 +203,7 @@ class TestOICConsumer:
                 "client_id",
                 "scope",
                 "redirect_uri",
+                "prompt",
             ],
         )
 
