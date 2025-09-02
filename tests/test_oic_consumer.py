@@ -210,7 +210,7 @@ class TestOICConsumer:
         assert authreq["state"] == sid
         assert authreq["scope"] == self.consumer.consumer_config["scope"]
         assert authreq["client_id"] == self.consumer.client_id
-        assert authreq["prompt"] == "login"
+        assert authreq["prompt"] == ["login"]
 
     def test_begin_file(self, tmpdir):
         path = tmpdir.strpath
