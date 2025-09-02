@@ -7,6 +7,10 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+- [#896]: Add the `prompt` parameter to `oic.oic.Consumer.begin`
+
+[#896]: https://github.com/CZ-NIC/pyoidc/pull/896
+
 ## 1.7.0 [2024-04-25]
 ### Changed
 
