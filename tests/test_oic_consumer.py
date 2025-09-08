@@ -212,6 +212,14 @@ class TestOICConsumer:
         assert authreq["client_id"] == self.consumer.client_id
         assert authreq["prompt"] == ["login"]
 
+    def test_no_prompt_value(self):
+        srv = Server()
+        srv.keyjar = SRVKEYS
+        sid, location = self.consumer.begin("openid", "code")
+        authreq = srv.parse_authorization_request(url=location)
+
+        assert "prompt" not in authreq
+
     def test_begin_file(self, tmpdir):
         path = tmpdir.strpath
         external_path = "/exported"

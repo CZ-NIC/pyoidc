@@ -232,7 +232,7 @@ class Consumer(Client):
         """
         self.sdb[sid] = self.dictionary()
 
-    def begin(self, scope="", response_type="", use_nonce=False, path="", prompt="", **kwargs):
+    def begin(self, scope="", response_type="", use_nonce=False, path="", prompt=None, **kwargs):
         """
         Begin the OIDC flow.
 
@@ -281,8 +281,9 @@ class Consumer(Client):
             "state": sid,
             "response_type": response_type,
             "scope": scope,
-            "prompt": prompt,
         }
+        if prompt is not None:
+            args["prompt"] = prompt
 
         # nonce is REQUIRED in implicit flow,
         # OPTIONAL on code flow.
