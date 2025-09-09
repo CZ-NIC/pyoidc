@@ -418,7 +418,7 @@ class TestProvider(object):
         id_token = self._auth_with_id_token()
         assert session_get(self.provider.sdb, "sub", id_token["sub"])
 
-        issuer_key = KEYJAR.keys_by_alg_and_usage(issuer=SERVER_INFO['issuer'], alg="RS256", usage="sig")
+        issuer_key = KEYJAR.keys_by_alg_and_usage(issuer=SERVER_INFO["issuer"], alg="RS256", usage="sig")
         id_token_hint = id_token.to_jwt(key=issuer_key, algorithm="RS256")
         resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}))
 
