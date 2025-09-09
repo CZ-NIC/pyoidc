@@ -232,7 +232,7 @@ class Consumer(Client):
         """
         self.sdb[sid] = self.dictionary()
 
-    def begin(self, scope="", response_type="", use_nonce=False, path="", **kwargs):
+    def begin(self, scope="", response_type="", use_nonce=False, path="", prompt=None, **kwargs):
         """
         Begin the OIDC flow.
 
@@ -240,6 +240,7 @@ class Consumer(Client):
         :param response_type: Controls the parameters returned in the response from the Authorization Endpoint
         :param use_nonce: If not implicit flow nonce is optional. This defines if it should be used anyway.
         :param path: The path part of the redirect URL
+        :param prompt: Specifies whether the authorization server should prompt the user for reauthentication or consent. Typically "none", "login", "consent", "select_account"
         :return: A 2-tuple, session identifier and URL to which the user should be redirected
         """
         _log_info = logger.info
@@ -281,6 +282,8 @@ class Consumer(Client):
             "response_type": response_type,
             "scope": scope,
         }
+        if prompt is not None:
+            args["prompt"] = prompt
 
         # nonce is REQUIRED in implicit flow,
         # OPTIONAL on code flow.
