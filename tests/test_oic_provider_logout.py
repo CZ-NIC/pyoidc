@@ -188,8 +188,8 @@ class TestProvider(object):
             SYMKEY,
             urlmap=URLMAP,
             keyjar=KEYJAR,
+            baseurl="http://localhost:8088",  # use baseurl matching SERVER_INFO endpoints
         )
-        self.provider.baseurl = self.provider.name
         self.provider.logout_verify_url = "https://127.0.0.1/logout_verify.html"
 
         self.cons = Consumer(
@@ -410,6 +410,24 @@ class TestProvider(object):
 
         jwt_info = self.provider.unpack_signed_jwt(qs["sjwt"][0])
 
+        assert jwt_info["uid"] == "username"
+        assert jwt_info["client_id"] == "number5"
+        assert jwt_info["redirect_uri"] == "https://example.com/post_logout"
+
+    def test_end_session_endpoint_with_id_token_hint_only_signed(self):
+        id_token = self._auth_with_id_token()
+        assert session_get(self.provider.sdb, "sub", id_token["sub"])
+
+        issuer_key = KEYJAR.keys_by_alg_and_usage(issuer=SERVER_INFO['issuer'], alg="RS256", usage="sig")
+        id_token_hint = id_token.to_jwt(key=issuer_key, algorithm="RS256")
+        resp = self.provider.end_session_endpoint(urlencode({"id_token_hint": id_token_hint}))
+
+        # returns a SeeOther instance
+        p = urlparse(resp.message)
+        qs = parse_qs(p.query)
+
+        jwt_info = self.provider.unpack_signed_jwt(qs["sjwt"][0])
+        assert jwt_info["iss"] != self.provider.baseurl
         assert jwt_info["uid"] == "username"
         assert jwt_info["client_id"] == "number5"
         assert jwt_info["redirect_uri"] == "https://example.com/post_logout"

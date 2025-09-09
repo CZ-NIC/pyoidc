@@ -2070,7 +2070,7 @@ class Provider(AProvider):
                 args = {}
 
             try:
-                id_token_hint.verify(iss=self.baseurl, skew=far_away, nonce_storage_time=far_away, **args)
+                id_token_hint.verify(iss=self.name, skew=far_away, nonce_storage_time=far_away, **args)
             except (VerificationError, NotForMe) as err:
                 logger.warning("Verification error on id_token_hint: %s", err)
                 return error_response("invalid_request", "Bad Id Token hint")
