@@ -7,9 +7,15 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Changed
 - [#896]: Add the `prompt` parameter to `oic.oic.Consumer.begin`
 
+### Fixed
+
+- [#897]: End Session endpoint verifies id token hint against incorrect issuer
+
 [#896]: https://github.com/CZ-NIC/pyoidc/pull/896
+[#897]: https://github.com/CZ-NIC/pyoidc/pull/897
 
 ## 1.7.0 [2024-04-25]
 ### Changed
