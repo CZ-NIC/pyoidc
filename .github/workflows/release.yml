@@ -1,0 +1,61 @@
+name: "Release"
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build:
+    name: "Build dists"
+    runs-on: "ubuntu-latest"
+    environment:
+      name: "publish"
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+  steps:
+    - name: "Checkout repository"
+      uses: "actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b" # tag=v3
+
+    - name: "Setup Python"
+      uses: "actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984" # tag=v4
+      with:
+        python-version: "3.x"
+
+    - name: "Install dependencies"
+      run: python -m pip install build
+
+    - name: Build using Python
+      id: build
+      run: |
+        python -m build
+
+    - name: Generate subject
+      id: hash
+      run: |
+        cd dist
+        HASHES=$(sha256sum * | base64 -w0)
+        echo "hashes=$HASHES" >> "$GITHUB_OUTPUT"
+
+  provenance:
+    needs: [build]
+    permissions:
+      actions: read # To read the workflow path.
+      id-token: write # To sign the provenance.
+      contents: write # To add assets to a release.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true # Optional: Upload to a new release
+    steps:
+    - name: "Download dists"
+      uses: "actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741"
+      with:
+        name: "dist"
+        path: "dist/"
+
+    - name: "Upload dists to GitHub Release"
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      run: |
+        gh release upload ${{ github.ref_name }} dist/* --repo ${{ github.repository }}
