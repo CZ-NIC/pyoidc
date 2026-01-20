@@ -58,7 +58,7 @@ class JLog(object):
 
 # noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()

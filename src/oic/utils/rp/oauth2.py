@@ -71,7 +71,7 @@ class OAuthClient(client.Client):
 
         request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
-        logger.debug("request: %s" % sanitize(cis))
+        logger.debug("request: %s", sanitize(cis))
 
         url, body, ht_args, cis = cast(
             AuthorizationRequest,
@@ -79,14 +79,14 @@ class OAuthClient(client.Client):
         )
 
         self.authz_req[request_args["state"]] = cis
-        logger.debug("body: %s" % sanitize(body))
-        logger.info("URL: %s" % sanitize(url))
-        logger.debug("ht_args: %s" % sanitize(ht_args))
+        logger.debug("body: %s", sanitize(body))
+        logger.info("URL: %s", sanitize(url))
+        logger.debug("ht_args: %s", sanitize(ht_args))
 
         resp = Redirect(str(url))
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        logger.debug("resp_headers: %s" % sanitize(resp.headers))
+        logger.debug("resp_headers: %s", sanitize(resp.headers))
         return resp
 
     def has_access_token(self, **kwargs):
@@ -122,7 +122,7 @@ class OAuthClient(client.Client):
             logger.error(msg.format(sanitize(response)))
             raise OAuth2Error("Problem parsing response")
 
-        logger.info("{}: {}".format(respcls.__name__, sanitize(authresp)))
+        logger.info("%s: %s", respcls.__name__, sanitize(authresp))
 
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
@@ -154,13 +154,13 @@ class OAuthClient(client.Client):
                     request_args=args,
                     authn_method=self.registration_response["token_endpoint_auth_method"],
                 )
-                logger.info("Access token response: {}".format(sanitize(atresp)))
+                logger.info("Access token response: %s", sanitize(atresp))
             except Exception as err:
                 logger.error("%s", err)
                 raise
 
             if isinstance(atresp, ErrorResponse):
-                self._err("Error response: {}".format(atresp.to_dict()))
+                self._err("Error response: %s" % atresp.to_dict())
 
             _token = atresp["access_token"]
         else:
@@ -295,14 +295,14 @@ class OAuthClients(object):
         if not issuer:
             raise OAuth2Error("Missing issuer")
 
-        logger.info("issuer: {}".format(issuer))
+        logger.info("issuer: %s", issuer)
 
         if issuer in self.client:
             return self.client[issuer]
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
-            logger.info("Provider info: {}".format(sanitize(_pcr.to_dict())))
+            logger.info("Provider info: %s", sanitize(_pcr.to_dict()))
             issuer = _pcr["issuer"]  # So no hickup later about trailing '/'
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]

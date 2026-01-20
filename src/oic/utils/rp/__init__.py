@@ -74,19 +74,19 @@ class Client(oic.Client):
 
         request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
-        logger.debug("request: %s" % sanitize(cis))
+        logger.debug("request: %s", sanitize(cis))
 
         url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis, method="GET", request_args=request_args)
 
         self.authz_req[request_args["state"]] = cis
-        logger.debug("body: %s" % sanitize(body))
-        logger.info("URL: %s" % sanitize(url))
-        logger.debug("ht_args: %s" % sanitize(ht_args))
+        logger.debug("body: %s", sanitize(body))
+        logger.info("URL: %s", sanitize(url))
+        logger.debug("ht_args: %s", sanitize(ht_args))
 
         resp = Redirect(str(url))
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        logger.debug("resp_headers: %s" % sanitize(resp.headers))
+        logger.debug("resp_headers: %s", sanitize(resp.headers))
         return resp
 
     def has_access_token(self, **kwargs):
@@ -153,7 +153,7 @@ class Client(oic.Client):
             logger.error(msg.format(sanitize(response)))
             raise OIDCError("Problem parsing response")
 
-        logger.info("AuthorizationReponse: {}".format(sanitize(authresp)))
+        logger.info("AuthorizationReponse: %s", sanitize(authresp))
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(session)
@@ -208,7 +208,7 @@ class Client(oic.Client):
                 if _id_token["sub"] != userinfo["sub"]:
                     self._err("Invalid response: userid mismatch")
 
-                logger.debug("UserInfo: %s" % sanitize(inforesp))
+                logger.debug("UserInfo: %s", sanitize(inforesp))
 
                 try:
                     self.id_token[user_id] = _id_token
@@ -373,13 +373,13 @@ class OIDCClients(object):
         if not issuer:
             raise OIDCError("Missing issuer")
 
-        logger.info("issuer: {}".format(issuer))
+        logger.info("issuer: %s", issuer)
         if issuer in self.client:
             return self.client[issuer]
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
-            logger.info("Provider info: {}".format(sanitize(_pcr.to_dict())))
+            logger.info("Provider info: %s", sanitize(_pcr.to_dict()))
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
             reg_args = copy.copy(_cinfo)

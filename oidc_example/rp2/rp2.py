@@ -84,7 +84,7 @@ class Session(object):
 
 # noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
         SRV.ssl_adapter = BuiltinSSLAdapter(conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
-    LOGGER.info("RP server starting listening on port:%s" % conf.PORT)
+    LOGGER.info("RP server starting listening on port:%s", conf.PORT)
     print("RP server starting listening on port:%s" % conf.PORT)
     try:
         SRV.start()

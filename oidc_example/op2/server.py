@@ -86,7 +86,7 @@ def static_file(path):
 
 
 def static(self, environ, start_response, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -319,7 +319,7 @@ class Application(object):
 
         environ["oic.oas"] = self.oas
 
-        logger.info('PATH: "{}"'.format(path))
+        logger.info('PATH: "%s"', path)
 
         if path.startswith("static/"):
             return static(self, environ, start_response, path)
@@ -332,18 +332,18 @@ class Application(object):
                 except IndexError:
                     environ["oic.url_args"] = path
 
-                logger.info("callback: %s" % callback)
+                logger.info("callback: %s", callback)
                 try:
                     return callback(environ, start_response)
                 except Exception as err:
                     print("%s" % err)
                     message = traceback.format_exception(*sys.exc_info())
                     print(message)
-                    logger.exception("%s" % err)
+                    logger.exception("%s", err)
                     resp = ServiceError("%s" % err)
                     return resp(environ, start_response)
 
-        LOGGER.debug("unknown side: %s" % path)
+        LOGGER.debug("unknown side: %s", path)
         resp = NotFound("Couldn't find the side you asked for!")
         return resp(environ, start_response)
 
@@ -390,7 +390,7 @@ if __name__ == "__main__":
     # Client data base
     cdb = shelve_wrapper.open("client_db")
 
-    logger.info("Known client_ids: {}".format([k for k in cdb.keys()]))
+    logger.info("Known client_ids: %s", [k for k in cdb.keys()])
     sys.path.insert(0, ".")
 
     config = _import_config(args.config)
@@ -592,7 +592,7 @@ if __name__ == "__main__":
     try:
         jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
     except Exception as err:
-        LOGGER.error("Key setup failed: %s" % err)
+        LOGGER.error("Key setup failed: %s", err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
         jwks_file_name = JWKS_FILE_NAME
@@ -607,7 +607,7 @@ if __name__ == "__main__":
         OAS.jwks_uri = "%s%s" % (OAS.baseurl, jwks_file_name)
 
     for b in OAS.keyjar[""]:
-        LOGGER.info("OC3 server keys: %s" % b)
+        LOGGER.info("OC3 server keys: %s", b)
 
     _app = Application(OAS, _urls)
 
@@ -624,7 +624,7 @@ if __name__ == "__main__":
         #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
         SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY)
 
-    LOGGER.info("OC server started (iss={}, port={})".format(_issuer, args.port))
+    LOGGER.info("OC server started (iss=%s, port=%s)", _issuer, args.port)
     print("OC server started (iss={}, port={}) {}".format(_issuer, args.port, https))
     try:
         SRV.start()

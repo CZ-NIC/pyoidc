@@ -136,7 +136,7 @@ def set_cookie(cookiejar, kaka):
                         std_attr["expires"] = http2time(morsel[attr])
         except TimeFormatError:
             # Ignore cookie
-            logger.info("Time format error on %s parameter in received cookie" % (sanitize(attr),))
+            logger.info("Time format error on %s parameter in received cookie", sanitize(attr))
             continue
 
         for att, spec in PAIRS.items():
@@ -201,8 +201,8 @@ def guess_body_type(reqresp):
 
 
 def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS]:
-    logger.debug("resp.headers: %s" % (sanitize(reqresp.headers),))
-    logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
+    logger.debug("resp.headers: %s", sanitize(reqresp.headers))
+    logger.debug("resp.txt: %s", sanitize(reqresp.text))
 
     if body_type is None:
         return guess_body_type(reqresp)

@@ -392,11 +392,11 @@ class Client(oauth2.Client):
             keyjar=self.keyjar,
         )
         if isinstance(aresp, ErrorResponse):
-            logger.info("ErrorResponse: %s" % sanitize(aresp))
+            logger.info("ErrorResponse: %s", sanitize(aresp))
             raise AuthzError(
                 aresp.error  # type: ignore # Messages have no classical attrs
             )
 
-        logger.info("Aresp: %s" % sanitize(aresp))
+        logger.info("Aresp: %s", sanitize(aresp))
 
         return aresp

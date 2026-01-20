@@ -22,7 +22,7 @@ class AuthzHandling(CookieDealer):
         if cookie is None:
             return None
         else:
-            logger.debug("kwargs: %s" % sanitize(kwargs))
+            logger.debug("kwargs: %s", sanitize(kwargs))
 
             val = self.getCookieValue(cookie, self.srv.cookie_name)
             if val is None:

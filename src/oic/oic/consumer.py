@@ -483,7 +483,7 @@ class Consumer(Client):
             authn_method=authn_method,
         )
 
-        logger.info("Access Token Response: %s" % sanitize(resp))
+        logger.info("Access Token Response: %s", sanitize(resp))
 
         if resp.type() == "ErrorResponse":
             raise TokenError(resp.error, resp)

@@ -81,7 +81,7 @@ class DistributedAggregatedUserInfo(UserInfo):
         :param user_info_claims: Possible userinfo claims (a dictionary)
         :return: A schema dependent userinfo instance
         """
-        logger.info("User_info about '%s'" % userid)
+        logger.info("User_info about '%s'", userid)
         identity = copy.copy(self.db[userid])
 
         if user_info_claims:
@@ -120,9 +120,9 @@ class DistributedAggregatedUserInfo(UserInfo):
 
                 for srv, what in cpoints.items():
                     cc = self.oidcsrv.claims_clients[srv]
-                    logger.debug("srv: %s, what: %s" % (sanitize(srv), sanitize(what)))
+                    logger.debug("srv: %s, what: %s", sanitize(srv), sanitize(what))
                     _res = self._collect_distributed(srv, cc, userid, what)
-                    logger.debug("Got: %s" % sanitize(_res))
+                    logger.debug("Got: %s", sanitize(_res))
                     for key, val in _res.items():
                         if key in result:
                             result[key].update(val)

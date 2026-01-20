@@ -268,7 +268,7 @@ class Consumer(Client):
             request_args={"state": sid, "response_type": response_type},
         )[0]
 
-        logger.debug("Redirecting to: %s" % (sanitize(location),))
+        logger.debug("Redirecting to: %s", sanitize(location))
 
         return sid, location
 
@@ -279,8 +279,8 @@ class Consumer(Client):
         :param query: The query part of the request
         :return: A AccessTokenResponse instance
         """
-        logger.debug("- authorization - %s flow -" % self.flow_type)
-        logger.debug("QUERY: %s" % sanitize(query))
+        logger.debug("- authorization - %s flow -", self.flow_type)
+        logger.debug("QUERY: %s", sanitize(query))
 
         if "code" in self.response_type:
             # Might be an error response

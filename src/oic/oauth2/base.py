@@ -134,7 +134,11 @@ class PBase(object):
             )
         except Exception as err:
             logger.error(
-                "http_request failed: %s, url: %s, htargs: %s, method: %s" % (err, url, sanitize(_kwargs), method)
+                "http_request failed: %s, url: %s, htargs: %s, method: %s",
+                err,
+                sanitize(url),
+                sanitize(_kwargs),
+                method,
             )
             raise
 

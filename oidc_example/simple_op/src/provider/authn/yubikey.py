@@ -45,13 +45,13 @@ class YubicoOTP(AuthnModule):
         try:
             status = self.client.verify(otp, return_response=True)
         except yubico_exceptions.InvalidClientIdError as e:
-            logger.error("Client with id {} does not exist".format(e.client_id))
+            logger.error("Client with id %s does not exist", e.client_id)
             return self.FAILED_AUTHN
         except yubico_exceptions.SignatureVerificationError:
             logger.error("Signature verification failed")
             return self.FAILED_AUTHN
         except yubico_exceptions.StatusCodeError as e:
-            logger.error("Negative status code was returned: {}".format(e.status_code))
+            logger.error("Negative status code was returned: %s", e.status_code)
             return self.FAILED_AUTHN
 
         if status:

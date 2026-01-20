@@ -108,7 +108,7 @@ class ClaimsServer(Provider):
             claims_names=list(info.keys()),
         )
 
-        logger.info("RESPONSE: %s" % (sanitize(cresp.to_dict()),))
+        logger.info("RESPONSE: %s", sanitize(cresp.to_dict()))
         return cresp
 
     def _distributed(self, info):

@@ -458,10 +458,10 @@ class Message(MutableMapping):
 
     def _add_key(self, keyjar, issuer, key, key_type="", kid="", no_kid_issuer=None):
         if issuer not in keyjar:
-            logger.error('Issuer "{}" not in keyjar'.format(issuer))
+            logger.error('Issuer "%s" not in keyjar', issuer)
             return
 
-        logger.debug("Key set summary for {}: {}".format(issuer, key_summary(keyjar, issuer)))
+        logger.debug("Key set summary for %s: %s", issuer, key_summary(keyjar, issuer))
 
         if kid:
             _key = keyjar.get_key_by_kid(kid, issuer)
@@ -576,7 +576,7 @@ class Message(MutableMapping):
         """
         _jw = jwe.factory(txt)
         if _jw:
-            logger.debug("JWE headers: {}".format(_jw.jwt.headers))
+            logger.debug("JWE headers: %s", _jw.jwt.headers)
 
             if "algs" in kwargs and "encalg" in kwargs["algs"]:
                 if kwargs["algs"]["encalg"] != _jw["alg"]:
@@ -592,9 +592,9 @@ class Message(MutableMapping):
             else:
                 dkeys = []
 
-            logger.debug("Decrypt class: {}".format(_jw.__class__))
+            logger.debug("Decrypt class: %s", _jw.__class__)
             _res = _jw.decrypt(txt, dkeys)
-            logger.debug("decrypted message:{}".format(_res))
+            logger.debug("decrypted message:%s", _res)
             if isinstance(_res, tuple):
                 txt = as_unicode(_res[0])
             elif isinstance(_res, list) and len(_res) == 2:
@@ -622,8 +622,8 @@ class Message(MutableMapping):
                 if keyjar is not None and "sender" in kwargs:
                     key.extend(keyjar.get_verify_key(owner=kwargs["sender"]))
 
-                logger.debug("Raw JSON: {}".format(sanitize(jso)))
-                logger.debug("JWS header: {}".format(sanitize(_header)))
+                logger.debug("Raw JSON: %s", sanitize(jso))
+                logger.debug("JWS header: %s", sanitize(_header))
                 if _header["alg"] == "none":
                     pass
                 elif verify:

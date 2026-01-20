@@ -354,7 +354,7 @@ class Provider(object):
             # ignore query components that are not registered
             return None
         except Exception:
-            logger.error("Faulty redirect_uri: %s" % areq["redirect_uri"])
+            logger.error("Faulty redirect_uri: %s", areq["redirect_uri"])
             try:
                 _cinfo = self.cdb[str(areq["client_id"])]
             except KeyError:
@@ -364,10 +364,10 @@ class Provider(object):
                     logger.error("No client id found")
                     raise UnknownClient("No client_id provided")
                 else:
-                    logger.info("Unknown client: %s" % cid)
+                    logger.info("Unknown client: %s", cid)
                     raise UnknownClient(areq["client_id"])
             else:
-                logger.info("Registered redirect_uris: %s" % sanitize(_cinfo))
+                logger.info("Registered redirect_uris: %s", sanitize(_cinfo))
                 raise RedirectURIError("Faulty redirect_uri: %s" % areq["redirect_uri"])
 
     def verify_capabilities(self, capabilities) -> bool:
@@ -520,7 +520,7 @@ class Provider(object):
 
                 for acr in areq["acr_values"]:
                     res = self.authn_broker.pick(acr, comparision_type)
-                    logger.debug("Picked AuthN broker for ACR %s: %s" % (str(acr), str(res)))
+                    logger.debug("Picked AuthN broker for ACR %s: %s", str(acr), str(res))
                     if res:
                         # Return the best guess by pick.
                         return res[0]
@@ -532,13 +532,13 @@ class Provider(object):
                 else:
                     for acr in acrs:
                         res = self.authn_broker.pick(acr, comparision_type)
-                        logger.debug("Picked AuthN broker for ACR %s: %s" % (str(acr), str(res)))
+                        logger.debug("Picked AuthN broker for ACR %s: %s", str(acr), str(res))
                         if res:
                             # Return the best guess by pick.
                             return res[0]
 
         except KeyError as exc:
-            logger.debug("An error occured while picking the authN broker: %s" % str(exc))
+            logger.debug("An error occured while picking the authN broker: %s", str(exc))
 
         # return the best I have
         return None, None
@@ -554,7 +554,7 @@ class Provider(object):
         :return:
         """
         request_class = self.server.message_factory.get_request_type("authorization_endpoint")
-        logger.debug("Request: '%s'" % sanitize(request))
+        logger.debug("Request: '%s'", sanitize(request))
         # Same serialization used for GET and POST
 
         try:
@@ -591,7 +591,7 @@ class Provider(object):
         except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
-            logger.debug("Bad request: %s (%s)" % (err, err.__class__.__name__))
+            logger.debug("Bad request: %s (%s)", err, err.__class__.__name__)
             error = ErrorResponse(error="invalid_request", error_description=str(err))
             return BadRequest(error.to_json(), content="application/json")
 
@@ -610,7 +610,7 @@ class Provider(object):
         try:
             _cinfo = self.cdb[areq["client_id"]]
         except KeyError:
-            logger.error("Client ID ({}) not in client database".format(areq["client_id"]))
+            logger.error("Client ID (%s) not in client database", areq["client_id"])
             return error_response("unauthorized_client", "unknown client")
         else:
             try:
@@ -624,11 +624,11 @@ class Provider(object):
             if _wanted not in _registered:
                 return error_response("invalid_request", "Trying to use unregistered response_typ")
 
-        logger.debug("AuthzRequest: %s" % (sanitize(areq.to_dict()),))
+        logger.debug("AuthzRequest: %s", sanitize(areq.to_dict()))
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError, UnknownClient) as err:
-            return error_response("invalid_request", "{}:{}".format(err.__class__.__name__, err))
+            return error_response("invalid_request", "%s:%s" % (err.__class__.__name__, err))
 
         try:
             keyjar = self.keyjar
@@ -681,7 +681,7 @@ class Provider(object):
             tup = (None, None)
             for acr in acrs:
                 res = self.authn_broker.pick(acr, "exact")
-                logger.debug("Picked AuthN broker for ACR %s: %s" % (str(acr), str(res)))
+                logger.debug("Picked AuthN broker for ACR %s: %s", str(acr), str(res))
                 if res:  # Return the best guess by pick.
                     tup = res[0]
                     break
@@ -800,7 +800,7 @@ class Provider(object):
             return authnres
 
         logger.debug("- authenticated -")
-        logger.debug("AREQ keys: %s" % info["areq"].keys())
+        logger.debug("AREQ keys: %s", info["areq"].keys())
 
         sid = self.setup_session(info["areq"], authnres["authn_event"], cinfo)
 
@@ -854,7 +854,7 @@ class Provider(object):
 
         # Just do whatever is the default
         location = aresp.request(redirect_uri, fragment_enc)
-        logger.debug("Redirected to: '%s' (%s)" % (location, type(location)))
+        logger.debug("Redirected to: '%s' (%s)", location, type(location))
         return SeeOther(str(location), headers=headers)
 
     def _complete_authz(self, user, areq, sid, **kwargs):
@@ -945,7 +945,7 @@ class Provider(object):
         :param dtype: deserialization method for the request.
         """
         logger.debug("- token -")
-        logger.debug("token_request: %s" % sanitize(request))
+        logger.debug("token_request: %s", sanitize(request))
 
         areq = self.server.message_factory.get_request_type("token_endpoint")().deserialize(request, dtype)
 
@@ -957,7 +957,7 @@ class Provider(object):
             error = TokenErrorResponse(error="unauthorized_client", error_description="%s" % err)
             return Unauthorized(error.to_json(), content="application/json")
 
-        logger.debug("AccessTokenRequest: %s" % sanitize(areq))
+        logger.debug("AccessTokenRequest: %s", sanitize(areq))
 
         # `code` is not mandatory for all requests
         if "code" in areq:
@@ -1014,11 +1014,11 @@ class Provider(object):
             error = TokenErrorResponse(error="invalid_grant", error_description="Access grant used")
             return Unauthorized(error.to_json(), content="application/json")
 
-        logger.debug("_tinfo: %s" % sanitize(_tinfo))
+        logger.debug("_tinfo: %s", sanitize(_tinfo))
 
         atr = AccessTokenResponse(**by_schema(AccessTokenResponse, **_tinfo))
 
-        logger.debug("AccessTokenResponse: %s" % sanitize(atr))
+        logger.debug("AccessTokenResponse: %s", sanitize(atr))
 
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 

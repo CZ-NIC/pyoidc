@@ -285,32 +285,28 @@ class TestProvider(object):
         )
 
         state = aresp["state"]
-        assert _eq(logcap.records[0].msg, "- authorization - code flow -")
-        assert verify_outcome(
-            logcap.records[1].msg,
-            "QUERY: ",
-            [
-                "state={}".format(state),
-                "code=<REDACTED>",
-                "client_id=client1",
-                "iss=https://example.com/as",
-            ],
+        logcap.check(
+            ("oic.oauth2.consumer", "DEBUG", "- authorization - code flow -"),
+            (
+                "oic.oauth2.consumer",
+                "DEBUG",
+                f"QUERY: state={state}&code=<REDACTED>&iss=https%3A%2F%2Fexample.com%2Fas&client_id=client1",
+            ),
+            (
+                "oic.oauth2",
+                "DEBUG",
+                "Initial response parsing => \"{'state': "
+                f"'{state}', 'code': "
+                "'<REDACTED>', 'iss': 'https://example.com/as', 'client_id': "
+                "'client1'}\"",
+            ),
+            (
+                "oic.oauth2",
+                "DEBUG",
+                "Verify response with {'client_id': 'client1', 'iss': "
+                "'https://example.com/as', 'keyjar': <KeyJar(issuers=[])>}",
+            ),
         )
-
-        expected = {
-            "iss": "https://example.com/as",
-            "state": state,
-            "code": "<REDACTED>",
-            "client_id": "client1",
-        }
-        # Eval here to avoid intermittent failures due to dict ordering
-        assert _eq(eval(logcap.records[2].msg[29:-1]), expected)
-        expected2 = [
-            "'client_id': 'client1'",
-            "'iss': 'https://example.com/as'",
-            "'keyjar': <KeyJar(issuers=[])>",
-        ]
-        assert _eq(sorted(logcap.records[3].msg[22:-1].split(", ")), expected2)
 
     def test_authenticated_token(self):
         _session_db = DictSessionBackend()
@@ -355,56 +351,47 @@ class TestProvider(object):
             grant_type="authorization_code",
         )
         with LogCapture(level=logging.DEBUG) as logcap:
-            resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+            self.provider.token_endpoint(request=areq.to_urlencoded())
 
-        atr = AccessTokenResponse().deserialize(resp.message, "json")
-        assert _eq(atr.keys(), ["access_token", "token_type", "refresh_token"])
-
-        expected = (
-            "token_request: code=<REDACTED>&client_secret=<REDACTED>&grant_type=authorization_code"
-            "&client_id=client1&redirect_uri=http%3A%2F%2Fexample.com%2Fauthz"
+        logcap.check(
+            ("oic.oauth2.provider", "DEBUG", "- token -"),
+            (
+                "oic.oauth2.provider",
+                "DEBUG",
+                "token_request: "
+                "grant_type=authorization_code&code=<REDACTED>&redirect_uri=http%3A%2F%2Fexample.com%2Fauthz&client_id=client1&client_secret=<REDACTED>",
+            ),
+            (
+                "oic.utils.authn.client",
+                "DEBUG",
+                "REQ: {'grant_type': 'authorization_code', 'code': '<REDACTED>', "
+                "'redirect_uri': 'http://example.com/authz', 'client_id': 'client1', "
+                "'client_secret': '<REDACTED>'}",
+            ),
+            ("oic.utils.authn.client", "DEBUG", "Verified Client ID: client1"),
+            (
+                "oic.oauth2.provider",
+                "DEBUG",
+                "AccessTokenRequest: {'grant_type': 'authorization_code', 'code': "
+                "'<REDACTED>', 'redirect_uri': 'http://example.com/authz', 'client_id': "
+                "'client1', 'client_secret': '<REDACTED>'}",
+            ),
+            (
+                "oic.oauth2.provider",
+                "DEBUG",
+                "_tinfo: {'oauth_state': 'token', 'sub': 'sub', 'authzreq': '', 'client_id': "
+                "'client1', 'code': '<REDACTED>', 'code_used': True, 'redirect_uri': "
+                "'http://example.com/authz', 'access_token': '<REDACTED>', "
+                "'access_token_scope': '?', 'token_type': 'Bearer', 'refresh_token': "
+                "'<REDACTED>'}",
+            ),
+            (
+                "oic.oauth2.provider",
+                "DEBUG",
+                "AccessTokenResponse: {'access_token': '<REDACTED>', 'token_type': 'Bearer', "
+                "'refresh_token': '<REDACTED>'}",
+            ),
         )
-        assert _eq(parse_qs(logcap.records[1].msg[15:]), parse_qs(expected[15:]))
-        expected2 = {
-            "code": "<REDACTED>",
-            "client_secret": "<REDACTED>",
-            "redirect_uri": "http://example.com/authz",
-            "client_id": "client1",
-            "grant_type": "authorization_code",
-        }
-        # Don't try this at home, kids!
-        # We have to eval() to a dict here because otherwise the arbitrary
-        # ordering of the string causes the test to fail intermittently.
-        assert _eq(eval(logcap.records[2].msg[4:]), expected2)
-        assert _eq(logcap.records[3].msg, "Verified Client ID: client1")
-        expected3 = {
-            "redirect_uri": "http://example.com/authz",
-            "client_secret": "<REDACTED>",
-            "code": "<REDACTED>",
-            "client_id": "client1",
-            "grant_type": "authorization_code",
-        }
-        assert eval(logcap.records[4].msg[20:]) == expected3
-        expected4 = {
-            "code": "<REDACTED>",
-            "authzreq": "",
-            "sub": "sub",
-            "access_token": "<REDACTED>",
-            "token_type": "Bearer",
-            "redirect_uri": "http://example.com/authz",
-            "code_used": True,
-            "client_id": "client1",
-            "oauth_state": "token",
-            "refresh_token": "<REDACTED>",
-            "access_token_scope": "?",
-        }
-        assert _eq(eval(logcap.records[5].msg[7:]), expected4)
-        expected5 = {
-            "access_token": "<REDACTED>",
-            "token_type": "Bearer",
-            "refresh_token": "<REDACTED>",
-        }
-        assert _eq(eval(logcap.records[6].msg[21:]), expected5)
 
     def test_token_endpoint_no_cache(self):
         authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")

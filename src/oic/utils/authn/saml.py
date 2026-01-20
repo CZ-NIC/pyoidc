@@ -147,16 +147,16 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 request["SAMLResponse"][0], binding, self.cache_outstanding_queries
             )
         except UnknownPrincipal as excp:
-            logger.error("UnknownPrincipal: %s" % (excp,))
+            logger.error("UnknownPrincipal: %s", excp)
             return Unauthorized(self.not_authorized), False
         except UnsupportedBinding as excp:
-            logger.error("UnsupportedBinding: %s" % (excp,))
+            logger.error("UnsupportedBinding: %s", excp)
             return Unauthorized(self.not_authorized), False
         except VerificationError as err:
-            logger.error("Verification error: %s" % (err,))
+            logger.error("Verification error: %s", err)
             return Unauthorized(self.not_authorized), False
         except Exception as err:
-            logger.error("Other error: %s" % (err,))
+            logger.error("Other error: %s", err)
             return Unauthorized(self.not_authorized), False
 
         if self.sp_conf.VALID_ATTRIBUTE_RESPONSE is not None:  # type: ignore
@@ -254,7 +254,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 if _idp_entity_id in idps:
                     idp_entity_id = _idp_entity_id
             except KeyError:
-                logger.debug("No IdP entity ID in query: %s" % query)
+                logger.debug("No IdP entity ID in query: %s", query)
                 pass
 
         if not idp_entity_id:
@@ -319,7 +319,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             binding, destination = _cli.pick_binding(
                 "single_sign_on_service", self.bindings, "idpsso", entity_id=entity_id
             )
-            logger.debug("binding: %s, destination: %s" % (binding, destination))
+            logger.debug("binding: %s, destination: %s", binding, destination)
 
             extensions = None
             kwargs = {}
@@ -346,7 +346,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             _rstate = rndstr()
             ht_args = _cli.apply_binding(binding, msg_str, destination, relay_state=_rstate)
 
-            logger.debug("ht_args: %s" % ht_args)
+            logger.debug("ht_args: %s", ht_args)
         except Exception as exc:
             logger.exception("%s", exc)
             raise ServiceErrorException("Failed to construct the AuthnRequest: %s" % exc)

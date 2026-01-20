@@ -198,7 +198,7 @@ class KeyBundle(object):
             if not isinstance(self.imp_jwks, dict) or "keys" not in self.imp_jwks:
                 raise_exception(UpdateFailed, MALFORMED.format(self.source))
 
-            logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
+            logger.debug("Loaded JWKS: %s from %s", r.text, self.source)
             try:
                 self.do_keys(self.imp_jwks["keys"])
             except KeyError:
@@ -230,7 +230,7 @@ class KeyBundle(object):
         except KeyError:
             pass
 
-        logger.debug("Loaded JWKS: %s from %s" % (response.text, self.source))
+        logger.debug("Loaded JWKS: %s from %s", response.text, self.source)
         try:
             return json.loads(response.text)
         except ValueError:
@@ -640,9 +640,7 @@ class KeyJar(object):
         try:
             return self.issuer_keys[issuer]
         except KeyError:
-            logger.debug(
-                "Issuer '{}' not found, available key issuers: {}".format(issuer, list(self.issuer_keys.keys()))
-            )
+            logger.debug("Issuer '%s' not found, available key issuers: %s", issuer, list(self.issuer_keys.keys()))
             raise
 
     def remove_key(self, issuer, key_type, key):
@@ -697,9 +695,9 @@ class KeyJar(object):
             should be replace.
         :return: Dictionary with usage as key and keys as values
         """
-        logger.debug("loading keys for issuer: %s" % issuer)
+        logger.debug("loading keys for issuer: %s", issuer)
         try:
-            logger.debug("pcr: %s" % pcr)
+            logger.debug("pcr: %s", pcr)
         except MessageException:
             pass
 

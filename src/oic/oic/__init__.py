@@ -807,7 +807,7 @@ class Client(oauth2.Client):
 
     def user_info_request(self, method="GET", state="", scope="", **kwargs):
         uir = self.message_factory.get_request_type("userinfo_endpoint")()
-        logger.debug("[user_info_request]: kwargs:%s" % (sanitize(kwargs),))
+        logger.debug("[user_info_request]: kwargs:%s", sanitize(kwargs))
         token: Optional[Token] = None
         if "token" in kwargs:
             if kwargs["token"]:
@@ -891,7 +891,7 @@ class Client(oauth2.Client):
         path, body, method, h_args = self.user_info_request(method, state, scope, **kwargs)
 
         logger.debug(
-            "[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (sanitize(path), sanitize(body), sanitize(h_args))
+            "[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s", sanitize(path), sanitize(body), sanitize(h_args)
         )
 
         if self.events:
@@ -934,7 +934,7 @@ class Client(oauth2.Client):
         except KeyError:
             _schema = OpenIDSchema
 
-        logger.debug("Reponse text: '%s'" % sanitize(resp.text))
+        logger.debug("Reponse text: '%s'", sanitize(resp.text))
 
         _txt = resp.text
         if sformat == "json":
@@ -1296,7 +1296,7 @@ class Client(oauth2.Client):
         """
         req = self.create_registration_request(**kwargs)
 
-        logger.debug("[registration_request]: kwargs:%s" % (sanitize(kwargs),))
+        logger.debug("[registration_request]: kwargs:%s", sanitize(kwargs))
 
         if self.events:
             self.events.store("Protocol request", req)
@@ -1479,7 +1479,7 @@ class Server(oauth2.Server):
         :return:
         """
         # Do a HTTP get
-        logger.debug("Get request from request_uri: {}".format(request_uri))
+        logger.debug("Get request from request_uri: %s", request_uri)
         try:
             http_req = self.http_request(request_uri)
         except ConnectionError:
@@ -1490,18 +1490,18 @@ class Server(oauth2.Server):
             logger.error("Nothing returned")
             return authz_error("invalid_request_uri")
         elif http_req.status_code >= 400:
-            logger.error("HTTP error {}:{}".format(http_req.status_code, http_req.text))
+            logger.error("HTTP error %s:%s", http_req.status_code, http_req.text)
             raise AuthzError("invalid_request")
 
         # http_req.text is a signed JWT
         try:
-            logger.debug("request txt: {}".format(http_req.text))
+            logger.debug("request txt: %s", http_req.text)
             req = self.parse_jwt_request(txt=http_req.text, verify=verify, sender=sender)
         except Exception as err:
-            logger.error("{}:{} encountered while parsing fetched request".format(err.__class__, err))
+            logger.error("%s:%s encountered while parsing fetched request", err.__class__, err)
             raise AuthzError("invalid_openid_request_object")
 
-        logger.debug("Fetched request: {}".format(req))
+        logger.debug("Fetched request: %s", req)
         return req
 
     def parse_authorization_request(self, url=None, query=None, keys=None):
@@ -1630,7 +1630,7 @@ class Server(oauth2.Server):
                 keys = None
                 sender = ""
 
-        logger.debug("Found {} verify keys".format(len(keys or "")))
+        logger.debug("Found %s verify keys", len(keys or ""))
         if verify:
             request.verify(key=keys, keyjar=self.keyjar, sender=sender)
         return request
@@ -1686,7 +1686,7 @@ class Server(oauth2.Server):
                 pass
 
         if req:
-            logger.debug("%s: %s" % (where, sanitize(req.to_dict())))
+            logger.debug("%s: %s", where, sanitize(req.to_dict()))
             try:
                 _claims = req["claims"][about]
                 if _claims:

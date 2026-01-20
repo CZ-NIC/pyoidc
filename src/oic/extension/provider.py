@@ -587,12 +587,12 @@ class Provider(provider.Provider):
             err = TokenErrorResponse(error="invalid_grant", error_description="Access grant used")
             return Response(err.to_json(), content="application/json", status="401 Unauthorized")
 
-        logger.debug("_tinfo: %s" % _tinfo)
+        logger.debug("_tinfo: %s", _tinfo)
 
         atr_class = self.server.message_factory.get_response_type("token_endpoint")
         atr = atr_class(**by_schema(atr_class, **_tinfo))
 
-        logger.debug("AccessTokenResponse: %s" % atr)
+        logger.debug("AccessTokenResponse: %s", atr)
 
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
@@ -680,7 +680,7 @@ class Provider(provider.Provider):
             error = TokenErrorResponse(error="unauthorized_client", error_description="%s" % err)
             return Response(error.to_json(), content="application/json", status="401 Unauthorized")
 
-        logger.debug("{}: {} requesting {}".format(endpoint, client_id, req.to_dict()))
+        logger.debug("%s: %s requesting %s", endpoint, client_id, req.to_dict())
 
         try:
             token_type = req["token_type_hint"]
@@ -729,7 +729,7 @@ class Provider(provider.Provider):
         else:
             client_id, token_type, _info = resp
 
-        logger.info("{} token revocation: {}".format(client_id, trr.to_dict()))
+        logger.info("%s token revocation: %s", client_id, trr.to_dict())
 
         try:
             self.sdb.token_factory[token_type].invalidate(trr["token"])
@@ -758,7 +758,7 @@ class Provider(provider.Provider):
         else:
             client_id, token_type, _info = resp
 
-        logger.info("{} token introspection: {}".format(client_id, tir.to_dict()))
+        logger.info("%s token introspection: %s", client_id, tir.to_dict())
 
         ir = self.server.message_factory.get_response_type("introspection_endpoint")(
             active=self.sdb.token_factory[token_type].is_valid(_info), **_info.to_dict()

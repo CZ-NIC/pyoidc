@@ -69,7 +69,7 @@ class UserAuthnMethod(CookieDealer):
         if cookie is None:
             return None, 0
         else:
-            logger.debug("kwargs: %s" % sanitize(kwargs))
+            logger.debug("kwargs: %s", sanitize(kwargs))
 
             try:
                 val = self.getCookieValue(cookie, self.srv.cookie_name)
@@ -178,7 +178,7 @@ def create_return_url(base, query, **kwargs):
     else:
         _pre = base
 
-    logger.debug("kwargs: %s" % sanitize(kwargs))
+    logger.debug("kwargs: %s", sanitize(kwargs))
     if kwargs:
         return "%s?%s" % (_pre, url_encode_params(kwargs))
     else:
@@ -280,7 +280,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         resp = Response()
 
         argv = self.templ_arg_func(end_point_index, **kwargs)
-        logger.info("do_authentication argv: %s" % sanitize(argv))
+        logger.info("do_authentication argv: %s", sanitize(argv))
         mte = self.template_lookup.get_template(self.mako_template)
         resp.message = mte.render(**argv).decode("utf-8")
         return resp
@@ -297,7 +297,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         :param kwargs: Catch whatever else is sent.
         :return: redirect back to where ever the base applications wants the user after authentication.
         """
-        logger.debug("verify(%s)" % sanitize(request))
+        logger.debug("verify(%s)", sanitize(request))
         if isinstance(request, str):
             _dict = compact(parse_qs(request))
         elif isinstance(request, dict):
@@ -305,7 +305,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         else:
             raise ValueError("Wrong type of input")
 
-        logger.debug("dict: %s" % sanitize(_dict))
+        logger.debug("dict: %s", sanitize(_dict))
         # verify username and password
         try:
             self._verify(_dict["password"], _dict["login"])  # dict origin
@@ -313,7 +313,7 @@ class UsernamePasswordMako(UserAuthnMethod):
             try:
                 self._verify(_dict["password"][0], _dict["login"][0])
             except (AssertionError, KeyError) as err:
-                logger.debug("Password verification failed: {}".format(err))
+                logger.debug("Password verification failed: %s", err)
                 resp = Unauthorized("Unknown user or wrong password")
                 return resp, False
             else:
@@ -322,7 +322,7 @@ class UsernamePasswordMako(UserAuthnMethod):
                 except KeyError:
                     _qp = self.get_multi_auth_cookie(kwargs["cookie"])
         except (AssertionError, KeyError) as err:
-            logger.debug("Password verification failed: {}".format(err))
+            logger.debug("Password verification failed: %s", err)
             resp = Unauthorized("Unknown user or wrong password")
             return resp, False
         else:

@@ -146,7 +146,7 @@ class CasAuthnMethod(UserAuthnMethod):
         return_to url. Otherwise a unauthorized response.
         :raise: ValueError
         """
-        logger.debug("verify(%s)" % request)
+        logger.debug("verify(%s)", request)
         if isinstance(request, str):
             _dict = parse_qs(request)
         elif isinstance(request, dict):

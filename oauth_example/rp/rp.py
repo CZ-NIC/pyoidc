@@ -42,7 +42,7 @@ def as_choice(environ, start_response):
 
 # noinspection PyUnresolvedReferences
 def static(environ, start_response, path):
-    LOGGER.info("[static]sending: %s" % (path,))
+    LOGGER.info("[static]sending: %s", path)
 
     try:
         with open(path, "rb") as fd:
@@ -187,7 +187,7 @@ if __name__ == "__main__":
             }
         )
 
-    LOGGER.info(START_MESG % (RP_CONF.PORT, RP_CONF.HOST))
+    LOGGER.info(START_MESG, RP_CONF.PORT, RP_CONF.HOST)
     print(START_MESG % (RP_CONF.PORT, RP_CONF.HOST))
     try:
         cherrypy.engine.start()

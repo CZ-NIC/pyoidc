@@ -85,7 +85,7 @@ class ExpiredToken(PyoidcError):
 
 
 def error_response(error, descr=None, status_code=400):
-    logger.error("%s" % sanitize(error))
+    logger.error("%s", sanitize(error))
     response = ErrorResponse(error=error, error_description=descr)
     return Response(response.to_json(), content="application/json", status_code=status_code)
 
@@ -382,7 +382,7 @@ class Client(PBase):
 
         if extra_args:
             kwargs.update(extra_args)
-        logger.debug("request: %s" % sanitize(request))
+        logger.debug("request: %s", sanitize(request))
         return request(**kwargs)
 
     def construct_Message(
@@ -654,7 +654,7 @@ class Client(PBase):
             if "key" not in kwargs and "keyjar" not in kwargs:
                 kwargs["keyjar"] = self.keyjar
 
-            logger.debug("Verify response with {}".format(sanitize(kwargs)))
+            logger.debug("Verify response with %s", sanitize(kwargs))
             verf = resp.verify(**kwargs)
 
             if not verf:
@@ -716,14 +716,14 @@ class Client(PBase):
         if reqresp.status_code in [302, 303]:  # redirect
             return reqresp
         elif reqresp.status_code == 500:
-            logger.error("(%d) %s" % (reqresp.status_code, sanitize(reqresp.text)))
+            logger.error("(%d) %s", reqresp.status_code, sanitize(reqresp.text))
             raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
 
         if reqresp.status_code in SUCCESSFUL or (reqresp.status_code in [400, 401] and response):
             verified_body_type = verify_header(reqresp, body_type)
         else:
             # Any other error
-            logger.error("(%d) %s" % (reqresp.status_code, sanitize(reqresp.text)))
+            logger.error("(%d) %s", reqresp.status_code, sanitize(reqresp.text))
             raise HttpError("HTTP ERROR: %s [%s] on %s" % (reqresp.text, reqresp.status_code, reqresp.url))
 
         # we expect some specific response message type, try to parse it
@@ -889,8 +889,8 @@ class Client(PBase):
             self.events.store("request_http_args", http_args)
             self.events.store("Request", body)
 
-        logger.debug("<do_access_token> URL: %s, Body: %s" % (url, sanitize(body)))
-        logger.debug("<do_access_token> response_cls: %s" % response_cls)
+        logger.debug("<do_access_token> URL: %s, Body: %s", sanitize(url), sanitize(body))
+        logger.debug("<do_access_token> response_cls: %s", response_cls)
 
         return self.request_and_return(
             url,
@@ -1004,7 +1004,7 @@ class Client(PBase):
 
         headers.update(http_args["headers"])
 
-        logger.debug("Fetch URI: %s" % uri)
+        logger.debug("Fetch URI: %s", uri)
         return self.http_request(uri, method, headers=headers)
 
     def add_code_challenge(self):

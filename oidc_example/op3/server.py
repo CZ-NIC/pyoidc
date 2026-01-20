@@ -63,7 +63,7 @@ def static_file(path):
 
 # noinspection PyUnresolvedReferences
 def static(self, environ, start_response, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -290,11 +290,11 @@ class Application(object):
                     print("%s" % err)
                     message = traceback.format_exception(*sys.exc_info())
                     print(message)
-                    logger.exception("%s" % err)
+                    logger.exception("%s", err)
                     resp = ServiceError("%s" % err)
                     return resp(environ, start_response)
 
-        LOGGER.debug("unknown side: %s" % path)
+        LOGGER.debug("unknown side: %s", path)
         resp = NotFound("Couldn't find the side you asked for!")
         return resp(environ, start_response)
 

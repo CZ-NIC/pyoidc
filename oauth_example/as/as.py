@@ -48,7 +48,7 @@ JWKS_FILE_NAME = os.path.join(os.path.dirname(__file__), "static/jwks.json")
 
 
 def static(environ, start_response, path):
-    LOGGER.info("[static]sending: %s" % (path,))
+    LOGGER.info("[static]sending: %s", path)
 
     try:
         with open(path, "rb") as fd:
@@ -141,7 +141,7 @@ class Application(object):
 
         path = environ.get("PATH_INFO", "").lstrip("/")
 
-        LOGGER.info("path: %s" % path)
+        LOGGER.info("path: %s", path)
         if path == "robots.txt":
             return static(environ, start_response, "static/robots.txt")
 
@@ -156,18 +156,18 @@ class Application(object):
                 except IndexError:
                     environ["oic.url_args"] = path
 
-                LOGGER.debug("callback: %s" % callback)
+                LOGGER.debug("callback: %s", callback)
                 try:
                     return callback(environ, start_response)
                 except Exception as err:
                     print("{}".format(err), file=sys.stderr)
                     message = traceback.format_exception(*sys.exc_info())
                     print(message, file=sys.stderr)
-                    LOGGER.exception("%s" % err)
+                    LOGGER.exception("%s", err)
                     resp = ServiceError("%s" % err)
                     return resp(environ, start_response)
 
-        LOGGER.debug("unknown side: %s" % path)
+        LOGGER.debug("unknown side: %s", path)
         resp = NotFound("Couldn't find the side you asked for!")
         return resp(environ, start_response)
 
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     try:
         jwks = keyjar_init(oas, config.keys, kid_template="op%d")
     except Exception as err:
-        LOGGER.error("Key setup failed: {}".format(err))
+        LOGGER.error("Key setup failed: %s", err)
         print("Key setup failed: {}".format(err))
         exit()
     else:

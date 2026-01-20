@@ -2,6 +2,7 @@ from urllib.parse import parse_qs
 
 from oic.utils.authn.user import UsernamePasswordMako, logger
 from oic.utils.http_util import SeeOther, Unauthorized
+from oic.utils.sanitize import sanitize
 
 __author__ = "danielevertsson"
 
@@ -29,8 +30,8 @@ class JavascriptFormMako(UsernamePasswordMako):
         else:
             raise ValueError("Wrong type of input")
 
-        logger.debug("dict: %s" % _dict)
-        logger.debug("passwd: %s" % self.passwd)
+        logger.debug("dict: {}".format(sanitize(_dict)))
+        logger.debug("passwd received: {}".format(bool(self.passwd)))
         # verify username and password
         try:
             if _dict["login_parameter"][0] != "logged_in":

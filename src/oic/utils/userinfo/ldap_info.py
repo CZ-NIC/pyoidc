@@ -77,7 +77,7 @@ class UserInfoLDAP(UserInfo):
 
     def __call__(self, userid, client_id, user_info_claims=None, first_only=True, **kwargs):
         _filter = self.filter_pattern % userid
-        logger.debug("CLAIMS: %s" % sanitize(user_info_claims))
+        logger.debug("CLAIMS: %s", sanitize(user_info_claims))
         _attr = self.attr
         if user_info_claims:
             try:
@@ -90,7 +90,7 @@ class UserInfoLDAP(UserInfo):
                     try:
                         attr = self.openid2ldap[key]
                     except KeyError:
-                        logger.warning("OIDC attribute '%s' not defined in map" % key)
+                        logger.warning("OIDC attribute '%s' not defined in map", key)
                     else:
                         try:
                             avaspec[attr].append(val)

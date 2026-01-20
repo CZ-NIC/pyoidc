@@ -373,7 +373,7 @@ class Provider(AProvider):
             alg = self.jwx_def["signing_alg"]["id_token"]
 
         if alg:
-            logger.debug("Signing alg: %s [%s]" % (alg, alg2keytype(alg)))
+            logger.debug("Signing alg: %s [%s]", alg, alg2keytype(alg))
         else:
             alg = "none"
 
@@ -398,10 +398,10 @@ class Provider(AProvider):
             except KeyError:
                 _keyjar = self.keyjar
 
-            logger.debug("id_token: %s" % sanitize(_idt.to_dict()))
+            logger.debug("id_token: %s", sanitize(_idt.to_dict()))
             # My signing key if its RS*, can use client secret if HS*
             if alg.startswith("HS"):
-                logger.debug("client_id: %s" % session["client_id"])
+                logger.debug("client_id: %s", session["client_id"])
                 ckey = _keyjar.get_signing_key(alg2keytype(alg), session["client_id"])
                 if not ckey:  # create a new key
                     _secret = self.cdb[session["client_id"]]["client_secret"]
@@ -423,10 +423,10 @@ class Provider(AProvider):
         try:
             return IdToken().from_jwt(id_token, keyjar=self.keyjar)
         except Exception as err:
-            logger.error("Faulty id_token: %s" % id_token)
-            logger.error("Exception: %s" % (err.__class__.__name__,))
+            logger.error("Faulty id_token: %s", id_token)
+            logger.error("Exception: %s", (err.__class__.__name__,))
             id_token = IdToken().from_jwt(id_token, verify=False)
-            logger.error("IdToken: %s" % id_token.to_dict())
+            logger.error("IdToken: %s", id_token.to_dict())
             return redirect_authz_error("invalid_id_token_object", redirect_uri)
 
     @staticmethod
@@ -502,7 +502,7 @@ class Provider(AProvider):
         :param kwargs:
         :return:
         """
-        logger.debug("verify request: %s" % sanitize(request))
+        logger.debug("verify request: %s", sanitize(request))
 
         if isinstance(request, dict):
             _req = request
@@ -609,7 +609,7 @@ class Provider(AProvider):
             return info
 
         areq = info["areq"]
-        logger.info("authorization_request: %s" % (sanitize(areq.to_dict()),))
+        logger.info("authorization_request: %s", sanitize(areq.to_dict()))
 
         _cid = areq["client_id"]
         cinfo = self.cdb[str(_cid)]
@@ -731,7 +731,7 @@ class Provider(AProvider):
                 logger.info("using default")
                 enc = "A128CBC-HS256"
 
-        logger.debug("alg=%s, enc=%s, val_type=%s" % (alg, enc, val_type))
+        logger.debug("alg=%s, enc=%s, val_type=%s", alg, enc, val_type)
         if cid not in self.keyjar:
             self.recuperate_keys(cid, client_info)
         keys = self.keyjar.get_encrypt_key(owner=cid)
@@ -847,7 +847,7 @@ class Provider(AProvider):
         response_cls = self.server.message_factory.get_response_type("token_endpoint")
         atr = response_cls(**by_schema(response_cls, **_tinfo))
 
-        logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
+        logger.info("access_token_response: %s", sanitize(atr.to_dict()))
 
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
@@ -887,7 +887,7 @@ class Provider(AProvider):
         response_cls = self.server.message_factory.get_response_type("token_endpoint")
         atr = response_cls(**by_schema(response_cls, **_info))
 
-        logger.info("access_token_response: %s" % sanitize(atr.to_dict()))
+        logger.info("access_token_response: %s", sanitize(atr.to_dict()))
 
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
@@ -938,9 +938,9 @@ class Provider(AProvider):
             else:
                 userinfo_claims = None
 
-            logger.debug("userinfo_claim: %s" % sanitize(userinfo_claims.to_dict()))
+            logger.debug("userinfo_claim: %s", sanitize(userinfo_claims.to_dict()))
 
-        logger.debug("Session info: %s" % sanitize(session))
+        logger.debug("Session info: %s", sanitize(session))
 
         if "authn_event" in session:
             uid = AuthnEvent.from_json(session["authn_event"]).uid
@@ -995,7 +995,7 @@ class Provider(AProvider):
 
         :param request: The request in a string format or as a dictionary
         """
-        logger.debug("userinfo_endpoint: request={}, kwargs={}".format(request, kwargs))
+        logger.debug("userinfo_endpoint: request=%s, kwargs=%s", request, kwargs)
 
         try:
             _token = self._parse_access_token(request, **kwargs)
@@ -1009,13 +1009,13 @@ class Provider(AProvider):
             if not _token.startswith("Bearer "):
                 raise ParameterError("Token is missing or malformed")
             _token = _token[len("Bearer ") :]
-            logger.debug("Bearer token {} chars".format(len(_token)))
+            logger.debug("Bearer token %s chars", len(_token))
         else:
             args = {"data": request}
             if isinstance(request, dict):
                 args["sformat"] = "dict"
             uireq = self.server.parse_user_info_request(**args)
-            logger.debug("user_info_request: %s" % sanitize(uireq))
+            logger.debug("user_info_request: %s", sanitize(uireq))
             _token = uireq["access_token"].replace(" ", "+")
 
         return _token
@@ -1036,7 +1036,7 @@ class Provider(AProvider):
         _log_debug("access_token type: '%s'" % (typ,))
 
         if typ != "T":
-            logger.error("Wrong token type: {}".format(typ))
+            logger.error("Wrong token type: %s", typ)
             raise FailedAuthentication("Wrong type of token")
 
         if _sdb.access_token.is_expired(token):
@@ -1125,7 +1125,7 @@ class Provider(AProvider):
             ignore = []
 
         _cinfo = self.cdb[client_id].copy()
-        logger.debug("_cinfo: %s" % sanitize(_cinfo))
+        logger.debug("_cinfo: %s", sanitize(_cinfo))
 
         for key, val in request.items():
             if key not in ignore:
@@ -1206,9 +1206,9 @@ class Provider(AProvider):
             except KeyError:
                 pass
         except Exception as err:
-            logger.error("Failed to load client keys: %s" % sanitize(request.to_dict()))
+            logger.error("Failed to load client keys: %s", sanitize(request.to_dict()))
             logger.error("%s", err)
-            logger.debug("Verify SSL: {}".format(self.keyjar.verify_ssl))
+            logger.debug("Verify SSL: %s", self.keyjar.verify_ssl)
             error = ClientRegistrationErrorResponse(
                 error="invalid_configuration_parameter", error_description="%s" % err
             )
@@ -1328,7 +1328,7 @@ class Provider(AProvider):
             args[param] = val
 
     def create_registration(self, authn=None, request=None, **kwargs):
-        logger.debug("@registration_endpoint: <<%s>>" % sanitize(request))
+        logger.debug("@registration_endpoint: <<%s>>", sanitize(request))
 
         request_cls = self.server.message_factory.get_request_type("registration_endpoint")
         try:
@@ -1336,7 +1336,7 @@ class Provider(AProvider):
         except MessageException:
             request = request_cls().deserialize(request)
 
-        logger.info("registration_request:%s" % sanitize(request.to_dict()))
+        logger.info("registration_request:%s", sanitize(request.to_dict()))
 
         result = self.client_registration_setup(request)
         if isinstance(result, Response):
@@ -1421,7 +1421,7 @@ class Provider(AProvider):
         except AttributeError:  # Not all databases can be sync'ed
             pass
 
-        logger.info("registration_response: %s" % sanitize(response.to_dict()))
+        logger.info("registration_response: %s", sanitize(response.to_dict()))
 
         return response
 
@@ -1448,7 +1448,7 @@ class Provider(AProvider):
         :param kwargs: Any other arguments
         :return:
         """
-        logger.debug("authn: %s, request: %s" % (sanitize(authn), sanitize(request)))
+        logger.debug("authn: %s, request: %s", sanitize(authn), sanitize(request))
 
         # verify the access token, has to be key into the client information
         # database.
@@ -1470,7 +1470,7 @@ class Provider(AProvider):
         if not safe_str_cmp(reg_token, token):
             return Unauthorized()
 
-        logger.debug("Client '%s' reads client info" % client_id)
+        logger.debug("Client '%s' reads client info", client_id)
         response_cls = self.server.message_factory.get_response_type("registration_endpoint")
         args = dict([(k, v) for k, v in self.cdb[client_id].items() if k in response_cls.c_param])
 
@@ -1643,7 +1643,7 @@ class Provider(AProvider):
             if "token" in rtype:
                 _dic = self.sdb.upgrade_to_token(issue_refresh=False, key=sid)
 
-                logger.debug("_dic: %s" % sanitize(_dic))
+                logger.debug("_dic: %s", sanitize(_dic))
                 for key, val in _dic.items():
                     if key in aresp.parameters() and val is not None:
                         aresp[key] = val
@@ -2164,7 +2164,7 @@ class Provider(AProvider):
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
             for _cid, spec in logout_spec["back_channel"].items():
                 _url, sjwt = spec
-                logger.info("logging out from {} at {}".format(_cid, _url))
+                logger.info("logging out from %s at %s", _cid, _url)
 
                 try:
                     resp = self.httpc.http_request(
@@ -2175,14 +2175,14 @@ class Provider(AProvider):
                     )
                 except Exception as err:
                     # Can't be more specific because I don't know which http client are used
-                    logger.error("failed to logout from {}".format(_cid))
+                    logger.error("failed to logout from %s", _cid)
                     if self.events:
                         self.events.store("exception", "{}: {}".format(_cid, str(err)))
                     failed.append(_cid)
                     continue
 
                 if resp.status_code < 300:
-                    logger.info("Logged out from {}".format(_cid))
+                    logger.info("Logged out from %s", _cid)
                 else:
                     _errstr = "failed to logout from {}".format(_cid)
                     if self.events:
@@ -2202,7 +2202,7 @@ class Provider(AProvider):
 
         if logout_spec["front_channel"]:
             for _cid in logout_spec["front_channel"].keys():
-                logger.info("Adding logout iframe for {}".format(_cid))
+                logger.info("Adding logout iframe for %s", _cid)
             res["iframe"] = list(logout_spec["front_channel"].values())
 
         # Clean out all sessions

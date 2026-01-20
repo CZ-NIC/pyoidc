@@ -279,7 +279,7 @@ class WebFinger(object):
         :param resource: An identifier of an entity
         :return: A URL if an OpenID Connect OP could be found
         """
-        logger.debug("Looking for OIDC OP for '%s'" % resource)
+        logger.debug("Looking for OIDC OP for '%s'", resource)
         url = self.query(resource, rel=OIC_ISSUER, host=host)
         try:
             rsp = self.httpd.http_request(url, allow_redirects=True)

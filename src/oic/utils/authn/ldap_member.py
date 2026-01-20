@@ -19,5 +19,5 @@ class UserLDAPMemberValidation(UserInfoLDAP):
             for field in result[self.verify_attr]:
                 if field in self.verify_attr_valid:
                     return True
-        logger.warning(userid + "tries to use the service with the values " + result)
+        logger.warning("%s tries to use the service with the values %s", userid, result)
         return False

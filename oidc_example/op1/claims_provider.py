@@ -169,13 +169,13 @@ def application(environ, start_response):
 
     if kaka:
         handle = parse_cookie(OAS.name, OAS.seed, kaka)
-        LOGGER.debug("Cookie: %s" % (kaka,))
+        LOGGER.debug("Cookie: %s", kaka)
     else:
         handle = ""
 
     environ["oic.oas"] = OAS
 
-    LOGGER.info("path: %s" % path)
+    LOGGER.info("path: %s", path)
     if path in OAS.jwk:
         return static(environ, start_response, path)
     else:

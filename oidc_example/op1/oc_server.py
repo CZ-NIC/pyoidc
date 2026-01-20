@@ -288,7 +288,7 @@ def static_file(path):
 
 # noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -395,18 +395,18 @@ def application(environ, start_response):
             except IndexError:
                 environ["oic.url_args"] = path
 
-            logger.info("callback: %s" % callback)
+            logger.info("callback: %s", callback)
             try:
                 return callback(environ, start_response, logger)
             except Exception as err:
                 sys.stderr.write("%s" % err)
                 message = traceback.format_exception(*sys.exc_info())
                 sys.stderr.write(message)
-                logger.exception("%s" % err)
+                logger.exception("%s", err)
                 resp = ServiceError("%s" % err)
                 return resp(environ, start_response)
 
-    LOGGER.debug("unknown side: %s" % path)
+    LOGGER.debug("unknown side: %s", path)
     resp = NotFound("Couldn't find the side you asked for!")
     return resp(environ, start_response)
 
@@ -595,7 +595,7 @@ if __name__ == "__main__":
     try:
         jwks = keyjar_init(OAS, config.keys)
     except Exception as err:
-        LOGGER.error("Key setup failed: %s" % err)
+        LOGGER.error("Key setup failed: %s", err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
         new_name = "static/jwks.json"
@@ -605,7 +605,7 @@ if __name__ == "__main__":
         OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
 
     for b in OAS.keyjar[""]:
-        LOGGER.info("OC3 server keys: %s" % b)
+        LOGGER.info("OC3 server keys: %s", b)
 
     if config.USERINFO == "LDAP":
         from oic.utils.userinfo.ldap_info import UserInfoLDAP
@@ -618,13 +618,13 @@ if __name__ == "__main__":
 
         OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS, config.CLIENT_INFO)
 
-    LOGGER.debug("URLS: '%s" % (URLS,))
+    LOGGER.debug("URLS: '%s", URLS)
     # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(("0.0.0.0", args.port), application)  # nosec
 
     SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
 
-    LOGGER.info("OC server starting listening on port:%s" % args.port)
+    LOGGER.info("OC server starting listening on port:%s", args.port)
     print("OC server starting listening on port:%s" % args.port)
     try:
         SRV.start()

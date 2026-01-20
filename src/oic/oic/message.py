@@ -1100,7 +1100,7 @@ class BackChannelLogoutRequest(Message):
         logout_token.verify(**kwargs)
 
         self["logout_token"] = logout_token
-        logger.info("Verified Logout Token: {}".format(logout_token.to_dict()))
+        logger.info("Verified Logout Token: %s", logout_token.to_dict())
 
         return True
 
