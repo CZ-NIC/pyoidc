@@ -8,86 +8,52 @@ import uuid
 import warnings
 from functools import cmp_to_key
 from http.cookies import SimpleCookie
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
-from urllib.parse import parse_qs
-from urllib.parse import unquote
-from urllib.parse import urlencode
-from urllib.parse import urljoin
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import parse_qs, unquote, urlencode, urljoin, urlparse
 
-from jwkest import b64d
-from jwkest import jwe
-from jwkest import jws
-from jwkest import safe_str_cmp
-from jwkest.jwe import JWE
-from jwkest.jwe import JWEException
-from jwkest.jwe import NotSupportedAlgorithm
+from jwkest import b64d, jwe, jws, safe_str_cmp
+from jwkest.jwe import JWE, JWEException, NotSupportedAlgorithm
 from jwkest.jwk import SYMKey
-from jwkest.jws import NoSuitableSigningKeys
-from jwkest.jws import alg2keytype
+from jwkest.jws import NoSuitableSigningKeys, alg2keytype
 from requests import RequestException
 
 from oic import rndstr
-from oic.exception import FailedAuthentication
-from oic.exception import InvalidRequest
-from oic.exception import MessageException
-from oic.exception import NotForMe
-from oic.exception import ParameterError
-from oic.exception import UnSupported
-from oic.oauth2 import compact
-from oic.oauth2 import error_response
-from oic.oauth2 import redirect_authz_error
+from oic.exception import FailedAuthentication, InvalidRequest, MessageException, NotForMe, ParameterError, UnSupported
+from oic.oauth2 import compact, error_response, redirect_authz_error
 from oic.oauth2.base import PBase
-from oic.oauth2.exception import CapabilitiesMisMatch
-from oic.oauth2.exception import VerificationError
-from oic.oauth2.message import Message
-from oic.oauth2.message import by_schema
-from oic.oauth2.provider import DELIM
-from oic.oauth2.provider import STR
-from oic.oauth2.provider import Endpoint
+from oic.oauth2.exception import CapabilitiesMisMatch, VerificationError
+from oic.oauth2.message import Message, by_schema
+from oic.oauth2.provider import DELIM, STR, Endpoint
 from oic.oauth2.provider import Provider as AProvider
-from oic.oic import PREFERENCE2PROVIDER
-from oic.oic import PROVIDER_DEFAULT
-from oic.oic import Server
-from oic.oic import claims_match
-from oic.oic import scope2claims
-from oic.oic.message import BACK_CHANNEL_LOGOUT_EVENT
-from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import Claims
-from oic.oic.message import ClientRegistrationErrorResponse
-from oic.oic.message import IdToken
-from oic.oic.message import OIDCMessageFactory
-from oic.oic.message import OpenIDRequest
-from oic.oic.message import OpenIDSchema
+from oic.oic import PREFERENCE2PROVIDER, PROVIDER_DEFAULT, Server, claims_match, scope2claims
+from oic.oic.message import (
+    BACK_CHANNEL_LOGOUT_EVENT,
+    SCOPE2CLAIMS,
+    AccessTokenResponse,
+    AuthorizationResponse,
+    Claims,
+    ClientRegistrationErrorResponse,
+    IdToken,
+    OIDCMessageFactory,
+    OpenIDRequest,
+    OpenIDSchema,
+)
 from oic.utils import sort_sign_alg
-from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import Created
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import (
+    OAUTH2_NOCACHE_HEADERS,
+    BadRequest,
+    CookieDealer,
+    Created,
+    Response,
+    SeeOther,
+    Unauthorized,
+)
 from oic.utils.jwt import JWT
-from oic.utils.keyio import KEYS
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import dump_jwks
-from oic.utils.keyio import key_export
+from oic.utils.keyio import KEYS, KeyBundle, KeyJar, dump_jwks, key_export
 from oic.utils.sanitize import sanitize
-from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import ExpiredToken
-from oic.utils.sdb import WrongTokenType
-from oic.utils.sdb import session_get
+from oic.utils.sdb import AccessCodeUsed, ExpiredToken, WrongTokenType, session_get
 from oic.utils.session_backend import AuthnEvent
-from oic.utils.settings import OicProviderSettings
-from oic.utils.settings import PyoidcSettings
+from oic.utils.settings import OicProviderSettings, PyoidcSettings
 from oic.utils.template_render import render_template
 from oic.utils.time_util import utc_time_sans_frac
 

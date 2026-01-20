@@ -1,9 +1,6 @@
 # pylint: disable=missing-docstring,no-self-use
-from oic.oauth2.grant import Grant
-from oic.oauth2.grant import Token
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import ErrorResponse
+from oic.oauth2.grant import Grant, Token
+from oic.oauth2.message import AccessTokenResponse, AuthorizationResponse, ErrorResponse
 
 ATR = AccessTokenResponse(
     access_token="2YotnFZFEjr1zCsicMWpAA",

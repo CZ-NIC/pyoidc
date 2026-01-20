@@ -1,27 +1,17 @@
 import logging
 import warnings
-from typing import Any
-from typing import Dict
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from oic import rndstr
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import Message
-from oic.oic import REQUEST2ENDPOINT
-from oic.oic import RESPONSE2ERROR
-from oic.oic import Client
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS, SINGLE_OPTIONAL_STRING, SINGLE_REQUIRED_STRING, Message
+from oic.oic import REQUEST2ENDPOINT, RESPONSE2ERROR, Client
 from oic.oic import Server as OicServer
-from oic.oic.message import Claims
-from oic.oic.message import OpenIDSchema
-from oic.oic.provider import Endpoint
-from oic.oic.provider import Provider
+from oic.oic.message import Claims, OpenIDSchema
+from oic.oic.provider import Endpoint, Provider
 from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
-from oic.utils.settings import OicClientSettings
-from oic.utils.settings import OicProviderSettings
+from oic.utils.settings import OicClientSettings, OicProviderSettings
 
 __author__ = "rohe0002"
 

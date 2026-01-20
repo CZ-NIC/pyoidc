@@ -1,37 +1,38 @@
 import json
 from unittest import TestCase
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from jwkest.jwk import SYMKey
 
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import SINGLE_OPTIONAL_JSON
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationErrorResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import CCAccessTokenRequest
-from oic.oauth2.message import DecodeError
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import Message
-from oic.oauth2.message import MessageException
-from oic.oauth2.message import MessageFactory
-from oic.oauth2.message import MessageTuple
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import ParamDefinition
-from oic.oauth2.message import RefreshAccessTokenRequest
-from oic.oauth2.message import ROPCAccessTokenRequest
-from oic.oauth2.message import TokenErrorResponse
-from oic.oauth2.message import json_deserializer
-from oic.oauth2.message import json_serializer
-from oic.oauth2.message import sp_sep_list_deserializer
+from oic.oauth2.message import (
+    OPTIONAL_LIST_OF_STRINGS,
+    REQUIRED_LIST_OF_STRINGS,
+    SINGLE_OPTIONAL_INT,
+    SINGLE_OPTIONAL_JSON,
+    SINGLE_OPTIONAL_STRING,
+    SINGLE_REQUIRED_STRING,
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationErrorResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    CCAccessTokenRequest,
+    DecodeError,
+    ErrorResponse,
+    Message,
+    MessageException,
+    MessageFactory,
+    MessageTuple,
+    MissingRequiredAttribute,
+    ParamDefinition,
+    RefreshAccessTokenRequest,
+    ROPCAccessTokenRequest,
+    TokenErrorResponse,
+    json_deserializer,
+    json_serializer,
+    sp_sep_list_deserializer,
+)
 from oic.utils.keyio import build_keyjar
 
 __author__ = "rohe0002"

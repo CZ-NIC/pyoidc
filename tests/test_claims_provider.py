@@ -4,17 +4,17 @@ from urllib.parse import parse_qs
 import pytest
 from jwkest.jwk import SYMKey
 
-from oic.oic.claims_provider import ClaimsClient
-from oic.oic.claims_provider import ClaimsServer
-from oic.oic.claims_provider import UserClaimsRequest
-from oic.oic.claims_provider import UserClaimsResponse
-from oic.oic.claims_provider import UserInfoClaimsRequest
+from oic.oic.claims_provider import (
+    ClaimsClient,
+    ClaimsServer,
+    UserClaimsRequest,
+    UserClaimsResponse,
+    UserInfoClaimsRequest,
+)
 from oic.oic.message import OpenIDSchema
 from oic.utils.authn.client import verify_client
 from oic.utils.claims import ClaimsMode
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.keyio import KeyBundle, KeyJar, keybundle_from_local_file
 from oic.utils.userinfo import UserInfo
 
 __author__ = "rohe0002"

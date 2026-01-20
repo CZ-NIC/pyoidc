@@ -3,15 +3,13 @@ import json
 import logging
 import uuid
 from typing import Optional
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode
 
 import requests
 from defusedxml import ElementTree as ET
 
 from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import SeeOther, Unauthorized
 
 logger = logging.getLogger(__name__)
 

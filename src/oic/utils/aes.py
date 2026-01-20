@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 import sys
-from base64 import b64decode
-from base64 import b64encode
-from typing import Dict
-from typing import Union
-from typing import cast
+from base64 import b64decode, b64encode
+from typing import Dict, Union, cast
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES

@@ -5,29 +5,16 @@ import logging
 import os
 import sys
 import time
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlsplit
 
 import requests
 from Cryptodome.PublicKey import RSA
-from jwkest import as_bytes
-from jwkest import as_unicode
-from jwkest import b64e
-from jwkest import jwe
-from jwkest import jws
+from jwkest import as_bytes, as_unicode, b64e, jwe, jws
 from jwkest.ecc import NISTEllipticCurve
-from jwkest.jwk import ECKey
-from jwkest.jwk import JWKException
-from jwkest.jwk import RSAKey
-from jwkest.jwk import SYMKey
-from jwkest.jwk import rsa_load
+from jwkest.jwk import ECKey, JWKException, RSAKey, SYMKey, rsa_load
 
-from oic.exception import MessageException
-from oic.exception import PyoidcError
+from oic.exception import MessageException, PyoidcError
 
 __author__ = "rohe0002"
 

@@ -1,9 +1,7 @@
 from urllib.parse import parse_qs
 
-from oic.utils.authn.user import UsernamePasswordMako
-from oic.utils.authn.user import logger
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.authn.user import UsernamePasswordMako, logger
+from oic.utils.http_util import SeeOther, Unauthorized
 
 __author__ = "danielevertsson"
 

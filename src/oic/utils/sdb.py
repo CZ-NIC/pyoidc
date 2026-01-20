@@ -6,21 +6,15 @@ import logging
 import uuid
 import warnings
 from binascii import Error
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
-from cryptography.fernet import Fernet
-from cryptography.fernet import InvalidToken
+from cryptography.fernet import Fernet, InvalidToken
 
 from oic import rndstr
 from oic.exception import ImproperlyConfigured
 from oic.oauth2.message import AuthorizationRequest
 from oic.utils import tobytes
-from oic.utils.session_backend import AuthnEvent
-from oic.utils.session_backend import DictSessionBackend
-from oic.utils.session_backend import SessionBackend
+from oic.utils.session_backend import AuthnEvent, DictSessionBackend, SessionBackend
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"

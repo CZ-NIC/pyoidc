@@ -4,16 +4,11 @@ import logging
 from typing import Dict
 from urllib.parse import urlsplit
 
-from oic import oic
-from oic import rndstr
+from oic import oic, rndstr
 from oic.exception import MissingAttribute
-from oic.oauth2 import ErrorResponse
-from oic.oauth2 import ResponseError
-from oic.oauth2 import TokenError
+from oic.oauth2 import ErrorResponse, ResponseError, TokenError
 from oic.oauth2.message import ASConfigurationResponse
-from oic.oic import AuthorizationRequest
-from oic.oic import AuthorizationResponse
-from oic.oic import RegistrationResponse
+from oic.oic import AuthorizationRequest, AuthorizationResponse, RegistrationResponse
 from oic.oic.message import OpenIDSchema
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Redirect

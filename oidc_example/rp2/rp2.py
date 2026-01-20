@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
-
 import base64
 import hashlib
 import logging
 import uuid
+from urllib.parse import parse_qs, urlencode
 
 import requests
 from beaker.middleware import SessionMiddleware
@@ -13,10 +11,7 @@ from cherrypy import wsgiserver
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import ServiceError
+from oic.utils.http_util import NotFound, Response, SeeOther, ServiceError
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = "rp.log"
@@ -210,8 +205,8 @@ def application(environ, start_response):
 
 
 if __name__ == "__main__":
-    from oidc import OpenIDConnect
     import conf
+    from oidc import OpenIDConnect
 
     setup_server_env(conf)
 

@@ -1,6 +1,5 @@
 from functools import cmp_to_key
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 
 from oic.utils.http_util import extract_from_request
 

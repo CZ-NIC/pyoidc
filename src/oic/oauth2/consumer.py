@@ -5,15 +5,15 @@ import warnings
 from typing import Dict
 
 from oic import rndstr
-from oic.exception import AuthzError
-from oic.exception import PyoidcError
-from oic.oauth2 import Client
-from oic.oauth2 import Grant
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import Message
+from oic.exception import AuthzError, PyoidcError
+from oic.oauth2 import Client, Grant
+from oic.oauth2.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    Message,
+)
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
 from oic.utils.settings import OauthConsumerSettings

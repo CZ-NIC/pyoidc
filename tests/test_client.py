@@ -1,34 +1,30 @@
 import base64
 import os
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
 import pytest
-from jwkest import as_bytes
-from jwkest import b64e
-from jwkest.jwk import SYMKey
-from jwkest.jwk import rsa_load
+from jwkest import as_bytes, b64e
+from jwkest.jwk import SYMKey, rsa_load
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
 
 from oic.extension.provider import Provider
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import ResourceRequest
+from oic.oauth2.message import AccessTokenRequest, AccessTokenResponse, AuthorizationResponse, ResourceRequest
 from oic.oic import JWT_BEARER
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import BearerBody
-from oic.utils.authn.client import BearerHeader
-from oic.utils.authn.client import ClientSecretBasic
-from oic.utils.authn.client import ClientSecretJWT
-from oic.utils.authn.client import ClientSecretPost
-from oic.utils.authn.client import PrivateKeyJWT
-from oic.utils.authn.client import valid_client_info
-from oic.utils.authn.client import verify_client
+from oic.utils.authn.client import (
+    BearerBody,
+    BearerHeader,
+    ClientSecretBasic,
+    ClientSecretJWT,
+    ClientSecretPost,
+    PrivateKeyJWT,
+    valid_client_info,
+    verify_client,
+)
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.http_util import Response

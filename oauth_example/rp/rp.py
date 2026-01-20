@@ -3,17 +3,13 @@ import importlib
 import logging
 import sys
 import uuid
-from urllib.parse import parse_qs
-from urllib.parse import unquote
+from urllib.parse import parse_qs, unquote
 
 import cherrypy
 from beaker.middleware import SessionMiddleware
 
 from oic.oauth2.consumer import Consumer
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import get_or_post
+from oic.utils.http_util import NotFound, Response, SeeOther, get_or_post
 
 # ============================================================================
 # First define how logging is supposed to be done

@@ -4,15 +4,17 @@ from http.cookies import SimpleCookie
 import pytest
 
 from oic.exception import ImproperlyConfigured
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import InvalidCookieSign
-from oic.utils.http_util import Response
-from oic.utils.http_util import cookie_parts
-from oic.utils.http_util import cookie_signature
-from oic.utils.http_util import getpath
-from oic.utils.http_util import geturl
-from oic.utils.http_util import parse_cookie
-from oic.utils.http_util import verify_cookie_signature
+from oic.utils.http_util import (
+    CookieDealer,
+    InvalidCookieSign,
+    Response,
+    cookie_parts,
+    cookie_signature,
+    getpath,
+    geturl,
+    parse_cookie,
+    verify_cookie_signature,
+)
 
 __author__ = "roland"
 

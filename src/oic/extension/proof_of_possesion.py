@@ -2,21 +2,17 @@ import base64
 import json
 import time
 from typing import Dict
-from urllib.parse import parse_qs
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qs, parse_qsl
 
 from jwkest import jws
 from jwkest.jwk import keyrep
 from jwkest.jws import JWS
 
-from oic.extension.signed_http_req import SignedHttpRequest
-from oic.extension.signed_http_req import ValidationError
+from oic.extension.signed_http_req import SignedHttpRequest, ValidationError
 from oic.oauth2 import error_response
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AccessTokenRequest, AccessTokenResponse
 from oic.oic.provider import Provider
-from oic.utils.http_util import Response
-from oic.utils.http_util import get_post
+from oic.utils.http_util import Response, get_post
 
 __author__ = "regu0004"
 

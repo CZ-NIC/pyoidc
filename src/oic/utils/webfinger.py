@@ -1,10 +1,8 @@
 import json
 import logging
 import re
-from typing import Any
-from typing import Dict
-from urllib.parse import urlencode
-from urllib.parse import urlparse
+from typing import Any, Dict
+from urllib.parse import urlencode, urlparse
 
 import requests
 

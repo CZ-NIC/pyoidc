@@ -1,9 +1,7 @@
 """Client management databases."""
 
-from abc import ABCMeta
-from abc import abstractmethod
-from urllib.parse import quote
-from urllib.parse import urljoin
+from abc import ABCMeta, abstractmethod
+from urllib.parse import quote, urljoin
 
 import requests
 

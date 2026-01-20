@@ -1,22 +1,23 @@
 import json
 import logging
 import time
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from testfixtures import LogCapture
 
 from oic.exception import UnSupported
 from oic.oauth2.consumer import Consumer
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import CCAccessTokenRequest
-from oic.oauth2.message import Message
-from oic.oauth2.message import ROPCAccessTokenRequest
-from oic.oauth2.message import TokenErrorResponse
+from oic.oauth2.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    CCAccessTokenRequest,
+    Message,
+    ROPCAccessTokenRequest,
+    TokenErrorResponse,
+)
 from oic.oauth2.provider import Provider
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client

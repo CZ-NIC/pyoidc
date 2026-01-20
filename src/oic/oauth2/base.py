@@ -2,10 +2,8 @@ import copy
 import logging
 import warnings
 from http import cookiejar as cookielib
-from http.cookies import CookieError
-from http.cookies import SimpleCookie
-from typing import Optional
-from typing import cast
+from http.cookies import CookieError, SimpleCookie
+from typing import Optional, cast
 
 import requests
 

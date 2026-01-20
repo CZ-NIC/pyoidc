@@ -1,8 +1,7 @@
 import json
 import uuid
 
-from jwkest import jwe
-from jwkest import jws
+from jwkest import jwe, jws
 from jwkest.jwe import JWE
 from jwkest.jws import NoSuitableSigningKeys
 

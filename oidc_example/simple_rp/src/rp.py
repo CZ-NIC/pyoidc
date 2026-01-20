@@ -6,8 +6,8 @@ import yaml
 
 from oic import rndstr
 from oic.oic import Client
-from oic.utils.keyio import build_keyjar
 from oic.oic.message import AuthorizationResponse
+from oic.utils.keyio import build_keyjar
 
 __author__ = "regu0004"
 

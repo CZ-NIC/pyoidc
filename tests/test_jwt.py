@@ -1,8 +1,7 @@
 import os
 
 from oic.utils.jwt import JWT
-from oic.utils.keyio import build_keyjar
-from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.keyio import build_keyjar, keybundle_from_local_file
 
 __author__ = "roland"
 

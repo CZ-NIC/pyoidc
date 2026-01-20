@@ -1,35 +1,28 @@
 import json
-from urllib.parse import parse_qs
-from urllib.parse import quote
-from urllib.parse import urlencode
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import pytest
 import responses
 
-from oic.oauth2 import Client
-from oic.oauth2 import Grant
-from oic.oauth2 import Server
-from oic.oauth2 import Token
-from oic.oauth2 import TokenErrorResponse
-from oic.oauth2.exception import GrantError
-from oic.oauth2.exception import MissingEndpoint
-from oic.oauth2.exception import ResponseError
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationErrorResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import CCAccessTokenRequest
-from oic.oauth2.message import DecodeError
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import ExtensionTokenRequest
-from oic.oauth2.message import FormatError
-from oic.oauth2.message import GrantExpired
-from oic.oauth2.message import MessageTuple
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import OauthMessageFactory
-from oic.oauth2.message import RefreshAccessTokenRequest
+from oic.oauth2 import Client, Grant, Server, Token, TokenErrorResponse
+from oic.oauth2.exception import GrantError, MissingEndpoint, ResponseError
+from oic.oauth2.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationErrorResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    CCAccessTokenRequest,
+    DecodeError,
+    ErrorResponse,
+    ExtensionTokenRequest,
+    FormatError,
+    GrantExpired,
+    MessageTuple,
+    MissingRequiredAttribute,
+    OauthMessageFactory,
+    RefreshAccessTokenRequest,
+)
 from oic.utils import time_util
 from oic.utils.keyio import KeyBundle
 

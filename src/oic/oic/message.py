@@ -4,39 +4,35 @@ import logging
 import sys
 import time
 import warnings
-from typing import Dict
-from typing import List
-from urllib.parse import urlencode
-from urllib.parse import urlparse
+from typing import Dict, List
+from urllib.parse import urlencode, urlparse
 
 from jwkest import jws
 from jwkest.jwe import JWEException
 from jwkest.jwe import factory as JWE_factory
 from jwkest.jwt import JWT
 
-from oic.exception import InvalidRequest
-from oic.exception import IssuerMismatch
-from oic.exception import MessageException
-from oic.exception import NotForMe
-from oic.exception import PyoidcError
+from oic.exception import InvalidRequest, IssuerMismatch, MessageException, NotForMe, PyoidcError
 from oic.oauth2 import message
 from oic.oauth2.exception import VerificationError
-from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import SINGLE_OPTIONAL_JSON
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import Message
-from oic.oauth2.message import MessageFactory
-from oic.oauth2.message import MessageTuple
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import MissingRequiredValue
-from oic.oauth2.message import NotAllowedValue
-from oic.oauth2.message import ParamDefinition
-from oic.oauth2.message import SchemeError
+from oic.oauth2.message import (
+    OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+    OPTIONAL_LIST_OF_STRINGS,
+    REQUIRED_LIST_OF_SP_SEP_STRINGS,
+    REQUIRED_LIST_OF_STRINGS,
+    SINGLE_OPTIONAL_INT,
+    SINGLE_OPTIONAL_JSON,
+    SINGLE_OPTIONAL_STRING,
+    SINGLE_REQUIRED_STRING,
+    Message,
+    MessageFactory,
+    MessageTuple,
+    MissingRequiredAttribute,
+    MissingRequiredValue,
+    NotAllowedValue,
+    ParamDefinition,
+    SchemeError,
+)
 from oic.utils import time_util
 from oic.utils.time_util import utc_time_sans_frac
 

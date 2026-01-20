@@ -1,9 +1,7 @@
 from urllib.parse import urlparse
 
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oic.message import SINGLE_REQUIRED_INT
-from oic.oic.message import JasonWebToken
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS, SINGLE_REQUIRED_STRING
+from oic.oic.message import SINGLE_REQUIRED_INT, JasonWebToken
 from oic.utils.keyio import KeyBundle
 
 __author__ = "roland"

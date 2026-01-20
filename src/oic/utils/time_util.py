@@ -17,8 +17,7 @@ import calendar
 import re
 import sys
 import time
-from datetime import datetime, timezone
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

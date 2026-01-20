@@ -4,12 +4,9 @@ import warnings
 
 from jwkest import b64e
 
-from oic import oauth2
-from oic import unreserved
-from oic.exception import AuthzError
-from oic.exception import PyoidcError
-from oic.extension.message import ClientRegistrationError
-from oic.extension.message import ExtensionMessageFactory
+from oic import oauth2, unreserved
+from oic.exception import AuthzError, PyoidcError
+from oic.extension.message import ClientRegistrationError, ExtensionMessageFactory
 from oic.oauth2.exception import Unsupported
 from oic.oauth2.message import ErrorResponse
 from oic.utils.http_util import SUCCESSFUL

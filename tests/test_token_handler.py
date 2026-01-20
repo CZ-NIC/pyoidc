@@ -1,9 +1,7 @@
 import pytest
 
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.token_handler import NotAllowed
-from oic.utils.token_handler import TokenHandler
+from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.token_handler import NotAllowed, TokenHandler
 
 
 def _eq(l1, l2):

@@ -2,12 +2,8 @@ import logging
 import sys
 from http import cookiejar as http_cookiejar
 from http.cookiejar import http2time  # type: ignore
-from typing import Any
-from typing import Dict
-from typing import Optional
-from urllib.parse import parse_qs
-from urllib.parse import urlsplit
-from urllib.parse import urlunsplit
+from typing import Any, Dict, Optional
+from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from oic.exception import UnSupported
 from oic.oauth2.exception import TimeFormatError

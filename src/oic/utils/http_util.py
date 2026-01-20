@@ -6,18 +6,15 @@ import os
 import time
 from http import client
 from http.cookies import SimpleCookie
-from typing import List
-from typing import Tuple
+from typing import List, Tuple
 from urllib.parse import quote
 
 from jwkest import as_unicode
 
 from oic import rndstr
-from oic.exception import ImproperlyConfigured
-from oic.exception import UnsupportedMethod
+from oic.exception import ImproperlyConfigured, UnsupportedMethod
 from oic.utils import time_util
-from oic.utils.aes import AEAD
-from oic.utils.aes import AESError
+from oic.utils.aes import AEAD, AESError
 
 __author__ = "rohe0002"
 

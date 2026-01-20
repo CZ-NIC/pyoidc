@@ -14,20 +14,14 @@ import cherrypy
 from authn_setup import authn_setup
 from requests.packages import urllib3
 
-from oic.extension.provider import IntrospectionEndpoint
-from oic.extension.provider import Provider
-from oic.extension.provider import RevocationEndpoint
+from oic.extension.provider import IntrospectionEndpoint, Provider, RevocationEndpoint
 from oic.extension.token import JWTToken
-from oic.oauth2.provider import AuthorizationEndpoint
-from oic.oauth2.provider import TokenEndpoint
+from oic.oauth2.provider import AuthorizationEndpoint, TokenEndpoint
 from oic.oic.provider import RegistrationEndpoint
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import Implicit
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import ServiceError
-from oic.utils.http_util import wsgi_wrapper
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import keyjar_init
+from oic.utils.http_util import NotFound, ServiceError, wsgi_wrapper
+from oic.utils.keyio import KeyBundle, keyjar_init
 
 urllib3.disable_warnings()
 
@@ -192,8 +186,7 @@ if __name__ == "__main__":
     # This is where session information is stored
     # This serve is stateful.
     from oic import rndstr
-    from oic.utils.sdb import DefaultToken
-    from oic.utils.sdb import SessionDB
+    from oic.utils.sdb import DefaultToken, SessionDB
 
     # Parse the command arguments
     parser = argparse.ArgumentParser()

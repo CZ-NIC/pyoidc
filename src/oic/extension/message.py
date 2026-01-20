@@ -4,20 +4,20 @@ from urllib.parse import urlparse
 
 import requests
 
-from oic.exception import InvalidRedirectUri
-from oic.exception import MissingPage
-from oic.exception import RegistrationError
-from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import Message
-from oic.oauth2.message import MessageTuple
-from oic.oauth2.message import OauthMessageFactory
-from oic.oauth2.message import ParamDefinition
+from oic.exception import InvalidRedirectUri, MissingPage, RegistrationError
+from oic.oauth2.message import (
+    OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+    OPTIONAL_LIST_OF_STRINGS,
+    REQUIRED_LIST_OF_STRINGS,
+    SINGLE_OPTIONAL_INT,
+    SINGLE_OPTIONAL_STRING,
+    SINGLE_REQUIRED_STRING,
+    ErrorResponse,
+    Message,
+    MessageTuple,
+    OauthMessageFactory,
+    ParamDefinition,
+)
 from oic.oic.message import JasonWebToken
 from oic.utils.http_util import SUCCESSFUL
 from oic.utils.jwt import JWT

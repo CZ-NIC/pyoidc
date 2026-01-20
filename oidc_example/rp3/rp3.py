@@ -1,22 +1,16 @@
 #!/usr/bin/env python
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
-from urllib.parse import urlparse
-
 import argparse
 import importlib
 import json
 import logging
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 from requests import ConnectionError
 from requests.packages import urllib3
 
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import get_post
+from oic.utils.http_util import NotFound, Response, SeeOther, get_post
 from oic.utils.keyio import build_keyjar
 from oic.utils.rp.oauth2 import OAuthClients
 
@@ -431,10 +425,10 @@ class Application(object):
 
 
 if __name__ == "__main__":
-    from oic.utils.rp import OIDCClients
-    from oic.utils.rp import OIDCError
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
+
+    from oic.utils.rp import OIDCClients, OIDCError
 
     parser = argparse.ArgumentParser()
     parser.add_argument(dest="config")

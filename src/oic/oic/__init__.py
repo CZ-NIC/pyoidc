@@ -4,77 +4,59 @@ import os
 import warnings
 from base64 import b64encode
 from json import JSONDecodeError
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Type
-from typing import Union
-from typing import cast
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from urllib.parse import parse_qs, urlparse
 
-from jwkest import BadSyntax
-from jwkest import as_bytes
-from jwkest import jwe
-from jwkest import jws
-from jwkest import jwt
+from jwkest import BadSyntax, as_bytes, jwe, jws, jwt
 from jwkest.jwe import JWE
 from requests import ConnectionError
 
-from oic import oauth2
-from oic import rndstr
-from oic.exception import AccessDenied
-from oic.exception import AuthnToOld
-from oic.exception import AuthzError
-from oic.exception import CommunicationError
-from oic.exception import MissingParameter
-from oic.exception import ParameterError
-from oic.exception import PyoidcError
-from oic.exception import RegistrationError
-from oic.exception import RequestError
-from oic.exception import SubMismatch
-from oic.oauth2 import HTTP_ARGS
-from oic.oauth2 import authz_error
+from oic import oauth2, rndstr
+from oic.exception import (
+    AccessDenied,
+    AuthnToOld,
+    AuthzError,
+    CommunicationError,
+    MissingParameter,
+    ParameterError,
+    PyoidcError,
+    RegistrationError,
+    RequestError,
+    SubMismatch,
+)
+from oic.oauth2 import HTTP_ARGS, authz_error
 from oic.oauth2.consumer import ConfigurationError
-from oic.oauth2.exception import MissingRequiredAttribute
-from oic.oauth2.exception import OtherError
-from oic.oauth2.exception import ParseError
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import Message
-from oic.oauth2.message import MessageFactory
-from oic.oauth2.message import WrongSigningAlgorithm
+from oic.oauth2.exception import MissingRequiredAttribute, OtherError, ParseError
+from oic.oauth2.message import ErrorResponse, Message, MessageFactory, WrongSigningAlgorithm
 from oic.oauth2.util import get_or_post
-from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationErrorResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import Claims
-from oic.oic.message import ClaimsRequest
-from oic.oic.message import ClientRegistrationErrorResponse
-from oic.oic.message import EndSessionRequest
-from oic.oic.message import IdToken
-from oic.oic.message import JasonWebToken
-from oic.oic.message import OIDCMessageFactory
-from oic.oic.message import OpenIDRequest
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import RefreshSessionRequest
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import TokenErrorResponse
-from oic.oic.message import UserInfoErrorResponse
-from oic.oic.message import UserInfoRequest
+from oic.oic.message import (
+    SCOPE2CLAIMS,
+    AccessTokenResponse,
+    AuthorizationErrorResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    Claims,
+    ClaimsRequest,
+    ClientRegistrationErrorResponse,
+    EndSessionRequest,
+    IdToken,
+    JasonWebToken,
+    OIDCMessageFactory,
+    OpenIDRequest,
+    OpenIDSchema,
+    RefreshSessionRequest,
+    RegistrationRequest,
+    RegistrationResponse,
+    TokenErrorResponse,
+    UserInfoErrorResponse,
+    UserInfoRequest,
+)
 from oic.utils import time_util
 from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
-from oic.utils.settings import OicClientSettings
-from oic.utils.settings import OicServerSettings
-from oic.utils.settings import PyoidcSettings
-from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.webfinger import WebFinger
+from oic.utils.settings import OicClientSettings, OicServerSettings, PyoidcSettings
+from oic.utils.webfinger import OIC_ISSUER, WebFinger
 
 __author__ = "rohe0002"
 

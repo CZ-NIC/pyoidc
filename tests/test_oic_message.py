@@ -1,8 +1,7 @@
 import json
 import os
 import sys
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode
 
 import pytest
 from freezegun import freeze_time
@@ -11,39 +10,37 @@ from jwkest.jwk import SYMKey
 from jwkest.jws import left_hash
 
 from oic import rndstr
-from oic.exception import MessageException
-from oic.exception import NotForMe
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import MissingRequiredValue
-from oic.oauth2.message import WrongSigningAlgorithm
-from oic.oic.message import BACK_CHANNEL_LOGOUT_EVENT
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AddressClaim
-from oic.oic.message import AtHashError
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import BackChannelLogoutRequest
-from oic.oic.message import CHashError
-from oic.oic.message import Claims
-from oic.oic.message import EXPError
-from oic.oic.message import FrontChannelLogoutRequest
-from oic.oic.message import IATError
-from oic.oic.message import IdToken
-from oic.oic.message import LogoutToken
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import VerificationError
-from oic.oic.message import address_deser
-from oic.oic.message import claims_deser
-from oic.oic.message import claims_ser
-from oic.oic.message import msg_ser
-from oic.oic.message import verify_id_token
+from oic.exception import MessageException, NotForMe
+from oic.oauth2.message import MissingRequiredAttribute, MissingRequiredValue, WrongSigningAlgorithm
+from oic.oic.message import (
+    BACK_CHANNEL_LOGOUT_EVENT,
+    AccessTokenResponse,
+    AddressClaim,
+    AtHashError,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    BackChannelLogoutRequest,
+    CHashError,
+    Claims,
+    EXPError,
+    FrontChannelLogoutRequest,
+    IATError,
+    IdToken,
+    LogoutToken,
+    OpenIDSchema,
+    ProviderConfigurationResponse,
+    RegistrationRequest,
+    RegistrationResponse,
+    VerificationError,
+    address_deser,
+    claims_deser,
+    claims_ser,
+    msg_ser,
+    verify_id_token,
+)
 from oic.utils import time_util
 from oic.utils.jwt import JWT
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
+from oic.utils.keyio import KeyBundle, KeyJar
 from oic.utils.time_util import utc_time_sans_frac
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))

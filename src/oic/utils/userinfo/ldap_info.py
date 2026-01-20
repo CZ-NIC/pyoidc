@@ -4,11 +4,9 @@ except ImportError:
     raise ImportError("This module can be used only with pyldap installed.")
 
 import logging
-from typing import Dict
-from typing import List
+from typing import Dict, List
 
-from ldap import LDAPError
-from ldap import LDAPObject
+from ldap import LDAPError, LDAPObject
 
 from oic.utils.sanitize import sanitize
 from oic.utils.userinfo import UserInfo

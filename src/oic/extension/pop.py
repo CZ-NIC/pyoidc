@@ -1,12 +1,10 @@
 import json
 from typing import Dict
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from Cryptodome.PublicKey import RSA
 from jwkest import b64e
-from jwkest.jwk import RSAKey
-from jwkest.jwk import load_jwks
+from jwkest.jwk import RSAKey, load_jwks
 
 from oic.extension.message import TokenIntrospectionResponse
 from oic.extension.signed_http_req import SignedHttpRequest

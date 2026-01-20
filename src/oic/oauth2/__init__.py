@@ -1,64 +1,51 @@
 import logging
 import warnings
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Type
-from typing import Union
-from typing import cast
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
 from urllib.parse import urlparse
 
 import requests
 from jwkest import b64e
 
-from oic import CC_METHOD
-from oic import OIDCONF_PATTERN
-from oic import unreserved
+from oic import CC_METHOD, OIDCONF_PATTERN, unreserved
 from oic.exception import CommunicationError
 from oic.oauth2.base import PBase
-from oic.oauth2.exception import GrantError
-from oic.oauth2.exception import HttpError
-from oic.oauth2.exception import MissingEndpoint
-from oic.oauth2.exception import ParseError
-from oic.oauth2.exception import ResponseError
-from oic.oauth2.exception import TokenError
-from oic.oauth2.exception import Unsupported
-from oic.oauth2.grant import Grant
-from oic.oauth2.grant import Token
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import ASConfigurationResponse
-from oic.oauth2.message import AuthorizationErrorResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import CCAccessTokenRequest
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import ExtensionTokenRequest
-from oic.oauth2.message import GrantExpired
-from oic.oauth2.message import Message
-from oic.oauth2.message import MessageFactory
-from oic.oauth2.message import NoneResponse
-from oic.oauth2.message import OauthMessageFactory
-from oic.oauth2.message import PyoidcError
-from oic.oauth2.message import RefreshAccessTokenRequest
-from oic.oauth2.message import ResourceRequest
-from oic.oauth2.message import ROPCAccessTokenRequest
-from oic.oauth2.message import TokenErrorResponse
-from oic.oauth2.message import sanitize
-from oic.oauth2.util import ENCODINGS
-from oic.oauth2.util import get_or_post
-from oic.oauth2.util import verify_header
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
+from oic.oauth2.exception import (
+    GrantError,
+    HttpError,
+    MissingEndpoint,
+    ParseError,
+    ResponseError,
+    TokenError,
+    Unsupported,
+)
+from oic.oauth2.grant import Grant, Token
+from oic.oauth2.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    ASConfigurationResponse,
+    AuthorizationErrorResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    CCAccessTokenRequest,
+    ErrorResponse,
+    ExtensionTokenRequest,
+    GrantExpired,
+    Message,
+    MessageFactory,
+    NoneResponse,
+    OauthMessageFactory,
+    PyoidcError,
+    RefreshAccessTokenRequest,
+    ResourceRequest,
+    ROPCAccessTokenRequest,
+    TokenErrorResponse,
+    sanitize,
+)
+from oic.oauth2.util import ENCODINGS, get_or_post, verify_header
+from oic.utils.http_util import BadRequest, Response, SeeOther
 from oic.utils.keyio import KeyJar
-from oic.utils.sdb import SessionBackend
-from oic.utils.sdb import session_update
-from oic.utils.settings import OauthClientSettings
-from oic.utils.settings import OauthServerSettings
-from oic.utils.settings import PyoidcSettings
+from oic.utils.sdb import SessionBackend, session_update
+from oic.utils.settings import OauthClientSettings, OauthServerSettings, PyoidcSettings
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"

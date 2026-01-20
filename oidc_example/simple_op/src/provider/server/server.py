@@ -4,8 +4,7 @@ import errno
 import json
 import mimetypes
 import os
-from functools import partial
-from functools import wraps
+from functools import partial, wraps
 from urllib import parse as urlparse
 
 import cherrypy
@@ -15,29 +14,25 @@ from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 from jinja2 import select_autoescape
 from jinja2.environment import Environment
 from jinja2.loaders import FileSystemLoader
-from provider.authn import make_cls_from_name
 
 from oic import rndstr
-from oic.oic.provider import AuthorizationEndpoint
-from oic.oic.provider import EndSessionEndpoint
-from oic.oic.provider import Provider
-from oic.oic.provider import RegistrationEndpoint
-from oic.oic.provider import TokenEndpoint
-from oic.oic.provider import UserinfoEndpoint
+from oic.oic.provider import (
+    AuthorizationEndpoint,
+    EndSessionEndpoint,
+    Provider,
+    RegistrationEndpoint,
+    TokenEndpoint,
+    UserinfoEndpoint,
+)
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import get_or_post
-from oic.utils.http_util import get_post
+from oic.utils.http_util import BadRequest, NotFound, Response, SeeOther, get_or_post, get_post
 from oic.utils.keyio import keyjar_init
 from oic.utils.sdb import create_session_db
 from oic.utils.userinfo import UserInfo
-from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.webfinger import WebFinger
+from oic.utils.webfinger import OIC_ISSUER, WebFinger
+from provider.authn import make_cls_from_name
 
 try:
     from cherrypy.wsgiserver.wsgiserver3 import WSGIPathInfoDispatcher

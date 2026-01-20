@@ -1,13 +1,7 @@
 import json
 import time
-from abc import ABCMeta
-from abc import abstractmethod
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
-from typing import cast
+from abc import ABCMeta, abstractmethod
+from typing import Any, Dict, List, Optional, Union, cast
 
 from oic.utils.time_util import time_sans_frac
 

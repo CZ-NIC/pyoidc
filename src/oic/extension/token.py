@@ -2,9 +2,7 @@ import json
 import uuid
 from typing import Dict
 
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import Message
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS, SINGLE_REQUIRED_STRING, Message
 from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.utils.jwt import JWT
 from oic.utils.sdb import Token

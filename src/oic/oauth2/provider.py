@@ -6,60 +6,53 @@ import sys
 import traceback
 import warnings
 from functools import cmp_to_key
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
-from urllib.parse import parse_qs
-from urllib.parse import unquote
-from urllib.parse import urljoin
-from urllib.parse import urlparse
+from typing import Dict, List, Optional, Union
+from urllib.parse import parse_qs, unquote, urljoin, urlparse
 
 from jwkest import jws
 
 from oic import rndstr
-from oic.exception import AuthzError
-from oic.exception import FailedAuthentication
-from oic.exception import InvalidRequest
-from oic.exception import MissingParameter
-from oic.exception import ParameterError
-from oic.exception import RedirectURIError
-from oic.exception import UnknownClient
-from oic.exception import UnSupported
-from oic.exception import URIError
-from oic.oauth2 import ErrorResponse
-from oic.oauth2 import Server
-from oic.oauth2 import error_response
-from oic.oauth2 import none_response
-from oic.oauth2 import redirect_authz_error
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import Message
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import MissingRequiredValue
-from oic.oauth2.message import OauthMessageFactory
-from oic.oauth2.message import TokenErrorResponse
-from oic.oauth2.message import add_non_standard
-from oic.oauth2.message import by_schema
+from oic.exception import (
+    AuthzError,
+    FailedAuthentication,
+    InvalidRequest,
+    MissingParameter,
+    ParameterError,
+    RedirectURIError,
+    UnknownClient,
+    UnSupported,
+    URIError,
+)
+from oic.oauth2 import ErrorResponse, Server, error_response, none_response, redirect_authz_error
+from oic.oauth2.message import (
+    AccessTokenResponse,
+    AuthorizationResponse,
+    Message,
+    MissingRequiredAttribute,
+    MissingRequiredValue,
+    OauthMessageFactory,
+    TokenErrorResponse,
+    add_non_standard,
+    by_schema,
+)
 from oic.utils import sort_sign_alg
 from oic.utils.authn.client import AuthnFailure
-from oic.utils.authn.user import NoSuchAuthentication
-from oic.utils.authn.user import TamperAllert
-from oic.utils.authn.user import ToOld
+from oic.utils.authn.user import NoSuchAuthentication, TamperAllert, ToOld
 from oic.utils.clientdb import BaseClientDatabase
-from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
-from oic.utils.http_util import make_cookie
+from oic.utils.http_util import (
+    OAUTH2_NOCACHE_HEADERS,
+    BadRequest,
+    CookieDealer,
+    Response,
+    SeeOther,
+    Unauthorized,
+    make_cookie,
+)
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
 from oic.utils.sdb import AccessCodeUsed
 from oic.utils.session_backend import AuthnEvent
-from oic.utils.settings import OauthProviderSettings
-from oic.utils.settings import PyoidcSettings
+from oic.utils.settings import OauthProviderSettings, PyoidcSettings
 
 __author__ = "rohe0002"
 

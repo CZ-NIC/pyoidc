@@ -2,11 +2,9 @@ import json
 
 from Cryptodome.PublicKey import RSA
 from jwkest.jwe import JWE
-from jwkest.jwk import KEYS
-from jwkest.jwk import RSAKey
+from jwkest.jwk import KEYS, RSAKey
 
-from oic.extension.popjwt import PJWT
-from oic.extension.popjwt import PopJWT
+from oic.extension.popjwt import PJWT, PopJWT
 
 __author__ = "roland"
 

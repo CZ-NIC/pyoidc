@@ -13,9 +13,7 @@ The settings make use of `pydantic-settings <https://docs.pydantic.dev/usage/set
 It is possible to instance them directly or use environment values to fill the settings.
 """
 
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Optional, Tuple, Union
 
 import requests
 from pydantic_settings import BaseSettings

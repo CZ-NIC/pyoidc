@@ -2,23 +2,14 @@ import base64
 import hmac
 import logging
 import time
-from urllib.parse import parse_qs
-from urllib.parse import unquote_plus
-from urllib.parse import urlencode
-from urllib.parse import urlsplit
-from urllib.parse import urlunsplit
+from urllib.parse import parse_qs, unquote_plus, urlencode, urlsplit, urlunsplit
 
 from jwkest import as_unicode
 
-from oic.exception import ImproperlyConfigured
-from oic.exception import PyoidcError
+from oic.exception import ImproperlyConfigured, PyoidcError
 from oic.oauth2 import compact
 from oic.utils import aes
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import InvalidCookieSign
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import CookieDealer, InvalidCookieSign, Response, SeeOther, Unauthorized
 from oic.utils.sanitize import sanitize
 
 __author__ = "rolandh"

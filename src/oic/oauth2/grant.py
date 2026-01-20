@@ -1,9 +1,7 @@
 import time
-from typing import List
-from typing import Optional
+from typing import List, Optional
 
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AccessTokenResponse, AuthorizationResponse
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "roland"

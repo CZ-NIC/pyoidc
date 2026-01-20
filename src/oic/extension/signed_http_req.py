@@ -2,8 +2,7 @@ import hashlib
 import json
 from base64 import urlsafe_b64encode
 
-from jwkest import JWKESTException
-from jwkest import jws
+from jwkest import JWKESTException, jws
 from jwkest.jws import JWS
 
 

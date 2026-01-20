@@ -8,11 +8,7 @@ from jwkest.jwk import SYMKey
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
 
-from oic.extension.signed_http_req import SignedHttpRequest
-from oic.extension.signed_http_req import ValidationError
-from oic.extension.signed_http_req import get_hash_size
-from oic.extension.signed_http_req import hash_value
-from oic.extension.signed_http_req import serialize_dict
+from oic.extension.signed_http_req import SignedHttpRequest, ValidationError, get_hash_size, hash_value, serialize_dict
 
 ALG = "HS256"
 SIGN_KEY = SYMKey(key="a_key", alg=ALG)

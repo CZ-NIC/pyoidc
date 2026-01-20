@@ -2,15 +2,13 @@
 
 import json
 from operator import itemgetter
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 
 import pytest
 import responses
 
 from oic.oauth2.exception import NoClientInfoReceivedError
-from oic.utils.clientdb import BaseClientDatabase
-from oic.utils.clientdb import MDQClient
+from oic.utils.clientdb import BaseClientDatabase, MDQClient
 
 
 class TestBaseClientDatabase(object):

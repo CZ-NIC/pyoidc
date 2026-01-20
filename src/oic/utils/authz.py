@@ -1,7 +1,6 @@
 import logging
 import time
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 
 from oic.utils.authn.user import ToOld
 from oic.utils.http_util import CookieDealer

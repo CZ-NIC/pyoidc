@@ -1,8 +1,7 @@
 import sys
 
 from oic.oauth2 import PBase
-from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.webfinger import WebFinger
+from oic.utils.webfinger import OIC_ISSUER, WebFinger
 
 __author__ = "roland"
 

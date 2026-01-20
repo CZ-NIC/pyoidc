@@ -1,4 +1,5 @@
 import importlib
+
 from oic.utils.authn.user import UserAuthnMethod
 
 __author__ = "regu0004"

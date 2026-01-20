@@ -2,10 +2,7 @@ import os
 
 import pytest
 
-from oic.utils.aes import AEAD
-from oic.utils.aes import AESError
-from oic.utils.aes import decrypt
-from oic.utils.aes import encrypt
+from oic.utils.aes import AEAD, AESError, decrypt, encrypt
 
 
 def test_encrypt_decrypt():

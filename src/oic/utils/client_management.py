@@ -6,10 +6,8 @@ import os
 import shelve  # nosec
 import sys
 from builtins import input
-from typing import Any
-from typing import List
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from typing import Any, List
+from urllib.parse import parse_qs, urlparse
 
 from oic import rndstr
 from oic.oic.provider import secret

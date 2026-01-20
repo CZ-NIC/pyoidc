@@ -5,8 +5,7 @@ import socket
 import pytest
 from mako.lookup import TemplateLookup
 
-from oic.utils.authn.authn_context import PASSWORD
-from oic.utils.authn.authn_context import AuthnBroker
+from oic.utils.authn.authn_context import PASSWORD, AuthnBroker
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authn.user_cas import CasAuthnMethod
 

@@ -3,11 +3,8 @@ import os
 import re
 from http.cookies import SimpleCookie
 from time import time
-from typing import Any
-from typing import Dict
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
-from urllib.parse import urlparse
+from typing import Any, Dict
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
 import requests
@@ -18,21 +15,15 @@ from oic.exception import ParameterError
 from oic.oauth2.message import ErrorResponse
 from oic.oic import DEF_SIGN_ALG
 from oic.oic.consumer import Consumer
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import EndSessionRequest
+from oic.oic.message import AuthorizationResponse, EndSessionRequest
 from oic.oic.provider import Provider
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import keybundle_from_local_file
-from oic.utils.sdb import DictSessionBackend
-from oic.utils.sdb import session_get
+from oic.utils.http_util import CookieDealer, Response, SeeOther
+from oic.utils.keyio import KeyBundle, KeyJar, keybundle_from_local_file
+from oic.utils.sdb import DictSessionBackend, session_get
 from oic.utils.userinfo import UserInfo
 
 __author__ = "roland hedberg"

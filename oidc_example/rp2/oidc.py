@@ -4,13 +4,10 @@ import traceback
 
 import requests
 
-from oic import oic
-from oic import rndstr
+from oic import oic, rndstr
 from oic.oauth2 import PBase
 from oic.oauth2.message import ErrorResponse
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AccessTokenResponse, AuthorizationRequest, AuthorizationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Response
 from oic.utils.webfinger import WebFinger

@@ -5,32 +5,18 @@ import warnings
 from collections import namedtuple
 from collections.abc import MutableMapping
 from json import JSONDecodeError
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Tuple
-from typing import Union
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from urllib.parse import parse_qs, urlencode
 
-from jwkest import as_unicode
-from jwkest import b64d
-from jwkest import jwe
-from jwkest import jws
+from jwkest import as_unicode, b64d, jwe, jws
 from jwkest.jwe import JWE
 from jwkest.jwk import keyitems2keyreps
-from jwkest.jws import JWS
-from jwkest.jws import NoSuitableSigningKeys
-from jwkest.jws import alg2keytype
+from jwkest.jws import JWS, NoSuitableSigningKeys, alg2keytype
 from jwkest.jwt import JWT
 
-from oic.exception import MessageException
-from oic.exception import PyoidcError
+from oic.exception import MessageException, PyoidcError
 from oic.oauth2.exception import VerificationError
-from oic.utils.keyio import key_summary
-from oic.utils.keyio import update_keyjar
+from oic.utils.keyio import key_summary, update_keyjar
 from oic.utils.sanitize import sanitize
 
 logger = logging.getLogger(__name__)

@@ -8,27 +8,17 @@ import base64
 import importlib
 import json
 import logging
-from typing import Dict
-from typing import List
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
+from typing import Dict, List
+from urllib.parse import parse_qs, urlencode
 
-from saml2 import BINDING_HTTP_ARTIFACT
-from saml2 import BINDING_HTTP_POST
-from saml2 import BINDING_HTTP_REDIRECT
+from saml2 import BINDING_HTTP_ARTIFACT, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
-from saml2.s_utils import UnknownPrincipal
-from saml2.s_utils import UnsupportedBinding
-from saml2.s_utils import rndstr
-from saml2.s_utils import sid
+from saml2.s_utils import UnknownPrincipal, UnsupportedBinding, rndstr, sid
 
 from oic.oauth2.exception import VerificationError
-from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.authn.user import create_return_url
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.authn.user import UserAuthnMethod, create_return_url
+from oic.utils.http_util import Response, SeeOther, Unauthorized
 
 logger = logging.getLogger(__name__)
 

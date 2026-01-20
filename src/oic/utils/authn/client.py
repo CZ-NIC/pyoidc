@@ -2,20 +2,14 @@ import base64
 import logging
 from urllib.parse import quote_plus
 
-from jwkest import Invalid
-from jwkest import MissingKey
-from jwkest import as_bytes
+from jwkest import Invalid, MissingKey, as_bytes
 from jwkest.jws import alg2keytype
 
 from oic import rndstr
-from oic.exception import FailedAuthentication
-from oic.exception import NotForMe
-from oic.exception import UnknownAssertionType
+from oic.exception import FailedAuthentication, NotForMe, UnknownAssertionType
 from oic.oauth2 import AccessTokenRequest
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import VREQUIRED
-from oic.oic import DEF_SIGN_ALG
-from oic.oic import JWT_BEARER
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING, VREQUIRED
+from oic.oic import DEF_SIGN_ALG, JWT_BEARER
 from oic.oic.message import AuthnToken
 from oic.utils.keyio import check_key_availability
 from oic.utils.sanitize import sanitize

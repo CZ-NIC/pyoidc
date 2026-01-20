@@ -2,52 +2,34 @@ import json
 import logging
 import socket
 from typing import Dict
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from jwkest import b64e
 
 from oic import rndstr
-from oic.exception import FailedAuthentication
-from oic.exception import ModificationForbidden
-from oic.exception import RestrictionError
-from oic.exception import UnknownAssertionType
-from oic.exception import UnSupported
+from oic.exception import (
+    FailedAuthentication,
+    ModificationForbidden,
+    RestrictionError,
+    UnknownAssertionType,
+    UnSupported,
+)
 from oic.extension.client import CC_METHOD
-from oic.extension.message import ClientRegistrationError
-from oic.extension.message import ExtensionMessageFactory
-from oic.extension.message import InvalidRedirectUri
-from oic.extension.message import MissingPage
-from oic.oauth2 import TokenErrorResponse
-from oic.oauth2 import compact
-from oic.oauth2 import provider
-from oic.oauth2.exception import CapabilitiesMisMatch
-from oic.oauth2.exception import VerificationError
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import by_schema
+from oic.extension.message import ClientRegistrationError, ExtensionMessageFactory, InvalidRedirectUri, MissingPage
+from oic.oauth2 import TokenErrorResponse, compact, provider
+from oic.oauth2.exception import CapabilitiesMisMatch, VerificationError
+from oic.oauth2.message import ErrorResponse, by_schema
 from oic.oauth2.provider import Endpoint
 from oic.oic import PREFERENCE2PROVIDER
-from oic.oic.provider import RegistrationEndpoint
-from oic.oic.provider import secret
+from oic.oic.provider import RegistrationEndpoint, secret
 from oic.utils import restrict
-from oic.utils.authn.client import AuthnFailure
-from oic.utils.authn.client import UnknownAuthnMethod
-from oic.utils.authn.client import get_client_id
-from oic.utils.authn.client import valid_client_info
-from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import Forbidden
-from oic.utils.http_util import NoContent
-from oic.utils.http_util import Response
-from oic.utils.http_util import Unauthorized
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
+from oic.utils.authn.client import AuthnFailure, UnknownAuthnMethod, get_client_id, valid_client_info
+from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS, BadRequest, Forbidden, NoContent, Response, Unauthorized
+from oic.utils.keyio import KeyBundle, KeyJar
 from oic.utils.sanitize import sanitize
-from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import AccessCodeUsed, AuthnEvent
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.token_handler import NotAllowed
-from oic.utils.token_handler import TokenHandler
+from oic.utils.token_handler import NotAllowed, TokenHandler
 
 __author__ = "roland"
 

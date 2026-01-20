@@ -1,8 +1,6 @@
 import copy
 import logging
-from typing import Any
-from typing import Dict
-from typing import List
+from typing import Any, Dict, List
 
 from oic.exception import MissingAttribute
 from oic.oic import OpenIDSchema

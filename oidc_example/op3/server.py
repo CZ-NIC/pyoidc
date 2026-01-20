@@ -1,48 +1,42 @@
 #!/usr/bin/env python
 __author__ = "Vahid Jalili"
 
-from urllib.parse import parse_qs
-
+import argparse
+import importlib
 import json
+import logging
 import os
 import re
 import sys
-import traceback
-import argparse
-import importlib
 import time
-import logging
+import traceback
+from urllib.parse import parse_qs
 
+from cherrypy import wsgiserver
+from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+from jwkest import as_unicode
 from mako.lookup import TemplateLookup
 
 from oic import rndstr
-
-from oic.oic.provider import AuthorizationEndpoint
-from oic.oic.provider import EndSessionEndpoint
-from oic.oic.provider import Provider
-from oic.oic.provider import RegistrationEndpoint
-from oic.oic.provider import TokenEndpoint
-from oic.oic.provider import UserinfoEndpoint
+from oic.oic.provider import (
+    AuthorizationEndpoint,
+    EndSessionEndpoint,
+    Provider,
+    RegistrationEndpoint,
+    TokenEndpoint,
+    UserinfoEndpoint,
+)
 from oic.utils import shelve_wrapper
-from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.authn_context import make_auth_verify
+from oic.utils.authn.authn_context import AuthnBroker, make_auth_verify
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.multi_auth import AuthnIndexedEndpointWrapper
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import NotFound, ServiceError, Response, BadRequest, wsgi_wrapper, get_post, Unauthorized
-from jwkest import as_unicode
+from oic.utils.http_util import BadRequest, NotFound, Response, ServiceError, Unauthorized, get_post, wsgi_wrapper
 from oic.utils.keyio import keyjar_init
-from oic.utils.userinfo import UserInfo
-from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.webfinger import WebFinger
-
-
-from cherrypy import wsgiserver
-from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
-
 from oic.utils.sdb import create_session_db
-
+from oic.utils.userinfo import UserInfo
+from oic.utils.webfinger import OIC_ISSUER, WebFinger
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = "oc.log"

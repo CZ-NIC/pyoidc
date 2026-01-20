@@ -10,17 +10,18 @@ from unittest import TestCase
 import pytest
 from freezegun import freeze_time
 
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import OpenIDRequest
-from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import Crypt
-from oic.utils.sdb import DefaultToken
-from oic.utils.sdb import DictRefreshDB
-from oic.utils.sdb import ExpiredToken
-from oic.utils.sdb import SessionDB
-from oic.utils.sdb import WrongTokenType
-from oic.utils.sdb import create_session_db
+from oic.oic.message import AuthorizationRequest, OpenIDRequest
+from oic.utils.sdb import (
+    AccessCodeUsed,
+    AuthnEvent,
+    Crypt,
+    DefaultToken,
+    DictRefreshDB,
+    ExpiredToken,
+    SessionDB,
+    WrongTokenType,
+    create_session_db,
+)
 from oic.utils.session_backend import DictSessionBackend
 from oic.utils.time_util import utc_time_sans_frac
 

@@ -4,8 +4,7 @@ import os
 import time
 from datetime import datetime as dt
 from datetime import timedelta
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 from unittest import TestCase
 from unittest.mock import sentinel
 
@@ -17,16 +16,18 @@ from jwkest.jws import JWS
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import AuthorizationResponse
 from oic.oic.provider import Provider
-from oic.utils.keyio import JWKSError
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import RSAKey
-from oic.utils.keyio import build_keyjar
-from oic.utils.keyio import check_key_availability
-from oic.utils.keyio import dump_jwks
-from oic.utils.keyio import key_export
-from oic.utils.keyio import keybundle_from_local_file
-from oic.utils.keyio import rsa_init
+from oic.utils.keyio import (
+    JWKSError,
+    KeyBundle,
+    KeyJar,
+    RSAKey,
+    build_keyjar,
+    check_key_availability,
+    dump_jwks,
+    key_export,
+    keybundle_from_local_file,
+    rsa_init,
+)
 
 __author__ = "rohe0002"
 
