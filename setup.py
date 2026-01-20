@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import builtins
 import re
-from io import open
 
 from setuptools import setup
 
@@ -24,14 +24,14 @@ __author__ = "rohe0002"
 
 tests_requires = ["responses", "testfixtures", "pytest", "freezegun"]
 
-with open("src/oic/__init__.py", "r") as fd:
+with builtins.open("src/oic/__init__.py") as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', fd.read(), re.MULTILINE).group(1)
 
 setup(
     name="oic",
     version=version,
     description="Python implementation of OAuth2 and OpenID Connect",
-    long_description=open("README.rst", encoding="utf-8").read(),
+    long_description=builtins.open("README.rst", encoding="utf-8").read(),
     author="Roland Hedberg",
     author_email="roland@catalogix.se",
     license_files=["LICENSE.txt"],
@@ -65,7 +65,7 @@ setup(
         "develop": ["cherrypy==3.2.4", "pyOpenSSL"],
         "testing": tests_requires,
         "docs": ["Sphinx", "sphinx-autobuild", "alabaster", "autodoc_pydantic>=2.0.0"],
-        "quality": ["mypy", "ruff", "bandit", "readme_renderer[md]", "build"],
+        "quality": ["mypy", "ruff", "readme_renderer[md]", "build"],
         "types": ["types-requests"],
         "ldap_authn": ["python-ldap"],
         "examples": ["beaker"],

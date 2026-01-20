@@ -1,36 +1,25 @@
 import logging
 import os.path
 import warnings
-from typing import Dict
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Dict, Optional, Tuple, Union
 
 from oic import rndstr
-from oic.exception import AuthzError
-from oic.exception import MessageException
-from oic.exception import NotForMe
-from oic.exception import PyoidcError
-from oic.oauth2.consumer import TokenError
-from oic.oauth2.consumer import UnknownState
-from oic.oauth2.consumer import stateID
+from oic.exception import AuthzError, MessageException, NotForMe, PyoidcError
+from oic.oauth2.consumer import TokenError, UnknownState, stateID
 from oic.oauth2.message import ErrorResponse
-from oic.oic import ENDPOINTS
-from oic.oic import Client
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import BackChannelLogoutRequest
-from oic.oic.message import Claims
-from oic.oic.message import ClaimsRequest
-from oic.oic.message import IdToken
+from oic.oic import ENDPOINTS, Client
+from oic.oic.message import (
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    BackChannelLogoutRequest,
+    Claims,
+    ClaimsRequest,
+    IdToken,
+)
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
-from oic.utils.sdb import DictSessionBackend
-from oic.utils.sdb import SessionBackend
-from oic.utils.sdb import session_extended_get
-from oic.utils.sdb import session_get
-from oic.utils.sdb import session_update
+from oic.utils.sdb import DictSessionBackend, SessionBackend, session_extended_get, session_get, session_update
 
 __author__ = "rohe0002"
 
@@ -240,7 +229,8 @@ class Consumer(Client):
         :param response_type: Controls the parameters returned in the response from the Authorization Endpoint
         :param use_nonce: If not implicit flow nonce is optional. This defines if it should be used anyway.
         :param path: The path part of the redirect URL
-        :param prompt: Specifies whether the authorization server should prompt the user for reauthentication or consent. Typically "none", "login", "consent", "select_account"
+        :param prompt: Specifies whether the authorization server should prompt the user for reauthentication
+                       or consent. Typically "none", "login", "consent", "select_account".
         :return: A 2-tuple, session identifier and URL to which the user should be redirected
         """
         _log_info = logger.info
