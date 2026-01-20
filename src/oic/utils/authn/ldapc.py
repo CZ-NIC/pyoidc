@@ -91,13 +91,13 @@ class LDAPAuthn(UsernamePasswordMako):
                 result = self.ldap.search_s(**args)
                 # result is a list of tuples (dn, entry)
                 if not result:
-                    raise AssertionError()
+                    raise AssertionError
                 elif len(result) > 1:
-                    raise AssertionError()
+                    raise AssertionError
                 else:
                     _dn = result[0][0]
 
         try:
             self.ldap.simple_bind_s(_dn, pwd)
         except Exception:
-            raise AssertionError()
+            raise AssertionError

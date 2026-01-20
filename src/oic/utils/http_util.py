@@ -440,7 +440,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
         # verify the cookie signature
         cleartext, timestamp, sig = parts
         if not verify_cookie_signature(sig, seed, cleartext, timestamp):
-            raise InvalidCookieSign()
+            raise InvalidCookieSign
         return cleartext, timestamp
     elif len(parts) == 4:
         # encrypted and signed
@@ -459,7 +459,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
         try:
             cleartext = crypt.decrypt_and_verify(ciphertext, tag)
         except AESError:
-            raise InvalidCookieSign()
+            raise InvalidCookieSign
         return cleartext.decode("utf-8"), timestamp
     return None
 

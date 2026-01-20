@@ -170,7 +170,7 @@ class AuthnBroker(object):
                 return info["method"], info["ref"]
             i += 1
 
-        raise IndexError()
+        raise IndexError
 
     def getAcrValuesString(self):
         acr_values = None

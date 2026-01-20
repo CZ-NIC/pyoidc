@@ -398,7 +398,7 @@ class Provider(provider.Provider):
         try:
             method = self.client_authn_methods[authn_method]
         except KeyError:
-            raise UnSupported()
+            raise UnSupported
         return method(self).verify(environ, client_id=client_id)
 
     def consume_software_statement(self, software_statement):

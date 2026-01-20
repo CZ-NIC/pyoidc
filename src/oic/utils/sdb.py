@@ -92,7 +92,7 @@ class Token(object):
         :param sid: Session id
         :return:
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def key(self, **kwargs):
         """Return a key - the session id."""
@@ -105,7 +105,7 @@ class Token(object):
         :param token: A token
         :return: tuple of token type and session id
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_key(self, token):
         """
@@ -114,7 +114,7 @@ class Token(object):
         :param token: A token
         :return: The session id
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_type(self, token):
         """
@@ -123,7 +123,7 @@ class Token(object):
         :param token: A token
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def expires_at(self, token):
         """
@@ -132,7 +132,7 @@ class Token(object):
         :param token: A token
         :return: Timestamp of the token expiry in UTC
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def is_expired(self, token, when=None):
         """Return if token is still valid."""
@@ -154,9 +154,9 @@ class Token(object):
         try:
             typ, key = self.type_and_key(token)
         except (Error, InvalidToken):
-            raise WrongTokenType()
+            raise WrongTokenType
         if typ != self.type:
-            raise WrongTokenType()
+            raise WrongTokenType
         if typ == "R":
             return not self.token_storage[key].get("revoked", False)
         else:
@@ -661,7 +661,7 @@ class SessionDB(object):
             dic = self._db[key]
 
             if dic["code_used"]:
-                raise AccessCodeUsed()
+                raise AccessCodeUsed
             _at = self.access_token(sid=key, sinfo=dic)
             dic["code_used"] = True
         else:
@@ -741,12 +741,12 @@ class SessionDB(object):
                     if at:
                         self.access_token.invalidate(at)
             else:
-                raise ExpiredToken()
+                raise ExpiredToken
         elif self.token_factory["refresh_token"] is None:
-            raise WrongTokenType()
+            raise WrongTokenType
         elif self.token_factory["refresh_token"].valid(rtoken):
             if self.token_factory["refresh_token"].is_expired(rtoken):
-                raise ExpiredToken()
+                raise ExpiredToken
             sid = self.token_factory["refresh_token"].get_key(rtoken)
             try:
                 dic = self._db[sid]
@@ -765,7 +765,7 @@ class SessionDB(object):
 
             dic["access_token"] = access_token
         else:
-            raise ExpiredToken()
+            raise ExpiredToken
 
         dic["access_token"] = access_token
         dic["token_type"] = "Bearer"  # nosec

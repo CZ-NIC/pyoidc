@@ -15,14 +15,14 @@ class AuthnModule(UserAuthnMethod):
         Display user interaction.
         :return: instance of oic.utils.http_util.Response
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def verify(self, *args, **kwargs):
         """
         Callback to verify user input
         :return: username of the authenticated user
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def make_cls_from_name(name):

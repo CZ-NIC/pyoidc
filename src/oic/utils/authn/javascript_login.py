@@ -35,7 +35,7 @@ class JavascriptFormMako(UsernamePasswordMako):
         # verify username and password
         try:
             if _dict["login_parameter"][0] != "logged_in":
-                raise KeyError()
+                raise KeyError
         except KeyError:
             return (
                 Unauthorized("You are not authorized. Javascript not executed"),

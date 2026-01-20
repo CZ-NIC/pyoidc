@@ -108,7 +108,7 @@ class JWT(object):
         msg = rj.decrypt(token, keys)
         _rj = jws.factory(msg)
         if not _rj:
-            raise KeyError()
+            raise KeyError
         else:
             return self._verify(_rj, msg)
 
@@ -122,7 +122,7 @@ class JWT(object):
         else:
             _rj = jwe.factory(token)
             if not _rj:
-                raise KeyError()
+                raise KeyError
             info = self._decrypt(_rj, token)
 
         if self.message_type:

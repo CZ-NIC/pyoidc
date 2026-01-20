@@ -63,7 +63,7 @@ class UserAuthnMethod(CookieDealer):
         self.query_param = "upm_answer"
 
     def __call__(self, *args, **kwargs):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def authenticated_as(self, cookie=None, **kwargs):
         if cookie is None:

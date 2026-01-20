@@ -466,7 +466,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 # verify that nothing is change in the original message
                 for key, val in oidr.items():
                     if key in self and self[key] != val:
-                        raise AssertionError()
+                        raise AssertionError
 
                 # replace the JWT with the parsed and verified instance
                 self["request"] = oidr
@@ -625,7 +625,7 @@ class RegistrationRequest(Message):
         super().verify(**kwargs)
 
         if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith("https:"):
-            raise AssertionError()
+            raise AssertionError
 
         for param in [
             "request_object_encryption",
@@ -640,10 +640,10 @@ class RegistrationRequest(Message):
 
             # both or none
             if enc_param in self and alg_param not in self:
-                raise AssertionError()
+                raise AssertionError
 
         if "token_endpoint_auth_signing_alg" in self and self["token_endpoint_auth_signing_alg"] == "none":
-            raise AssertionError()
+            raise AssertionError
 
         return True
 
@@ -906,7 +906,7 @@ class ProviderConfigurationResponse(Message):
 
         if "scopes_supported" in self:
             if "openid" not in self["scopes_supported"]:
-                raise AssertionError()
+                raise AssertionError
             for scope in self["scopes_supported"]:
                 check_char_set(scope, SCOPE_CHARSET)
 
@@ -915,7 +915,7 @@ class ProviderConfigurationResponse(Message):
             raise SchemeError("Not HTTPS")
 
         if parts.query or parts.fragment:
-            raise AssertionError()
+            raise AssertionError
 
         if any("code" in rt for rt in self["response_types_supported"]) and "token_endpoint" not in self:
             raise MissingRequiredAttribute("token_endpoint")

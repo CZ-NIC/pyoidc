@@ -136,7 +136,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         if self.cli.cdb[client_id]["client_secret"] == areq["client_secret"]:
             return client_id
         else:
-            raise AuthnFailure()
+            raise AuthnFailure
 
 
 class ClientSecretPost(ClientSecretBasic):
