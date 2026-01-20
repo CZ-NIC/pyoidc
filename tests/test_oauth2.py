@@ -62,7 +62,7 @@ def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
-class TestClient(object):
+class TestClient:
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.redirect_uri = "https://example.com/redirect"
@@ -583,7 +583,7 @@ class TestClient(object):
         assert resp["access_token"] == "Token"
 
 
-class TestServer(object):
+class TestServer:
     @pytest.fixture(autouse=True)
     def create_server(self):
         self.srv = Server()  # pylint: disable=attribute-defined-outside-init
@@ -606,7 +606,7 @@ class TestServer(object):
         assert areq["redirect_uri"] == "http://foobar.example.com/oaclient"
         assert areq["state"] == "cold"
 
-        urluenc = "%s?%s" % ("https://example.com/authz", uencq)
+        urluenc = "{}?{}".format("https://example.com/authz", uencq)
         areq = self.srv.parse_authorization_request(url=urluenc)
 
         assert isinstance(areq, AuthorizationRequest)
@@ -625,14 +625,14 @@ class TestServer(object):
 
         self.srv.keyjar["foobar"] = KeyBundle(
             [
-                {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "ver"},
-                {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "sig"},
+                {"kty": "oct", "key": b"A1B2C3D4", "use": "ver"},
+                {"kty": "oct", "key": b"A1B2C3D4", "use": "sig"},
             ]
         )
         self.srv.keyjar[""] = KeyBundle(
             [
-                {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "ver"},
-                {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "sig"},
+                {"kty": "oct", "key": b"A1B2C3D4", "use": "ver"},
+                {"kty": "oct", "key": b"A1B2C3D4", "use": "sig"},
             ]
         )
 

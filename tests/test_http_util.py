@@ -19,7 +19,7 @@ from oic.utils.http_util import (
 __author__ = "roland"
 
 
-class TestResponse(object):
+class TestResponse:
     def test_response(self):
         response_header = ("X-Test", "foobar")
         message = "foo bar"
@@ -42,7 +42,7 @@ class TestResponse(object):
             assert response_header in headers
 
         resp = Response(message=message, headers=[response_header], template=template)
-        assert resp({}, start_response) == ['&lt;script&gt;alert("hi");&lt;/script&gt;'.encode("utf8")]
+        assert resp({}, start_response) == [b'&lt;script&gt;alert("hi");&lt;/script&gt;']
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def cookie_dealer():
     return CookieDealer(DummyServer())
 
 
-class TestCookieDealer(object):
+class TestCookieDealer:
     def test_create_cookie_value(self, cookie_dealer):
         cookie_value = "Something to pass along"
         cookie_typ = "sso"

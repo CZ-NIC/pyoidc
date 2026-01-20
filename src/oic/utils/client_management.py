@@ -5,8 +5,7 @@ import json
 import os
 import shelve  # nosec
 import sys
-from builtins import input
-from typing import Any, List
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from oic import rndstr
@@ -21,7 +20,7 @@ def unpack_redirect_uri(redirect_uris):
     for item in redirect_uris:
         (base, query) = item
         if query:
-            res.append("%s?%s" % (base, query))
+            res.append("{}?{}".format(base, query))
         else:
             res.append(base)
     return res
@@ -124,7 +123,7 @@ class CDB(BaseClientDatabase):
                     self.cdb[str(item["client_id"])] = item
 
     def dump(self, filename):
-        res: List[Any] = []
+        res: list[Any] = []
         for key, val in self.cdb.items():
             if isinstance(val, dict):
                 res.append(val)

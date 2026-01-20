@@ -8,7 +8,6 @@ import base64
 import importlib
 import json
 import logging
-from typing import Dict, List
 from urllib.parse import parse_qs, urlencode
 
 from saml2 import BINDING_HTTP_ARTIFACT, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
@@ -57,7 +56,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         self.userinfo = userinfo
 
         if cache is None:
-            self.cache_outstanding_queries: Dict[str, str] = {}
+            self.cache_outstanding_queries: dict[str, str] = {}
         else:
             self.cache_outstanding_queries = cache
         UserAuthnMethod.__init__(self, srv)
@@ -215,7 +214,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                         attributes[attr] = samldata[attr]
         else:
             attributes = samldata
-        userdb: Dict[str, List[str]] = {}
+        userdb: dict[str, list[str]] = {}
 
         if self.sp_conf.OPENID2SAMLMAP is None:  # type: ignore
             userdb = attributes.copy()
@@ -227,7 +226,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
     def _pick_idp(self, query, end_point_index):
         """If more than one idp and if none is selected, I have to do wayf or disco."""
-        query_dict: Dict[str, List[str]] = {}
+        query_dict: dict[str, list[str]] = {}
         if isinstance(query, str):
             query_dict = dict(parse_qs(query))
         else:
@@ -288,7 +287,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
                     disco_end_point_index = end_point_index["disco_end_point_index"]
                     ret = _cli.config.getattr("endpoints", "sp")["discovery_response"][disco_end_point_index][0]
-                    ret += "?sid=%s" % sid_
+                    ret += "?sid={}".format(sid_)
                     loc = _cli.create_discovery_service_request(
                         self.sp_conf.DISCOSRV,
                         eid,
@@ -308,7 +307,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             -1,
             SeeOther(
                 headers=[
-                    ("Location", "%s?%s" % (self.sp_conf.WAYF, sid_)),  # type: ignore
+                    ("Location", "{}?{}".format(self.sp_conf.WAYF, sid_)),  # type: ignore
                     cookie,
                 ]
             ),
@@ -340,7 +339,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 _sid = req_id
             else:
                 req_id, req = _cli.create_authn_request(destination, vorg=vorg_name, sign=False, **kwargs)
-                msg_str = "%s" % req
+                msg_str = "{}".format(req)
                 _sid = req_id
 
             _rstate = rndstr()
@@ -349,7 +348,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             logger.debug("ht_args: %s", ht_args)
         except Exception as exc:
             logger.exception("%s", exc)
-            raise ServiceErrorException("Failed to construct the AuthnRequest: %s" % exc)
+            raise ServiceErrorException("Failed to construct the AuthnRequest: {}".format(exc))
 
         # remember the request
         self.cache_outstanding_queries[_sid] = self.return_to

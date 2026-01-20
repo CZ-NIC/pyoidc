@@ -8,7 +8,7 @@ class NotAllowed(Exception):
     pass
 
 
-class TokenHandler(object):
+class TokenHandler:
     """
     Class for handling tokens.
 

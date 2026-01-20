@@ -1,7 +1,7 @@
 import logging
 import os.path
 import warnings
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Union
 
 from oic import rndstr
 from oic.exception import AuthzError, MessageException, NotForMe, PyoidcError
@@ -243,12 +243,12 @@ class Consumer(Client):
             if _page.startswith("/"):
                 self.redirect_uris = [path + _page]
             else:
-                self.redirect_uris = ["%s/%s" % (path, _page)]
+                self.redirect_uris = ["{}/{}".format(path, _page)]
         else:
             if _page.startswith("/"):
                 self.redirect_uris = [path + _page[1:]]
             else:
-                self.redirect_uris = ["%s/%s" % (path, _page)]
+                self.redirect_uris = ["{}/{}".format(path, _page)]
 
         # Put myself in the dictionary of sessions, keyed on session-id
         if not self.seed:
@@ -263,7 +263,7 @@ class Consumer(Client):
         self.grant[sid] = self.grant_class(seed=self.seed)
 
         self._backup(sid)
-        self.sdb["seed:%s" % self.seed] = sid
+        self.sdb["seed:{}".format(self.seed)] = sid
         self.sso_db[sid] = {}
 
         args = {
@@ -312,7 +312,7 @@ class Consumer(Client):
                 fid = open(filename, mode="w")
                 fid.write(id_request)
                 fid.close()
-                _webname = "%s%s/%s" % (path, _webpath, _name)
+                _webname = "{}{}/{}".format(path, _webpath, _name)
                 areq["request_uri"] = _webname
                 self.request_uri = _webname
                 self._backup(sid)
@@ -325,7 +325,7 @@ class Consumer(Client):
         location = areq.request(self.authorization_endpoint)
 
         if self.debug:
-            _log_info("Redirecting to: %s" % location)
+            _log_info("Redirecting to: {}".format(location))
 
         self.authz_req[areq["state"]] = areq
         return sid, location
@@ -336,10 +336,10 @@ class Consumer(Client):
         _log_info("Expect Authorization Response")
         aresp = self.parse_response(AuthorizationResponse, info=query, sformat="urlencoded", keyjar=self.keyjar)
         if isinstance(aresp, ErrorResponse):
-            _log_info("ErrorResponse: %s" % sanitize(aresp))
+            _log_info("ErrorResponse: {}".format(sanitize(aresp)))
             raise AuthzError(aresp.get("error"), aresp)
 
-        _log_info("Aresp: %s" % sanitize(aresp))
+        _log_info("Aresp: {}".format(sanitize(aresp)))
 
         _state = aresp["state"]
         try:
@@ -354,7 +354,7 @@ class Consumer(Client):
         self, query="", **kwargs
     ) -> Union[
         http_util.BadRequest,
-        Tuple[
+        tuple[
             Optional[AuthorizationResponse],
             Optional[AccessTokenResponse],
             Optional[IdToken],
@@ -380,7 +380,7 @@ class Consumer(Client):
         if not query:
             return http_util.BadRequest("Missing query")
 
-        _log_info("response: %s" % sanitize(query))
+        _log_info("response: {}".format(sanitize(query)))
 
         if "algs" not in kwargs:
             kwargs["algs"] = self.sign_enc_algs("id_token")
@@ -539,7 +539,7 @@ class Consumer(Client):
 
     # LOGOUT related
 
-    def backchannel_logout(self, request: Optional[str] = None, request_args: Optional[Dict] = None) -> str:
+    def backchannel_logout(self, request: Optional[str] = None, request_args: Optional[dict] = None) -> str:
         """
         Receives a back channel logout request.
 

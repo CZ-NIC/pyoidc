@@ -108,7 +108,7 @@ AUTHN_BROKER2.add("UNDEFINED", NoCookieAuthn(None, "username"))
 AUTHZ = Implicit()
 
 
-class TestProvider(object):
+class TestProvider:
     @pytest.fixture(autouse=True)
     def create_provider(self, session_db_factory):
         self.provider = Provider(

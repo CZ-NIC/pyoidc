@@ -86,7 +86,7 @@ PARAM_ARGS = {
 }
 
 
-class SignedHttpRequest(object):
+class SignedHttpRequest:
     def __init__(self, key):
         self.key = key
 

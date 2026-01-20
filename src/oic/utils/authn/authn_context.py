@@ -1,5 +1,5 @@
 from functools import cmp_to_key
-from typing import Any, Dict
+from typing import Any
 
 from oic.utils.http_util import extract_from_request
 
@@ -16,9 +16,9 @@ TIMESYNCTOKEN = "urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken"
 CMP_TYPE = ["exact", "minimum", "maximum", "better"]
 
 
-class AuthnBroker(object):
+class AuthnBroker:
     def __init__(self):
-        self.db: Dict[str, Any] = {"info": {}, "key": {}}
+        self.db: dict[str, Any] = {"info": {}, "key": {}}
         self.next = 0
 
     @staticmethod

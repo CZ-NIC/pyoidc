@@ -35,7 +35,7 @@ LOOKUP = TemplateLookup(
 SERVER_ENV = {}
 
 
-class JLog(object):
+class JLog:
     def __init__(self, logger, sid):
         self.logger = logger
         self.id = sid
@@ -75,7 +75,7 @@ def static(environ, start_response, logger, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -144,7 +144,7 @@ def url_eq(a, b):
 KEY_MAP = {"state": "state", "iss": "op"}
 
 
-class Application(object):
+class Application:
     def __init__(self, acrs, clients, conf, userinfo, base, **extra_args):
         self.acr_values = acrs
         self.clients = clients
@@ -288,7 +288,7 @@ class Application(object):
                 if isinstance(result, SeeOther):
                     return result(environ, start_response)
             except OIDCError as err:
-                return operror(environ, start_response, "%s" % err)
+                return operror(environ, start_response, "{}".format(err))
             except Exception:
                 raise
             else:
@@ -353,7 +353,7 @@ class Application(object):
                 if isinstance(result, SeeOther):
                     return result(environ, start_response)
             except OIDCError as err:
-                return operror(environ, start_response, "%s" % err)
+                return operror(environ, start_response, "{}".format(err))
             except Exception:
                 raise
             else:
@@ -504,7 +504,7 @@ if __name__ == "__main__":
     else:
         extra = ""
 
-    txt = "RP server starting listening on port:%s%s" % (args.port, extra)
+    txt = "RP server starting listening on port:{}{}".format(args.port, extra)
     LOGGER.info(txt)
     print(txt)
 

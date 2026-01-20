@@ -133,7 +133,7 @@ AUTHN_BROKER2.add("UNDEFINED", DummyAuthn(None, "username", "password"))
 AUTHZ = Implicit()
 
 
-class TestProvider(object):
+class TestProvider:
     @pytest.fixture(autouse=True)
     def create_provider(self):
         kb = KeyBundle(JWKS["keys"])

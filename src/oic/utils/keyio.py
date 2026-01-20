@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from urllib.parse import urlsplit
 
 import requests
@@ -50,7 +50,7 @@ K2C = {"RSA": RSAKey, "EC": ECKey, "oct": SYMKey}
 KEYS = Union[RSAKey, SYMKey, ECKey]
 
 
-class KeyBundle(object):
+class KeyBundle:
     def __init__(
         self,
         keys=None,
@@ -75,7 +75,7 @@ class KeyBundle(object):
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
         """
-        self._keys: List[KEYS] = []
+        self._keys: list[KEYS] = []
         self.remote = False
         self.verify_ssl = verify_ssl
         self.cache_time = cache_time
@@ -85,7 +85,7 @@ class KeyBundle(object):
         self.fileformat = fileformat.lower()
         self.keytype = keytype
         self.keyusage = keyusage
-        self.imp_jwks: Dict[str, Any] = {}
+        self.imp_jwks: dict[str, Any] = {}
         self.last_updated: float = 0
         self.timeout = timeout
 
@@ -104,7 +104,7 @@ class KeyBundle(object):
             elif source == "":
                 return
             else:
-                raise KeyIOError("Unsupported source type: %s" % source)
+                raise KeyIOError("Unsupported source type: {}".format(source))
 
             if not self.remote:  # local file
                 if self.fileformat == "jwk":
@@ -406,7 +406,7 @@ def dump_jwks(kbl, target, private=False):
 
     try:
         f = open(target, "w")
-    except IOError:
+    except OSError:
         (head, tail) = os.path.split(target)
         os.makedirs(head)
         f = open(target, "w")
@@ -416,7 +416,7 @@ def dump_jwks(kbl, target, private=False):
     f.close()
 
 
-class KeyJar(object):
+class KeyJar:
     """A keyjar contains a number of KeyBundles."""
 
     def __init__(self, verify_ssl=True, keybundle_cls=KeyBundle, remove_after=3600, timeout=5):
@@ -429,7 +429,7 @@ class KeyJar(object):
             ``requests`` documentation.
         :return:
         """
-        self.issuer_keys: Dict[str, List[KeyBundle]] = {}
+        self.issuer_keys: dict[str, list[KeyBundle]] = {}
         self.verify_ssl = verify_ssl
         self.timeout = timeout
         self.keybundle_cls = keybundle_cls
@@ -538,7 +538,7 @@ class KeyJar(object):
             except KeyError:
                 _keys = []
 
-        lst: List[KEYS] = []
+        lst: list[KEYS] = []
         if _keys:
             for bundle in _keys:
                 if key_type:
@@ -612,7 +612,7 @@ class KeyJar(object):
             return False
 
     def x_keys(self, var, part):
-        _func = getattr(self, "get_%s_key" % var)
+        _func = getattr(self, "get_{}_key".format(var))
 
         keys = _func(key_type="", owner=part)
         keys.extend(_func(key_type="", owner=""))
@@ -671,16 +671,16 @@ class KeyJar(object):
             if url.startswith(owner):
                 return owner
 
-        raise KeyIOError("No keys for '%s'" % url)
+        raise KeyIOError("No keys for '{}'".format(url))
 
     def __str__(self):
         _res = {}
         for _id, kbs in self.issuer_keys.items():
-            _l: List[Dict[str, str]] = []
+            _l: list[dict[str, str]] = []
             for kb in kbs:
                 _l.extend(json.loads(kb.jwks())["keys"])
             _res[_id] = {"keys": _l}
-        return "%s" % (_res,)
+        return "{}".format(_res)
 
     def keys(self):
         return self.issuer_keys.keys()
@@ -802,7 +802,7 @@ class KeyJar(object):
         return self.get(usage, ktype, issuer)
 
     def get_issuer_keys(self, issuer):
-        res: List[KEYS] = []
+        res: list[KEYS] = []
         for kbl in self.issuer_keys[issuer]:
             res.extend(kbl.keys())
         return res
@@ -850,7 +850,7 @@ class KeyJar(object):
 # =============================================================================
 
 
-class RedirectStdStreams(object):
+class RedirectStdStreams:
     def __init__(self, stdout=None, stderr=None):
         self._stdout = stdout or sys.stdout
         self._stderr = stderr or sys.stderr
@@ -889,7 +889,7 @@ def key_setup(vault, **kwargs):
             _args = kwargs[usage]
             if _args["alg"].upper() == "RSA":
                 try:
-                    _key = rsa_load("%s%s" % (vault_path, "pyoidc"))
+                    _key = rsa_load("{}{}".format(vault_path, "pyoidc"))
                 except Exception:
                     with open(os.devnull, "w") as devnull:
                         with RedirectStdStreams(stdout=devnull, stderr=devnull):
@@ -920,7 +920,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     else:
         _path = part.path[:]
 
-    local_path = proper_path("%s/%s" % (_path, local_path))
+    local_path = proper_path("{}/{}".format(_path, local_path))
 
     if not os.path.exists(local_path):
         os.makedirs(local_path)
@@ -938,7 +938,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     with open(_export_filename, "w") as f:
         f.write(str(kb))
 
-    _url = "%s://%s%s" % (part.scheme, part.netloc, _export_filename[1:])
+    _url = "{}://{}{}".format(part.scheme, part.netloc, _export_filename[1:])
 
     return _url
 
@@ -979,14 +979,14 @@ def proper_path(path):
     if path.startswith("./"):
         pass
     elif path.startswith("/"):
-        path = ".%s" % path
+        path = ".{}".format(path)
     elif path.startswith("."):
         while path.startswith("."):
             path = path[1:]
         if path.startswith("/"):
-            path = ".%s" % path
+            path = ".{}".format(path)
     else:
-        path = "./%s" % path
+        path = "./{}".format(path)
 
     if not path.endswith("/"):
         path += "/"
@@ -1092,7 +1092,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
         kidd = {"sig": {}, "enc": {}}
 
     kid = 0
-    jwks: Dict[str, List[Dict[str, str]]] = {"keys": []}
+    jwks: dict[str, list[dict[str, str]]] = {"keys": []}
 
     for spec in key_conf:
         typ = spec["type"].upper()
@@ -1102,7 +1102,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
                 error_to_catch = getattr(builtins, "FileNotFoundError", getattr(builtins, "IOError"))
                 try:
                     kb = KeyBundle(
-                        source="file://%s" % spec["key"],
+                        source="file://{}".format(spec["key"]),
                         fileformat="der",
                         keytype=typ,
                         keyusage=spec["use"],

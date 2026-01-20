@@ -43,13 +43,13 @@ def setup_server_env(conf):
     SERVER_ENV["OIC_CLIENT"] = {}
 
 
-class Httpd(object):
+class Httpd:
     def http_request(self, url):
         # ignore cert validation for the example...
         return requests.get(url, verify=False)  # nosec
 
 
-class Session(object):
+class Session:
     def __init__(self, session):
         self.session = session
 
@@ -101,7 +101,7 @@ def static(environ, start_response, logger, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -164,7 +164,7 @@ def application(environ, start_response):
         return post_logout(environ, start_response)
 
     if session["callback"]:
-        _uri = "%s%s" % (conf.BASE, path)
+        _uri = "{}{}".format(conf.BASE, path)
         for _cli in SERVER_ENV["OIC_CLIENT"].values():
             if _uri in _cli.redirect_uris:
                 session["callback"] = False
@@ -231,7 +231,7 @@ if __name__ == "__main__":
         SRV.ssl_adapter = BuiltinSSLAdapter(conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
     LOGGER.info("RP server starting listening on port:%s", conf.PORT)
-    print("RP server starting listening on port:%s" % conf.PORT)
+    print("RP server starting listening on port:{}".format(conf.PORT))
     try:
         SRV.start()
     except KeyboardInterrupt:

@@ -8,7 +8,7 @@ class UserPass(AuthnModule):
     url_endpoint = "/user_pass/verify"
 
     def __init__(self, db, template_env, template="user_pass.jinja2", **kwargs):
-        super(UserPass, self).__init__(None)
+        super().__init__(None)
         self.template_env = template_env
         self.template = template
 

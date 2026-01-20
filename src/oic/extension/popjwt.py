@@ -11,7 +11,7 @@ class PJWT(JasonWebToken):
     c_param.update({"cnf": REQUIRED_MESSAGE})
 
 
-class PopJWT(object):
+class PopJWT:
     def __init__(self, iss="", aud="", lifetime=3600, in_a_while=0, sub="", jwe=None, keys=None):
         """
         Initialize the class.

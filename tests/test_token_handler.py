@@ -57,7 +57,7 @@ KEYJAR = KeyJar()
 KEYJAR.issuer_keys[""] = [kb]
 
 
-class TestTokenHandler(object):
+class TestTokenHandler:
     @pytest.fixture(autouse=True)
     def create_handler(self):
         self.th = TokenHandler(

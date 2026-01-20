@@ -37,7 +37,7 @@ def test_jwt_pack_and_unpack():
     assert _eq(info.keys(), ["jti", "iat", "exp", "iss", "sub", "kid"])
 
 
-class TestJWT(object):
+class TestJWT:
     """Tests for JWT."""
 
     def test_unpack_verify_key(self):

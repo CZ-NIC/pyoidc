@@ -4,7 +4,7 @@ import logging
 import os
 from http.cookies import SimpleCookie
 from time import time
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -98,7 +98,7 @@ KEYJAR["number5"] = [KC_SYM2, KC_RSA]
 KEYJAR[""] = KC_RSA
 KEYJAR["https://connect-op.heroku.com"] = KC_RSA
 
-CDB: Dict[str, Dict[str, Any]] = {
+CDB: dict[str, dict[str, Any]] = {
     "number5": {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
@@ -182,7 +182,7 @@ SYMKEY = rndstr(16)  # symmetric key used to encrypt cookie info
 USERINFO = UserInfo(USERDB)
 
 
-class TestProvider(object):
+class TestProvider:
     @pytest.fixture(autouse=True)
     def create_provider(self, session_db_factory):
         self.provider = Provider(

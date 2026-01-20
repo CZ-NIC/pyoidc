@@ -60,14 +60,14 @@ EXAMPLE = {
 }
 
 
-class TestURINormalizer(object):
+class TestURINormalizer:
     def test_normalize(self):
         for key, val in EXAMPLE.items():
             _val = URINormalizer().normalize(key)
             assert val == _val
 
 
-class TestWebFinger(object):
+class TestWebFinger:
     def test_query_device(self):
         wf = WebFinger()
         query = wf.query(resource="device:p1.example.com")

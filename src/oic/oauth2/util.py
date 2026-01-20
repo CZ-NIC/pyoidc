@@ -1,18 +1,12 @@
 import logging
-import sys
 from http import cookiejar as http_cookiejar
 from http.cookiejar import http2time  # type: ignore
-from typing import Any, Dict, Optional
+from typing import Any, Literal, Optional
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from oic.exception import UnSupported
 from oic.oauth2.exception import TimeFormatError
 from oic.utils.sanitize import sanitize
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +23,7 @@ PAIRS = {
     "path": "path_specified",
 }
 
-ATTRS: Dict[str, Any] = {
+ATTRS: dict[str, Any] = {
     "version": None,
     "name": "",
     "value": None,
@@ -84,7 +78,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept
         elif content_type == JSON_ENCODED:
             body = req.to_json()
         else:
-            raise UnSupported("Unsupported content type: '%s'" % content_type)
+            raise UnSupported("Unsupported content type: '{}'".format(content_type))
 
         header_ext = {"Content-Type": content_type}
         if accept:
@@ -95,7 +89,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept
         else:
             kwargs["headers"] = header_ext
     else:
-        raise UnSupported("Unsupported HTTP method: '%s'" % method)
+        raise UnSupported("Unsupported HTTP method: '{}'".format(method))
 
     return path, body, kwargs
 
@@ -212,7 +206,7 @@ def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS
             if match_to_("application/jwt", reqresp.headers["content-type"]):
                 body_type = "jwt"
             else:
-                raise ValueError("content-type: %s" % (reqresp.headers["content-type"],))
+                raise ValueError("content-type: {}".format(reqresp.headers["content-type"]))
     elif body_type == "jwt":
         if not match_to_("application/jwt", reqresp.headers["content-type"]):
             raise ValueError(
@@ -225,6 +219,6 @@ def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS
             if not match_to_("text/plain", reqresp.headers["content-type"]):
                 raise ValueError("Wrong content-type")
     else:
-        raise ValueError("Unknown return format: %s" % body_type)
+        raise ValueError("Unknown return format: {}".format(body_type))
 
     return body_type

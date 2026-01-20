@@ -4,7 +4,6 @@ import logging
 import sys
 import time
 import warnings
-from typing import Dict, List
 from urllib.parse import urlencode, urlparse
 
 from jwkest import jws
@@ -145,7 +144,7 @@ def msg_ser(inst, sformat, lev=0):
         elif isinstance(inst, str):  # Iff ID Token
             res = inst
         else:
-            raise MessageException("Wrong type: %s" % type(inst))
+            raise MessageException("Wrong type: {}".format(type(inst)))
     else:
         raise PyoidcError("Unknown sformat", inst)
 
@@ -163,7 +162,7 @@ def msg_ser_json(inst, sformat="json", lev=0):
         elif isinstance(inst, dict):
             res = inst
         else:
-            raise MessageException("Wrong type: %s" % type(inst))
+            raise MessageException("Wrong type: {}".format(type(inst)))
     else:
         sformat = "json"
         if isinstance(inst, Message):
@@ -204,9 +203,9 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         if isinstance(item, dict):
             res = item
         else:
-            raise MessageException("Wrong type: %s" % type(item))
+            raise MessageException("Wrong type: {}".format(type(item)))
     else:
-        raise PyoidcError("Unknown sformat: %s" % sformat, val)
+        raise PyoidcError("Unknown sformat: {}".format(sformat), val)
 
     return res
 
@@ -259,7 +258,7 @@ for char in ["\x21", ("\x23", "\x5b"), ("\x5d", "\x7e")]:
 def check_char_set(string, allowed):
     for c in string:
         if c not in allowed:
-            raise NotAllowedValue("'%c' not in the allowed character set" % c)
+            raise NotAllowedValue("'{c}' not in the allowed character set")
 
 
 TOKEN_VERIFY_ARGS = ["key", "keyjar", "algs", "sender"]
@@ -632,8 +631,8 @@ class RegistrationRequest(Message):
             "id_token_encrypted_response",
             "userinfo_encrypted_response",
         ]:
-            alg_param = "%s_alg" % param
-            enc_param = "%s_enc" % param
+            alg_param = "{}_alg".format(param)
+            enc_param = "{}_enc".format(param)
             if alg_param in self:
                 if enc_param not in self:
                     self[enc_param] = "A128CBC-HS256"
@@ -670,7 +669,7 @@ class RegistrationResponse(Message):
         :param kwargs:
         :return: True if the message is OK otherwise False
         """
-        super(RegistrationResponse, self).verify(**kwargs)
+        super().verify(**kwargs)
 
         has_reg_uri = "registration_client_uri" in self
         has_reg_at = "registration_access_token" in self
@@ -714,7 +713,7 @@ class IdToken(OpenIDSchema):
     )
 
     def verify(self, **kwargs):
-        super(IdToken, self).verify(**kwargs)
+        super().verify(**kwargs)
 
         try:
             if kwargs["iss"] != self["iss"]:
@@ -788,7 +787,7 @@ class RefreshSessionRequest(StateFullMessage):
     c_param.update({"id_token": SINGLE_REQUIRED_STRING, "redirect_url": SINGLE_REQUIRED_STRING})
 
     def verify(self, **kwargs):
-        super(RefreshSessionRequest, self).verify(**kwargs)
+        super().verify(**kwargs)
         if "id_token" in self:
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
@@ -798,7 +797,7 @@ class RefreshSessionResponse(StateFullMessage):
     c_param.update({"id_token": SINGLE_REQUIRED_STRING})
 
     def verify(self, **kwargs):
-        super(RefreshSessionResponse, self).verify(**kwargs)
+        super().verify(**kwargs)
         if "id_token" in self:
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
@@ -807,7 +806,7 @@ class CheckSessionRequest(Message):
     c_param = {"id_token": SINGLE_REQUIRED_STRING}
 
     def verify(self, **kwargs):
-        super(CheckSessionRequest, self).verify(**kwargs)
+        super().verify(**kwargs)
         if "id_token" in self:
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
@@ -983,7 +982,7 @@ class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
 
-SCOPE2CLAIMS: Dict[str, List[str]] = {
+SCOPE2CLAIMS: dict[str, list[str]] = {
     "openid": ["sub"],
     "profile": [
         "name",

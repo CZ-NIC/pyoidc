@@ -15,7 +15,7 @@ CDB = {
 }
 
 
-class TestGetClientID(object):
+class TestGetClientID:
     def setup_class(self):
         self.cdb = CDB.copy()
 

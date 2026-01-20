@@ -34,7 +34,7 @@ except ImportError:
     SKIP_LDAP = True
 
 
-class TestAuthnBroker(object):
+class TestAuthnBroker:
     @pytest.mark.skipif(SKIP_LDAP, reason="LDAP support missing")
     def test(self):
         ac = AuthnBroker()
@@ -59,9 +59,9 @@ class TestAuthnBroker(object):
 
         ac.add(
             PASSWORD,
-            UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD, "%s/authorization" % issuer),
+            UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD, "{}/authorization".format(issuer)),
             10,
-            "http://%s" % socket.gethostname(),
+            "http://{}".format(socket.gethostname()),
         )
 
         try:
@@ -71,11 +71,11 @@ class TestAuthnBroker(object):
                     None,
                     CAS_SERVER,
                     SERVICE_URL,
-                    "%s/authorization" % issuer,
+                    "{}/authorization".format(issuer),
                     UserLDAPMemberValidation(**LDAP_EXTRAVALIDATION),
                 ),
                 20,
-                "http://%s" % socket.gethostname(),
+                "http://{}".format(socket.gethostname()),
             )
         except Exception:
             assert len(ac) == 1

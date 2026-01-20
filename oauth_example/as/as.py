@@ -66,7 +66,7 @@ def static(environ, start_response, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [content]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -76,7 +76,7 @@ def static(environ, start_response, path):
 # ============================================================================
 
 
-class Application(object):
+class Application:
     def __init__(self, oas):
         self.oas = oas
 
@@ -94,7 +94,7 @@ class Application(object):
         ]
 
         for endp in self.endpoints:
-            self.urls.append(("^%s" % endp.etype, endp))
+            self.urls.append(("^{}".format(endp.etype), endp))
 
     # noinspection PyUnusedLocal
     def verify(self, environ, start_response):
@@ -164,7 +164,7 @@ class Application(object):
                     message = traceback.format_exception(*sys.exc_info())
                     print(message, file=sys.stderr)
                     LOGGER.exception("%s", err)
-                    resp = ServiceError("%s" % err)
+                    resp = ServiceError("{}".format(err))
                     return resp(environ, start_response)
 
         LOGGER.debug("unknown side: %s", path)
@@ -319,7 +319,7 @@ if __name__ == "__main__":
     else:
         if config.baseurl.endswith("/"):
             config.baseurl = config.baseurl[:-1]
-        oas.baseurl = "%s:%d" % (config.baseurl, args.port)
+        oas.baseurl = f"{config.baseurl}:{int(args.port)}"
 
     if not oas.baseurl.endswith("/"):
         oas.baseurl += "/"

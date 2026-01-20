@@ -22,7 +22,7 @@ class JavascriptFormMako(UsernamePasswordMako):
         :param kwargs: Catch whatever else is sent.
         :return: redirect back to where ever the base applications wants the user after authentication.
         """
-        logger.debug("verify(%s)" % request)
+        logger.debug("verify({})".format(request))
         if isinstance(request, str):
             _dict = parse_qs(request)
         elif isinstance(request, dict):

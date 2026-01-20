@@ -18,7 +18,6 @@ import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Dict
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 TIME_FORMAT_WITH_FRAGMENT = re.compile(r"^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
@@ -78,7 +77,7 @@ def parse_duration(duration):
     assert duration[index] == "P"  # nosec
     index += 1
 
-    dic: Dict[str, float] = dict([(typ, 0) for (code, typ) in D_FORMAT])
+    dic: dict[str, float] = dict([(typ, 0) for (code, typ) in D_FORMAT])
 
     for code, typ in D_FORMAT:
         if duration[index] == "-":
@@ -286,7 +285,7 @@ def str_to_time(timestr, time_format=TIME_FORMAT):
         try:
             elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
         except Exception as exc:
-            print("Exception: %s on %s" % (exc, timestr), file=sys.stderr)
+            print("Exception: {} on {}".format(exc, timestr), file=sys.stderr)
             raise
         if elem is None:
             raise TimeUtilError("Error parsing time")
@@ -353,7 +352,7 @@ def utc_time_sans_frac():
 
 
 def time_sans_frac():
-    return int("%d" % time.time())
+    return int(time.time())
 
 
 def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):

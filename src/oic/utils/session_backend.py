@@ -1,12 +1,12 @@
 import json
 import time
 from abc import ABCMeta, abstractmethod
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Optional, Union, cast
 
 from oic.utils.time_util import time_sans_frac
 
 
-class AuthnEvent(object):
+class AuthnEvent:
     def __init__(
         self,
         uid,
@@ -53,11 +53,11 @@ class SessionBackend(metaclass=ABCMeta):
     """Backend for storing sessionDB data."""
 
     @abstractmethod
-    def __setitem__(self, key: str, value: Dict[str, Union[str, bool]]) -> None:
+    def __setitem__(self, key: str, value: dict[str, Union[str, bool]]) -> None:
         """Store the session information under the session_id."""
 
     @abstractmethod
-    def __getitem__(self, key: str) -> Dict[str, Union[str, bool]]:
+    def __getitem__(self, key: str) -> dict[str, Union[str, bool]]:
         """
         Retrieve the session information based os session_id.
 
@@ -73,18 +73,18 @@ class SessionBackend(metaclass=ABCMeta):
         """Test presence of key in storage."""
 
     @abstractmethod
-    def get_by_uid(self, uid: str) -> List[str]:
+    def get_by_uid(self, uid: str) -> list[str]:
         """Return session ids (keys) based on `uid` (internal user identifier)."""
 
     @abstractmethod
-    def get_by_sub(self, sub: str) -> List[str]:
+    def get_by_sub(self, sub: str) -> list[str]:
         """Return session ids based on `sub` (external user identifier)."""
 
     @abstractmethod
-    def get(self, attr: str, val: str) -> List[str]:
+    def get(self, attr: str, val: str) -> list[str]:
         """Return session ids based on attribute name and value."""
 
-    def get_client_ids_for_uid(self, uid: str) -> List[str]:
+    def get_client_ids_for_uid(self, uid: str) -> list[str]:
         """Return client ids that have a session for given uid."""
         return [cast(str, self[sid]["client_id"]) for sid in self.get_by_uid(uid)]
 
@@ -99,7 +99,7 @@ class SessionBackend(metaclass=ABCMeta):
             return None
         return cast(str, _dict["verified_logout"])
 
-    def get_token_ids(self, uid: str) -> List[str]:
+    def get_token_ids(self, uid: str) -> list[str]:
         """Return id_tokens for the given uid."""
         return [cast(str, self[sid]["id_token"]) for sid in self.get_by_uid(uid)]
 
@@ -143,13 +143,13 @@ class DictSessionBackend(SessionBackend):
 
     def __init__(self):
         """Create the storage."""
-        self.storage: Dict[str, Dict[str, Union[str, bool]]] = {}
+        self.storage: dict[str, dict[str, Union[str, bool]]] = {}
 
-    def __setitem__(self, key: str, value: Dict[str, Union[str, bool]]) -> None:
+    def __setitem__(self, key: str, value: dict[str, Union[str, bool]]) -> None:
         """Store the session info in the storage."""
         self.storage[key] = value
 
-    def __getitem__(self, key: str) -> Dict[str, Union[str, bool]]:
+    def __getitem__(self, key: str) -> dict[str, Union[str, bool]]:
         """Retrieve session information based on session id."""
         return self.storage[key]
 
@@ -160,14 +160,14 @@ class DictSessionBackend(SessionBackend):
     def __contains__(self, key: str) -> bool:
         return key in self.storage
 
-    def get_by_sub(self, sub: str) -> List[str]:
+    def get_by_sub(self, sub: str) -> list[str]:
         """Return session ids based on sub."""
         return [sid for sid, session in self.storage.items() if session.get("sub") == sub]
 
-    def get_by_uid(self, uid: str) -> List[str]:
+    def get_by_uid(self, uid: str) -> list[str]:
         """Return session ids based on uid."""
         return [sid for sid, session in self.storage.items() if AuthnEvent.from_json(session["authn_event"]).uid == uid]
 
-    def get(self, attr: str, val: str) -> List[str]:
+    def get(self, attr: str, val: str) -> list[str]:
         """Return session ids based on attribute name and value."""
         return [sid for sid, session in self.storage.items() if session.get(attr) == val]

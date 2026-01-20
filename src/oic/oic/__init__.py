@@ -4,7 +4,7 @@ import os
 import warnings
 from base64 import b64encode
 from json import JSONDecodeError
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Optional, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from jwkest import BadSyntax, as_bytes, jwe, jws, jwt
@@ -72,7 +72,7 @@ ENDPOINTS = [
     "check_id_endpoint",
 ]
 
-RESPONSE2ERROR: Dict[str, List] = {
+RESPONSE2ERROR: dict[str, list] = {
     "AuthorizationResponse": [AuthorizationErrorResponse, TokenErrorResponse],
     "AccessTokenResponse": [TokenErrorResponse],
     "IdToken": [ErrorResponse],
@@ -319,7 +319,7 @@ class Client(oauth2.Client):
         config=None,
         client_cert=None,
         requests_dir="requests",
-        message_factory: Type[MessageFactory] = OIDCMessageFactory,
+        message_factory: type[MessageFactory] = OIDCMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
         """
@@ -366,7 +366,7 @@ class Client(oauth2.Client):
         for endpoint in ENDPOINTS:
             setattr(self, endpoint, "")
 
-        self.id_token: Dict[str, Token] = {}
+        self.id_token: dict[str, Token] = {}
         self.log = None
 
         self.request2endpoint = REQUEST2ENDPOINT
@@ -376,13 +376,13 @@ class Client(oauth2.Client):
         self.registration_response: RegistrationResponse = RegistrationResponse()
         self.client_prefs = client_prefs or {}
 
-        self.behaviour: Dict[str, Any] = {}
+        self.behaviour: dict[str, Any] = {}
         self.scope = ["openid"]
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
         self.allow = {}
-        self.post_logout_redirect_uris: List[str] = []
+        self.post_logout_redirect_uris: list[str] = []
         self.registration_expires = 0
         self.registration_access_token = None
         self.id_token_max_age = 0
@@ -465,7 +465,7 @@ class Client(oauth2.Client):
         while os.path.exists(filename):
             _name = rndstr(10)
             filename = os.path.join(_filedir, _name)
-        _webname = "%s%s" % (_webpath, _name)
+        _webname = "{}{}".format(_webpath, _name)
         return filename, _webname
 
     def filename_from_webname(self, webname):
@@ -910,9 +910,9 @@ class Client(oauth2.Client):
             elif "application/jwt" in resp.headers["content-type"]:
                 sformat = "jwt"
             else:
-                raise PyoidcError("ERROR: Unexpected content-type: %s" % resp.headers["content-type"])
+                raise PyoidcError("ERROR: Unexpected content-type: {}".format(resp.headers["content-type"]))
         elif resp.status_code == 500:
-            raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
+            raise PyoidcError("ERROR: Something went wrong: {}".format(resp.text))
         elif resp.status_code == 405:
             # Method not allowed error
             allowed_methods = [x.strip() for x in resp.headers["allow"].split(",")]
@@ -927,7 +927,7 @@ class Client(oauth2.Client):
                 self.store_response(res, resp.text)
                 return res
         else:
-            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text))
+            raise PyoidcError("ERROR: Something went wrong [{}]: {}".format(resp.status_code, resp.text))
 
         try:
             _schema = kwargs["user_info_schema"]
@@ -985,11 +985,11 @@ class Client(oauth2.Client):
             # FIXME: Could this also encounter application/jwt for encrypted userinfo
             #        the do_userinfo_request method already handles it
             if "application/json" not in resp.headers["content-type"]:
-                raise PyoidcError("ERROR: content-type in response unexpected: %s" % resp.headers["content-type"])
+                raise PyoidcError("ERROR: content-type in response unexpected: {}".format(resp.headers["content-type"]))
         elif resp.status_code == 500:
-            raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
+            raise PyoidcError("ERROR: Something went wrong: {}".format(resp.text))
         else:
-            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text))
+            raise PyoidcError("ERROR: Something went wrong [{}]: {}".format(resp.status_code, resp.text))
 
         res = schema_class().from_json(txt=resp.text)
         self.store_response(res, resp.text)
@@ -1071,10 +1071,10 @@ class Client(oauth2.Client):
         """
         try:
             _pcr = self.provider_info
-            supported = _pcr["%s_algs_supported" % usage]
+            supported = _pcr["{}_algs_supported".format(usage)]
         except KeyError:
             try:
-                supported = getattr(self, "%s_algs_supported" % usage)
+                supported = getattr(self, "{}_algs_supported".format(usage))
             except AttributeError:
                 supported = None
 
@@ -1134,7 +1134,7 @@ class Client(oauth2.Client):
                             break
 
             if _pref not in self.behaviour:
-                raise ConfigurationError("OP couldn't match preference:%s" % _pref, pcr)
+                raise ConfigurationError("OP couldn't match preference:{}".format(_pref), pcr)
 
         for key, val in self.client_prefs.items():
             if key in self.behaviour:
@@ -1228,7 +1228,7 @@ class Client(oauth2.Client):
         if not registration_access_token:
             registration_access_token = self.registration_access_token
 
-        headers = {"Authorization": "Bearer %s" % registration_access_token}
+        headers = {"Authorization": "Bearer {}".format(registration_access_token)}
         rsp = self.http_request(url, "GET", headers=headers)
 
         return self.handle_registration_info(rsp)
@@ -1319,7 +1319,7 @@ class Client(oauth2.Client):
     def normalization(self, principal, idtype="mail"):
         if idtype == "mail":
             (_, domain) = principal.split("@")
-            subject = "acct:%s" % principal
+            subject = "acct:{}".format(principal)
         elif idtype == "url":
             p = urlparse(principal)
             domain = p.netloc
@@ -1425,9 +1425,9 @@ class Server(oauth2.Server):
         self,
         verify_ssl: Optional[bool] = None,
         keyjar: Optional[KeyJar] = None,
-        client_cert: Optional[Union[str, Tuple[str, str]]] = None,
+        client_cert: Optional[Union[str, tuple[str, str]]] = None,
         timeout: Optional[float] = None,
-        message_factory: Type[MessageFactory] = OIDCMessageFactory,
+        message_factory: type[MessageFactory] = OIDCMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
         """Initialize the server."""
@@ -1520,7 +1520,7 @@ class Server(oauth2.Server):
         if self.events:
             self.events.store("Request", _req)
 
-        _req_req: Union[Message, Dict[str, Any]] = {}
+        _req_req: Union[Message, dict[str, Any]] = {}
         try:
             _request = _req["request"]
         except KeyError:
@@ -1707,7 +1707,7 @@ class Server(oauth2.Server):
         :param session: Session information
         :return: The IdToken claims
         """
-        itc: Dict[str, str] = {}
+        itc: dict[str, str] = {}
         itc = self.update_claims(session, "authzreq", "id_token", itc)
         itc = self.update_claims(session, "oidreq", "id_token", itc)
         return itc
@@ -1762,7 +1762,7 @@ class Server(oauth2.Server):
                 extra["acr"] = loa
 
         if not user_info:
-            _args: Dict[str, str] = {}
+            _args: dict[str, str] = {}
         else:
             try:
                 _args = user_info.to_dict()
@@ -1776,7 +1776,7 @@ class Server(oauth2.Server):
             except KeyError:
                 pass
 
-        halg = "HS%s" % alg[-3:]
+        halg = "HS{}".format(alg[-3:])
 
         if extra_claims is not None:
             _args.update(extra_claims)
@@ -1805,9 +1805,9 @@ class Server(oauth2.Server):
 
 
 def scope2claims(scopes, extra_scope_dict=None):
-    res: Dict[str, None] = {}
+    res: dict[str, None] = {}
     # Construct the scope translation map
-    trans_map: Dict[str, Any] = SCOPE2CLAIMS.copy()
+    trans_map: dict[str, Any] = SCOPE2CLAIMS.copy()
     if extra_scope_dict is not None:
         trans_map.update(extra_scope_dict)
     for scope in scopes:

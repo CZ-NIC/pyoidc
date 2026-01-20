@@ -6,7 +6,7 @@ import logging
 import uuid
 import warnings
 from binascii import Error
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -56,10 +56,10 @@ class UnknownToken(Exception):
 
 
 def pairwise_id(sub, sector_identifier, seed):
-    return hashlib.sha256(("%s%s%s" % (sub, sector_identifier, seed)).encode("utf-8")).hexdigest()
+    return hashlib.sha256(("{}{}{}".format(sub, sector_identifier, seed)).encode("utf-8")).hexdigest()
 
 
-class Crypt(object):
+class Crypt:
     def __init__(self, password, mode=None):
         self.key = base64.urlsafe_b64encode(hashlib.sha256(password.encode("utf-8")).digest())
         self.core = Fernet(self.key)
@@ -75,7 +75,7 @@ class Crypt(object):
         return self.core.decrypt(ciphertext)
 
 
-class Token(object):
+class Token:
     def __init__(self, typ, lifetime=0, token_storage=None, **kwargs):
         self.type = typ
         self.lifetime = lifetime
@@ -256,7 +256,7 @@ class DefaultToken(Token):
         return self._split_token(token)[2] + self.lifetime
 
 
-class RefreshDB(object):
+class RefreshDB:
     """Database for refresh token storage."""
 
     def __init__(self):
@@ -337,13 +337,13 @@ class DictRefreshDB(RefreshDB):
     """Dictionary based implementation of RefreshDB."""
 
     def __init__(self):
-        super(DictRefreshDB, self).__init__()
+        super().__init__()
         warnings.warn(
             "Using `DictRefreshDB` is deprecated, please use `Token` and `refresh_token_factory` instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        self._db: Dict[str, Dict[str, str]] = {}
+        self._db: dict[str, dict[str, str]] = {}
 
     def get(self, refresh_token):
         """Retrieve info for given token from dictionary."""
@@ -398,7 +398,7 @@ def create_session_db(
     )
 
 
-class SessionDB(object):
+class SessionDB:
     def __init__(
         self,
         base_url,
@@ -868,7 +868,7 @@ class SessionDB(object):
         _dict = self._db[sid]
         return _dict["client_id"]
 
-    def get_client_ids_for_uid(self, uid: str) -> List[str]:
+    def get_client_ids_for_uid(self, uid: str) -> list[str]:
         """Return client_ids for a given uid."""
         return self._db.get_client_ids_for_uid(uid)
 
@@ -876,7 +876,7 @@ class SessionDB(object):
         """Return logout verification key for given uid."""
         return self._db.get_verified_logout(uid)
 
-    def get_token_ids(self, uid: str) -> List[str]:
+    def get_token_ids(self, uid: str) -> list[str]:
         """Return id_tokens for given uid."""
         return self._db.get_token_ids(uid)
 
@@ -933,7 +933,7 @@ class SessionDB(object):
 
         return self._db[key]
 
-    def get_by_sub(self, sub: str) -> List[str]:
+    def get_by_sub(self, sub: str) -> list[str]:
         """Return session ids based on `sub` (external user identifier)."""
         return self._db.get_by_sub(sub)
 
@@ -946,11 +946,11 @@ class SessionDB(object):
         """
         return hashlib.sha256("{}{}".format(sid, self.sm_salt).encode("utf-8")).hexdigest()
 
-    def get(self, attr: str, val: Any) -> List[str]:
+    def get(self, attr: str, val: Any) -> list[str]:
         """Return session ids based on attribute name and value."""
         return self._db.get(attr, val)
 
-    def get_by_uid(self, uid: str) -> List[str]:
+    def get_by_uid(self, uid: str) -> list[str]:
         """Return session ids (keys) based on `uid` (internal user identifier)."""
         return self._db.get_by_uid(uid)
 

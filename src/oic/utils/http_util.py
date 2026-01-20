@@ -6,7 +6,6 @@ import os
 import time
 from http import client
 from http.cookies import SimpleCookie
-from typing import List, Tuple
 from urllib.parse import quote
 
 from jwkest import as_unicode
@@ -31,7 +30,7 @@ CORS_HEADERS = [
 OAUTH2_NOCACHE_HEADERS = [("Pragma", "no-cache"), ("Cache-Control", "no-store")]
 
 
-class Response(object):
+class Response:
     _template = ""
     _status_code = 200
     _content_type = "text/html"
@@ -47,7 +46,7 @@ class Response(object):
 
         self.message = message
 
-        self.headers: List[Tuple[str, str]] = []
+        self.headers: list[tuple[str, str]] = []
         self.headers.extend(kwargs.get("headers", []))
         _content_type = kwargs.get("content", self._content_type)
 
@@ -391,7 +390,7 @@ def make_cookie(
         ]
 
     cookie[name] = (b"|".join(cookie_payload)).decode("utf-8")
-    cookie[name]._reserved[str("samesite")] = str("SameSite")  # type: ignore
+    cookie[name]._reserved["samesite"] = "SameSite"  # type: ignore
 
     if path:
         cookie[name]["path"] = path
@@ -555,7 +554,7 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
         raise
 
 
-class CookieDealer(object):
+class CookieDealer:
     @property
     def srv(self):
         return self._srv

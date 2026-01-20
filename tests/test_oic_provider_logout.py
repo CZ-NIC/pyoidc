@@ -3,7 +3,7 @@ import os
 import re
 from http.cookies import SimpleCookie
 from time import time
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import pytest
@@ -94,9 +94,9 @@ USERDB = {
 URLMAP = {CLIENT_ID: ["https://example.com/authz"]}
 
 
-class DummyEventStore(object):
+class DummyEventStore:
     def __init__(self):
-        self.db: Dict[str, str] = {}
+        self.db: dict[str, str] = {}
 
     def store(self, typ, val):
         self.db[typ] = val
@@ -127,8 +127,8 @@ SYMKEY = rndstr(16)  # symmetric key used to encrypt cookie info
 USERINFO = UserInfo(USERDB)
 
 
-class TestProvider(object):
-    CDB: Dict[str, Dict[str, Any]] = {
+class TestProvider:
+    CDB: dict[str, dict[str, Any]] = {
         "number5": {
             "password": "hemligt",
             "client_secret": "drickyoughurt",

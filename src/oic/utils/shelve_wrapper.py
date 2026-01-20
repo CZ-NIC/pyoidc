@@ -3,7 +3,7 @@ import shelve  # nosec
 __author__ = "danielevertsson"
 
 
-class ShelfWrapper(object):
+class ShelfWrapper:
     def __init__(self, filename):
         self.filename = filename
 

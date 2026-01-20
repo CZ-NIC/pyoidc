@@ -42,7 +42,7 @@ __author__ = "rohe0002"
 KC_SYM_S = KeyBundle(
     {
         "kty": "oct",
-        "key": "abcdefghijklmnop".encode("utf-8"),
+        "key": b"abcdefghijklmnop",
         "use": "sig",
         "alg": "HS256",
     }
@@ -74,7 +74,7 @@ def _eq(l1, l2):
 # ----------------- CLIENT --------------------
 
 
-class TestClient(object):
+class TestClient:
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.redirect_uri = "https://example.com/redirect"
@@ -164,13 +164,13 @@ class TestClient(object):
             c_param.update({"raw_id_token": SINGLE_OPTIONAL_STRING})
 
             def __init__(self, **kwargs):
-                super(AccessTokenResponseWrapper, self).__init__(**kwargs)
+                super().__init__(**kwargs)
                 self["raw_id_token"] = None
 
             def verify(self, **kwargs):
                 if "id_token" in self:
                     self["raw_id_token"] = self["id_token"]
-                return super(AccessTokenResponseWrapper, self).verify(**kwargs)
+                return super().verify(**kwargs)
 
         args = {"response_type": ["code"], "scope": ["openid"]}
 
@@ -865,7 +865,7 @@ class TestClient(object):
         assert len(self.client.grant["foo"].tokens) == 0
 
 
-class TestServer(object):
+class TestServer:
     @pytest.fixture(autouse=True)
     def create_server(self):
         self.srv = Server()
@@ -1128,7 +1128,7 @@ class TestServer(object):
         assert atr.verify(keyjar=self.srv.keyjar)
 
 
-class TestScope2Claims(object):
+class TestScope2Claims:
     def test_scope2claims(self):
         claims = scope2claims(["profile", "email"])
         assert Counter(claims.keys()) == Counter(SCOPE2CLAIMS["profile"] + SCOPE2CLAIMS["email"])

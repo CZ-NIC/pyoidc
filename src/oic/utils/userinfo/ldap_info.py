@@ -4,7 +4,6 @@ except ImportError:
     raise ImportError("This module can be used only with pyldap installed.")
 
 import logging
-from typing import Dict, List
 
 from ldap import LDAPError, LDAPObject
 
@@ -53,7 +52,7 @@ class UserInfoLDAP(UserInfo):
         attrsonly=False,
         attrmap=OPENID2LDAP,
     ):
-        super(UserInfoLDAP, self).__init__(None)
+        super().__init__(None)
         self.ldapuri = uri
         self.base = base
         self.filter_pattern = filter_pattern
@@ -85,7 +84,7 @@ class UserInfoLDAP(UserInfo):
             except KeyError:
                 pass
             else:
-                avaspec: Dict[str, List[str]] = {}
+                avaspec: dict[str, list[str]] = {}
                 for key, val in _claims.items():
                     try:
                         attr = self.openid2ldap[key]

@@ -11,7 +11,7 @@ from oic.utils.time_util import utc_time_sans_frac
 __author__ = "roland"
 
 
-class JWT(object):
+class JWT:
     def __init__(
         self,
         keyjar,

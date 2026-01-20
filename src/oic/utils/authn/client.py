@@ -48,7 +48,7 @@ def assertion_jwt(cli, keys, audience, algorithm, lifetime=600):
     return at.to_jwt(key=keys, algorithm=algorithm)
 
 
-class ClientAuthnMethod(object):
+class ClientAuthnMethod:
     def __init__(self, cli=None):
         """
         Initialize class.
@@ -198,7 +198,7 @@ class BearerHeader(ClientAuthnMethod):
                 _acc_token = request_args["access_token"]
 
         # Do I need to base64 encode the access token ? Probably !
-        _bearer = "Bearer %s" % _acc_token
+        _bearer = "Bearer {}".format(_acc_token)
         if http_args is None:
             http_args = {"headers": {}}
             http_args["headers"]["Authorization"] = _bearer
@@ -268,7 +268,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             else:
                 raise NoMatchingKey("Wrong key type")
         else:
-            raise NoMatchingKey("No key with kid:%s" % kid)
+            raise NoMatchingKey("No key with kid:{}".format(kid))
 
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
         """

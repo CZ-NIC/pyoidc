@@ -168,7 +168,7 @@ def main():
     args = parser.parse_args()
 
     # Load configuration
-    with open(args.settings, "r") as f:
+    with open(args.settings) as f:
         settings = yaml.safe_load(f)
 
     issuer = args.base.rstrip("/")

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def token_secret_key(sid):
-    return "token_secret_%s" % sid
+    return "token_secret_{}".format(sid)
 
 
 SERVICE_NAME = "OIC"
@@ -27,7 +27,7 @@ FLOW_TYPE = "code"
 CLIENT_CONFIG = {}
 
 
-class OpenIDConnect(object):
+class OpenIDConnect:
     def __init__(self, attribute_map=None, authenticating_authority=None, name="", registration_info=None, **kwargs):
         self.attribute_map = attribute_map
         self.authenticating_authority = authenticating_authority
@@ -90,7 +90,7 @@ class OpenIDConnect(object):
             client.redirect_uris = [callback]
             client.post_logout_redirect_uris = [logout_callback]
             for typ in ["authorization", "token", "userinfo"]:
-                endpoint = "%s_endpoint" % typ
+                endpoint = "{}_endpoint".format(typ)
                 setattr(client, endpoint, self.extra[endpoint])
 
             client.client_id = self.client_id
@@ -146,7 +146,7 @@ class OpenIDConnect(object):
                 acr_values = None
 
             if acr_value is None and acr_values is not None and len(acr_values) > 1:
-                resp_headers = [("Location", str("/rpAcr"))]
+                resp_headers = [("Location", "/rpAcr")]
                 start_response("302 Found", resp_headers)
                 return []
             elif acr_values is not None and len(acr_values) == 1:
@@ -277,7 +277,7 @@ class OpenIDConnect(object):
                 raise
 
             if isinstance(tokenresp, ErrorResponse):
-                return (False, "Invalid response %s." % tokenresp["error"])
+                return (False, "Invalid response {}.".format(tokenresp["error"]))
 
             access_token = tokenresp["access_token"]
         else:
@@ -288,7 +288,7 @@ class OpenIDConnect(object):
         inforesp = self.get_userinfo(client, authresp, access_token)
 
         if isinstance(inforesp, ErrorResponse):
-            return False, "Invalid response %s." % inforesp["error"], session
+            return False, "Invalid response {}.".format(inforesp["error"]), session
 
         userinfo.update(inforesp.to_dict())
 

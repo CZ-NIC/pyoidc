@@ -1,7 +1,6 @@
 import json
 import logging
 import socket
-from typing import Dict
 from urllib.parse import parse_qs, urlparse
 
 from jwkest import b64e
@@ -157,10 +156,10 @@ class Provider(provider.Provider):
             self.capabilities = self.provider_features()
         self.baseurl = baseurl or name
         self.hostname = hostname or socket.gethostname()
-        self.kid: Dict[str, Dict[str, str]] = {"sig": {}, "enc": {}}
+        self.kid: dict[str, dict[str, str]] = {"sig": {}, "enc": {}}
         self.config = config or {}
         self.behavior = behavior or {}
-        self.token_policy: Dict[str, Dict[str, Dict[str, int]]] = {
+        self.token_policy: dict[str, dict[str, dict[str, int]]] = {
             "access_token": {},
             "refresh_token": {},
         }
@@ -206,7 +205,7 @@ class Provider(provider.Provider):
         _uri = []
         for url, query in items:
             if query:
-                _uri.append("%s?%s" % (url, query))
+                _uri.append("{}?{}".format(url, query))
             else:
                 _uri.append(url)
         return _uri
@@ -224,7 +223,7 @@ class Provider(provider.Provider):
             msg = "Failed to load client keys: {}"
             logger.error(msg.format(sanitize(request.to_dict())))
             logger.error("%s", err)
-            error = ClientRegistrationError(error="invalid_configuration_parameter", error_description="%s" % err)
+            error = ClientRegistrationError(error="invalid_configuration_parameter", error_description="{}".format(err))
             return Response(
                 error.to_json(),
                 content="application/json",
@@ -293,7 +292,7 @@ class Provider(provider.Provider):
         # If I support client info endpoint
         if ClientInfoEndpoint in self.endp:
             _cinfo["registration_access_token"] = rndstr(32)
-            _cinfo["registration_client_uri"] = "%s%s%s?client_id=%s" % (
+            _cinfo["registration_client_uri"] = "{}{}{}?client_id={}".format(
                 self.name,
                 self.client_info_url,
                 ClientInfoEndpoint.etype,
@@ -419,10 +418,10 @@ class Provider(provider.Provider):
         try:
             _request.verify(keyjar=self.keyjar)
         except InvalidRedirectUri as err:
-            msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="%s" % err)
+            msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="{}".format(err))
             return BadRequest(msg.to_json(), content="application/json")
         except (MissingPage, VerificationError) as err:
-            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="{}".format(err))
             return BadRequest(msg.to_json(), content="application/json")
 
         # If authentication is necessary at registration
@@ -442,10 +441,10 @@ class Provider(provider.Provider):
         try:
             client_id = self.create_new_client(_request, client_restrictions)
         except CapabilitiesMisMatch as err:
-            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="{}".format(err))
             return BadRequest(msg.to_json(), content="application/json")
         except RestrictionError as err:
-            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="{}".format(err))
             return BadRequest(msg.to_json(), content="application/json")
 
         return self.client_info(client_id)
@@ -486,10 +485,10 @@ class Provider(provider.Provider):
             try:
                 _request.verify()
             except InvalidRedirectUri as err:
-                msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="%s" % err)
+                msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="{}".format(err))
                 return BadRequest(msg.to_json(), content="application/json")
             except (MissingPage, VerificationError) as err:
-                msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
+                msg = ClientRegistrationError(error="invalid_client_metadata", error_description="{}".format(err))
                 return BadRequest(msg.to_json(), content="application/json")
 
             try:
@@ -677,7 +676,7 @@ class Provider(provider.Provider):
             client_id = self.client_authn(self, req, authn)
         except FailedAuthentication as err:
             logger.error("%s", err)
-            error = TokenErrorResponse(error="unauthorized_client", error_description="%s" % err)
+            error = TokenErrorResponse(error="unauthorized_client", error_description="{}".format(err))
             return Response(error.to_json(), content="application/json", status="401 Unauthorized")
 
         logger.debug("%s: %s requesting %s", endpoint, client_id, req.to_dict())

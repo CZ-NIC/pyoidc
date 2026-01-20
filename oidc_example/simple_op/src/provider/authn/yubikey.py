@@ -24,7 +24,7 @@ class YubicoOTP(AuthnModule):
         template="yubico_otp.jinja2",
         **kwargs,
     ):
-        super(YubicoOTP, self).__init__(None)
+        super().__init__(None)
         self.template_env = template_env
         self.template = template
 

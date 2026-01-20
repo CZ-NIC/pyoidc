@@ -1,7 +1,6 @@
 import copy
 import hashlib
 import logging
-from typing import Dict
 from urllib.parse import urlsplit
 
 from oic import oic, rndstr
@@ -201,7 +200,7 @@ class Client(oic.Client):
                 inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
 
                 if isinstance(inforesp, ErrorResponse):
-                    self._err("Invalid response %s." % inforesp["error"])
+                    self._err("Invalid response {}.".format(inforesp["error"]))
 
                 userinfo = inforesp.to_dict()
 
@@ -232,7 +231,7 @@ class Client(oic.Client):
             return {"user_id": user_id, "id_token": _id_token, "access_token": _token}
 
 
-class OIDCClients(object):
+class OIDCClients:
     def __init__(self, config, base_url, seed="", jwks_info=None, verify_ssl=True):
         """
         Initialize the client.
@@ -240,12 +239,12 @@ class OIDCClients(object):
         :param config: Imported configuration module
         :return:
         """
-        self.client: Dict[str, Client] = {}
+        self.client: dict[str, Client] = {}
         self.client_cls = Client
         self.config = config
         self.seed = seed or rndstr(16)
         self.seed = self.seed.encode("utf8")
-        self.path: Dict[str, str] = {}
+        self.path: dict[str, str] = {}
         self.base_url = base_url
         self.jwks_info = jwks_info
         self.verify_ssl = verify_ssl

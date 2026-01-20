@@ -108,7 +108,7 @@ def test_factory():
     sid = stateID("https://example.org/", consumer.seed)
     _state = sid
     consumer._backup(sid)
-    consumer.sdb["seed:%s" % consumer.seed] = sid
+    consumer.sdb["seed:{}".format(consumer.seed)] = sid
 
     kaka = make_cookie(CLIENT_CONFIG["client_id"], _state, consumer.seed, expire=360, path="/")
 
@@ -125,7 +125,7 @@ def test_factory():
     assert _oac.seed == consumer.seed
 
 
-class TestConsumer(object):
+class TestConsumer:
     @pytest.fixture(autouse=True)
     def create_consumer(self):
         self.consumer = Consumer(
@@ -288,7 +288,7 @@ class TestConsumer(object):
             c_param.update({"expires_in_hours": SINGLE_OPTIONAL_INT})
 
             def __init__(self, **kwargs):
-                super(AccessTokenResponseWrapper, self).__init__(**kwargs)
+                super().__init__(**kwargs)
                 if "expires_in" in self and self["expires_in"]:
                     self["expires_in_hours"] = self["expires_in"] // 3600
 

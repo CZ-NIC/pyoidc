@@ -232,7 +232,7 @@ def test_verify_header():
         util.verify_header(FakeResponse(json_header), "undefined")  # type: ignore
 
 
-class TestRenderTemplate(object):
+class TestRenderTemplate:
     def test_wrong_template(self):
         with pytest.raises(TemplateException):
             render_template("bogus_template", {"action": "action"})
@@ -276,7 +276,7 @@ class TestRenderTemplate(object):
         assert '<form method="post" action="action">' in response
 
 
-class TestInputs(object):
+class TestInputs:
     def test_empty(self):
         assert inputs({}) == ""
 

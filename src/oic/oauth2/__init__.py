@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Optional, Union, cast
 from urllib.parse import urlparse
 
 import requests
@@ -69,7 +69,7 @@ REQUEST2ENDPOINT = {
     "TokenRevocationRequest": "token_endpoint",
 }
 
-RESPONSE2ERROR: Dict[str, List] = {
+RESPONSE2ERROR: dict[str, list] = {
     "AuthorizationResponse": [AuthorizationErrorResponse, TokenErrorResponse],
     "AccessTokenResponse": [TokenErrorResponse],
 }
@@ -163,7 +163,7 @@ class Client(PBase):
         config=None,
         client_cert=None,
         timeout=None,
-        message_factory: Type[MessageFactory] = OauthMessageFactory,
+        message_factory: type[MessageFactory] = OauthMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
         """
@@ -222,10 +222,10 @@ class Client(PBase):
         self.nonce: Optional[str] = None
 
         self.message_factory = message_factory
-        self.grant: Dict[str, Grant] = {}
-        self.state2nonce: Dict[str, str] = {}
+        self.grant: dict[str, Grant] = {}
+        self.state2nonce: dict[str, str] = {}
         # own endpoint
-        self.redirect_uris: List[str] = []
+        self.redirect_uris: list[str] = []
         # Default behaviour
         self.response_type = ["code"]
 
@@ -235,14 +235,14 @@ class Client(PBase):
         self.token_revocation_endpoint: Optional[str] = None
 
         self.request2endpoint = REQUEST2ENDPOINT
-        self.response2error: Dict[str, List] = RESPONSE2ERROR
+        self.response2error: dict[str, list] = RESPONSE2ERROR
         self.grant_class = Grant
         self.token_class = Token
 
         self.provider_info: Message = ASConfigurationResponse()
         self._c_secret: str = ""
-        self.kid: Dict[str, Dict] = {"sig": {}, "enc": {}}
-        self.authz_req: Dict[str, Message] = {}
+        self.kid: dict[str, dict] = {"sig": {}, "enc": {}}
+        self.authz_req: dict[str, Message] = {}
 
         # the OAuth issuer is the URL of the authorization server's
         # configuration information location
@@ -251,7 +251,7 @@ class Client(PBase):
             self.issuer = self.config["issuer"]
         except KeyError:
             self.issuer = ""
-        self.allow: Dict[str, Any] = {}
+        self.allow: dict[str, Any] = {}
 
     def store_response(self, clinst, text):
         pass
@@ -282,7 +282,7 @@ class Client(PBase):
         self.token_endpoint = None
         self.redirect_uris = []
 
-    def _parse_args(self, request: Type[Message], **kwargs) -> Dict:
+    def _parse_args(self, request: type[Message], **kwargs) -> dict:
         ar_args = kwargs.copy()
 
         for prop in request.c_param.keys():
@@ -312,10 +312,10 @@ class Client(PBase):
             try:
                 uri = getattr(self, endpoint)
             except Exception:
-                raise MissingEndpoint("No '%s' specified" % endpoint)
+                raise MissingEndpoint("No '{}' specified".format(endpoint))
 
         if not uri:
-            raise MissingEndpoint("No '%s' specified" % endpoint)
+            raise MissingEndpoint("No '{}' specified".format(endpoint))
 
         return uri
 
@@ -330,7 +330,7 @@ class Client(PBase):
         try:
             return self.grant[state]
         except KeyError:
-            raise GrantError("No grant found for state:'%s'" % state)
+            raise GrantError("No grant found for state:'{}'".format(state))
 
     def get_token(self, also_expired: bool = False, **kwargs) -> Token:
         """
@@ -374,7 +374,7 @@ class Client(PBase):
                 if token.replaced or not token.is_valid():
                     grant.delete_token(token)
 
-    def construct_request(self, request: Type[Message], request_args=None, extra_args=None):
+    def construct_request(self, request: type[Message], request_args=None, extra_args=None):
         if request_args is None:
             request_args = {}
 
@@ -387,7 +387,7 @@ class Client(PBase):
 
     def construct_Message(
         self,
-        request: Type[Message] = Message,
+        request: type[Message] = Message,
         request_args=None,
         extra_args=None,
         **kwargs,
@@ -396,7 +396,7 @@ class Client(PBase):
 
     def construct_AuthorizationRequest(
         self,
-        request: Optional[Type[AuthorizationRequest]] = None,
+        request: Optional[type[AuthorizationRequest]] = None,
         request_args=None,
         extra_args=None,
         **kwargs,
@@ -424,10 +424,10 @@ class Client(PBase):
         self,
         request: Optional[
             Union[
-                Type[AccessTokenRequest],
-                Type[ROPCAccessTokenRequest],
-                Type[CCAccessTokenRequest],
-                Type[ExtensionTokenRequest],
+                type[AccessTokenRequest],
+                type[ROPCAccessTokenRequest],
+                type[CCAccessTokenRequest],
+                type[ExtensionTokenRequest],
             ]
         ] = None,
         request_args=None,
@@ -450,7 +450,7 @@ class Client(PBase):
 
             if not grant.is_valid():
                 raise GrantExpired(
-                    "Authorization Code to old %s > %s" % (utc_time_sans_frac(), grant.grant_expiration_time)
+                    "Authorization Code to old {} > {}".format(utc_time_sans_frac(), grant.grant_expiration_time)
                 )
 
             request_args["code"] = grant.code
@@ -471,7 +471,7 @@ class Client(PBase):
 
     def construct_RefreshAccessTokenRequest(
         self,
-        request: Optional[Type[RefreshAccessTokenRequest]] = None,
+        request: Optional[type[RefreshAccessTokenRequest]] = None,
         request_args=None,
         extra_args=None,
         **kwargs,
@@ -494,7 +494,7 @@ class Client(PBase):
 
     def construct_ResourceRequest(
         self,
-        request: Optional[Type[ResourceRequest]] = None,
+        request: Optional[type[ResourceRequest]] = None,
         request_args=None,
         extra_args=None,
         **kwargs,
@@ -511,12 +511,12 @@ class Client(PBase):
 
     def uri_and_body(
         self,
-        reqmsg: Type[Message],
+        reqmsg: type[Message],
         cis: Message,
         method="POST",
         request_args=None,
         **kwargs,
-    ) -> Tuple[str, str, Dict, Message]:
+    ) -> tuple[str, str, dict, Message]:
         if "endpoint" in kwargs and kwargs["endpoint"]:
             uri = kwargs["endpoint"]
         else:
@@ -532,18 +532,18 @@ class Client(PBase):
 
     def request_info(
         self,
-        request: Type[Message],
+        request: type[Message],
         method="POST",
         request_args=None,
         extra_args=None,
         lax=False,
         **kwargs,
-    ) -> Tuple[str, str, Dict, Message]:
+    ) -> tuple[str, str, dict, Message]:
         if request_args is None:
             request_args = {}
 
         try:
-            cls = getattr(self, "construct_%s" % request.__name__)
+            cls = getattr(self, "construct_{}".format(request.__name__))
             cis = cls(request_args=request_args, extra_args=extra_args, **kwargs)
         except AttributeError:
             cis = self.construct_request(request, request_args, extra_args)
@@ -592,8 +592,8 @@ class Client(PBase):
 
     def parse_response(
         self,
-        response: Type[Message],
-        info: Union[str, Dict] = "",
+        response: type[Message],
+        info: Union[str, dict] = "",
         sformat: ENCODINGS = "json",
         state: str = "",
         **kwargs,
@@ -625,7 +625,7 @@ class Client(PBase):
 
         if "error" in resp and not isinstance(resp, ErrorResponse):
             resp = None
-            errmsgs: List[Any] = []
+            errmsgs: list[Any] = []
             try:
                 errmsgs = _r2e[response.__name__]
             except KeyError:
@@ -707,7 +707,7 @@ class Client(PBase):
     def parse_request_response(
         self,
         reqresp: requests.Response,
-        response: Optional[Type[Message]] = None,
+        response: Optional[type[Message]] = None,
         body_type: Optional[ENCODINGS] = None,
         state="",
         **kwargs,
@@ -717,14 +717,14 @@ class Client(PBase):
             return reqresp
         elif reqresp.status_code == 500:
             logger.error("(%d) %s", reqresp.status_code, sanitize(reqresp.text))
-            raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
+            raise ParseError("ERROR: Something went wrong: {}".format(reqresp.text))
 
         if reqresp.status_code in SUCCESSFUL or (reqresp.status_code in [400, 401] and response):
             verified_body_type = verify_header(reqresp, body_type)
         else:
             # Any other error
             logger.error("(%d) %s", reqresp.status_code, sanitize(reqresp.text))
-            raise HttpError("HTTP ERROR: %s [%s] on %s" % (reqresp.text, reqresp.status_code, reqresp.url))
+            raise HttpError("HTTP ERROR: {} [{}] on {}".format(reqresp.text, reqresp.status_code, reqresp.url))
 
         # we expect some specific response message type, try to parse it
         if response:
@@ -758,7 +758,7 @@ class Client(PBase):
     def request_and_return(
         self,
         url: str,
-        response: Optional[Type[Message]] = None,
+        response: Optional[type[Message]] = None,
         method="GET",
         body=None,
         body_type: ENCODINGS = "json",
@@ -950,7 +950,7 @@ class Client(PBase):
 
     def do_any(
         self,
-        request: Type[Message],
+        request: type[Message],
         endpoint="",
         scope="",
         state="",
@@ -959,7 +959,7 @@ class Client(PBase):
         request_args=None,
         extra_args=None,
         http_args=None,
-        response: Optional[Type[Message]] = None,
+        response: Optional[type[Message]] = None,
         authn_method="",
     ) -> Message:
         url, body, ht_args, _ = self.request_info(
@@ -1068,7 +1068,7 @@ class Client(PBase):
                     _issuer = issuer
 
             if not self.allow.get("issuer_mismatch", False) and _issuer != _pcr_issuer:
-                raise PyoidcError("provider info issuer mismatch '%s' != '%s'" % (_issuer, _pcr_issuer))
+                raise PyoidcError("provider info issuer mismatch '{}' != '{}'".format(_issuer, _pcr_issuer))
 
             self.provider_info = pcr
         else:
@@ -1113,7 +1113,7 @@ class Client(PBase):
                 logger.error(sanitize(_err_txt))
                 raise ParseError(_err_txt)
         else:
-            raise CommunicationError("Trying '%s', status %s" % (url, r.status_code))
+            raise CommunicationError("Trying '{}', status {}".format(url, r.status_code))
 
         self.store_response(pcr, r.text)
         self.handle_provider_config(pcr, issuer, keys, endpoints)
@@ -1127,9 +1127,9 @@ class Server(PBase):
         self,
         verify_ssl: Optional[bool] = None,
         keyjar: Optional[KeyJar] = None,
-        client_cert: Optional[Union[str, Tuple[str, str]]] = None,
+        client_cert: Optional[Union[str, tuple[str, str]]] = None,
         timeout: Optional[float] = None,
-        message_factory: Type[MessageFactory] = OauthMessageFactory,
+        message_factory: type[MessageFactory] = OauthMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
         """
@@ -1186,7 +1186,7 @@ class Server(PBase):
 
     def parse_jwt_request(
         self,
-        request: Type[Message] = AuthorizationRequest,
+        request: type[Message] = AuthorizationRequest,
         txt: str = "",
         keyjar: Optional[KeyJar] = None,
         verify: bool = True,
@@ -1200,7 +1200,7 @@ class Server(PBase):
             areq.verify()
         return areq
 
-    def parse_body_request(self, request: Type[Message] = AccessTokenRequest, body: Optional[str] = None):
+    def parse_body_request(self, request: type[Message] = AccessTokenRequest, body: Optional[str] = None):
         req = request().deserialize(body, "urlencoded")
         req.verify()
         return req

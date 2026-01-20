@@ -6,7 +6,7 @@ import sys
 import traceback
 import warnings
 from functools import cmp_to_key
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 from urllib.parse import parse_qs, unquote, urljoin, urlparse
 
 from jwkest import jws
@@ -78,7 +78,7 @@ AUTH_METHODS_SUPPORTED = [
 ]
 
 
-class Endpoint(object):
+class Endpoint:
     """
     Endpoint class.
 
@@ -147,9 +147,9 @@ def token_response(**kwargs):
 
 def location_url(response_type, redirect_uri, query):
     if response_type in [["code"], ["token"], ["none"]]:
-        return "%s?%s" % (redirect_uri, query)
+        return "{}?{}".format(redirect_uri, query)
     else:
-        return "%s#%s" % (redirect_uri, query)
+        return "{}#{}".format(redirect_uri, query)
 
 
 def max_age(areq):
@@ -173,7 +173,7 @@ def re_authenticate(areq, authn):
 DELIM = "]["
 
 
-class Provider(object):
+class Provider:
     endp = [AuthorizationEndpoint, TokenEndpoint]
 
     def __init__(
@@ -250,7 +250,7 @@ class Provider(object):
         self.default_acr = default_acr
 
         if urlmap is None:
-            self.urlmap: Dict[str, List[str]] = {}
+            self.urlmap: dict[str, list[str]] = {}
         else:
             self.urlmap = urlmap
 
@@ -368,7 +368,7 @@ class Provider(object):
                     raise UnknownClient(areq["client_id"])
             else:
                 logger.info("Registered redirect_uris: %s", sanitize(_cinfo))
-                raise RedirectURIError("Faulty redirect_uri: %s" % areq["redirect_uri"])
+                raise RedirectURIError("Faulty redirect_uri: {}".format(areq["redirect_uri"]))
 
     def verify_capabilities(self, capabilities) -> bool:
         """
@@ -379,7 +379,7 @@ class Provider(object):
         treated as a dictionary.
         """
         _pinfo = self.provider_features()
-        not_supported: Dict[str, Union[str, List[str]]] = {}
+        not_supported: dict[str, Union[str, list[str]]] = {}
         for key, val in capabilities.items():
             if isinstance(val, str):
                 if val not in _pinfo.get(key, ""):
@@ -569,8 +569,8 @@ class Provider(object):
                 areq.deserialize(request, "urlencoded")
             try:
                 redirect_uri = self.get_redirect_uri(areq)
-            except (RedirectURIError, ParameterError, UnknownClient) as err:
-                return error_response("invalid_request", "%s" % err)
+            except (RedirectURIError, ParameterError, UnknownClient) as err2:
+                return error_response("invalid_request", "{}".format(err2))
             try:
                 _rtype = areq["response_type"]
             except KeyError:
@@ -580,14 +580,14 @@ class Provider(object):
             except KeyError:
                 _state = ""
 
-            return redirect_authz_error("invalid_request", redirect_uri, "%s" % err, _state, _rtype)
+            return redirect_authz_error("invalid_request", redirect_uri, "{}".format(err), _state, _rtype)
         except KeyError:
             areq = request_class().deserialize(request, "urlencoded")
             # verify the redirect_uri
             try:
                 self.get_redirect_uri(areq)
             except (RedirectURIError, ParameterError) as err:
-                return error_response("invalid_request", "%s" % err)
+                return error_response("invalid_request", "{}".format(err))
         except Exception as err:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
@@ -628,7 +628,7 @@ class Provider(object):
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError, UnknownClient) as err:
-            return error_response("invalid_request", "%s:%s" % (err.__class__.__name__, err))
+            return error_response("invalid_request", "{}:{}".format(err.__class__.__name__, err))
 
         try:
             keyjar = self.keyjar
@@ -639,7 +639,7 @@ class Provider(object):
             # verify that the request message is correct
             areq.verify(keyjar=keyjar, opponent_id=areq["client_id"])
         except (MissingRequiredAttribute, ValueError, MissingRequiredValue) as err:
-            return redirect_authz_error("invalid_request", redirect_uri, "%s" % err)
+            return redirect_authz_error("invalid_request", redirect_uri, "{}".format(err))
 
         return {"areq": areq, "redirect_uri": redirect_uri}
 
@@ -868,7 +868,7 @@ class Provider(object):
         except Exception:
             raise
 
-        _log_debug("response type: %s" % areq["response_type"])
+        _log_debug("response type: {}".format(areq["response_type"]))
 
         if self.sdb.is_revoked(sid):
             return error_response("access_denied", descr="Token is revoked")
@@ -886,7 +886,7 @@ class Provider(object):
         try:
             redirect_uri = self.get_redirect_uri(areq)
         except (RedirectURIError, ParameterError) as err:
-            return BadRequest("%s" % err)
+            return BadRequest("{}".format(err))
 
         # Must not use HTTP unless implicit grant type and native application
 
@@ -954,7 +954,7 @@ class Provider(object):
             client_id = self.client_authn(self, areq, authn)
         except (FailedAuthentication, AuthnFailure) as err:
             logger.error("%s", err)
-            error = TokenErrorResponse(error="unauthorized_client", error_description="%s" % err)
+            error = TokenErrorResponse(error="unauthorized_client", error_description="{}".format(err))
             return Unauthorized(error.to_json(), content="application/json")
 
         logger.debug("AccessTokenRequest: %s", sanitize(areq))

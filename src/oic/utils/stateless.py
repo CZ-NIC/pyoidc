@@ -1,5 +1,4 @@
 import time
-from typing import List
 
 from oic.oauth2.grant import Grant, Token
 from oic.oauth2.message import SINGLE_OPTIONAL_STRING, SINGLE_REQUIRED_STRING, Message
@@ -21,7 +20,7 @@ class Content(Message):
     c_allowed_values = {"type": ["code", "access", "refresh"]}
 
 
-class StateLess(object):
+class StateLess:
     def __init__(
         self,
         keys,
@@ -39,8 +38,8 @@ class StateLess(object):
             "access": access_validity,
             "refresh": refresh_validity,
         }
-        self.used_grants: List[Grant] = []
-        self.revoked: List[Token] = []
+        self.used_grants: list[Grant] = []
+        self.revoked: list[Token] = []
 
     def __getitem__(self, token):
         """

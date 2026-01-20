@@ -33,7 +33,7 @@ class MailTwoFactor(AuthnModule):
         :param kwargs:
         :return:
         """
-        super(MailTwoFactor, self).__init__(None)
+        super().__init__(None)
         self.template_env = template_env
         self.template = template
 
@@ -85,7 +85,7 @@ class MailTwoFactor(AuthnModule):
 
             # Generate code and send it
             now = time.time()
-            secret = "%d%s" % (now, rndstr(16))
+            secret = f"{int(now)}{rndstr(16)}"
             code = hashlib.sha256(secret.encode("utf-8")).hexdigest()
             self.codes[code] = {"username": username, "time": now}
             self._send_mail(code, receiver)

@@ -102,7 +102,7 @@ SESSION_INFO = {
 }
 
 
-class TestToken(object):
+class TestToken:
     @pytest.fixture(autouse=True)
     def create_token(self):
         kb = KeyBundle(JWKS["keys"])
@@ -135,7 +135,7 @@ class TestToken(object):
         assert _jwt
 
 
-class TestToken2(object):
+class TestToken2:
     @pytest.fixture(autouse=True)
     def create_token(self):
         kb = KeyBundle(JWKS["keys"])
@@ -171,7 +171,7 @@ class TestToken2(object):
         assert info["exp"] - info["iat"] == 1200
 
 
-class TestEncToken(object):
+class TestEncToken:
     @pytest.fixture(autouse=True)
     def create_token(self):
         kb = KeyBundle(JWKS["keys"])
@@ -204,7 +204,7 @@ class TestEncToken(object):
         assert _info
 
 
-class TestSessionDB(object):
+class TestSessionDB:
     @pytest.fixture(autouse=True)
     def create_sdb(self):
         kb = KeyBundle(JWKS["keys"])

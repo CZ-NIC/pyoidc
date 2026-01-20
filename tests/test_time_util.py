@@ -131,7 +131,7 @@ def test_instant():
 def test_valid():
     assert valid("2000-01-12T00:00:00Z") is False
     current_year = datetime.today().year
-    assert valid("%d-01-12T00:00:00Z" % (current_year + 1)) is True
+    assert valid(f"{current_year + 1}-01-12T00:00:00Z") is True
     this_instance = instant()
     assert valid(this_instance) is False  # unless on a very fast machine :-)
     soon = in_a_while(seconds=10)
@@ -145,26 +145,26 @@ def test_timeout():
 
 def test_before():
     current_year = datetime.today().year
-    assert before("%d-01-01T00:00:00Z" % current_year) is False
-    assert before("%d-01-01T00:00:00Z" % (current_year + 1)) is True
+    assert before(f"{current_year}-01-01T00:00:00Z") is False
+    assert before(f"{current_year + 1}-01-01T00:00:00Z") is True
 
 
 def test_after():
     current_year = datetime.today().year
-    assert after("%d-01-01T00:00:00Z" % (current_year + 1)) is False
-    assert after("%d-01-01T00:00:00Z" % current_year) is True
+    assert after(f"{current_year + 1}-01-01T00:00:00Z") is False
+    assert after(f"{current_year}-01-01T00:00:00Z") is True
 
 
 def test_not_before():
     current_year = datetime.today().year
-    assert not_before("%d-01-01T00:00:00Z" % (current_year + 1)) is False
-    assert not_before("%d-01-01T00:00:00Z" % current_year) is True
+    assert not_before(f"{current_year + 1}-01-01T00:00:00Z") is False
+    assert not_before(f"{current_year}-01-01T00:00:00Z") is True
 
 
 def test_not_on_or_after():
     current_year = datetime.today().year
-    assert not_on_or_after("%d-01-01T00:00:00Z" % (current_year + 1)) is True
-    assert not_on_or_after("%d-01-01T00:00:00Z" % current_year) is False
+    assert not_on_or_after(f"{current_year + 1}-01-01T00:00:00Z") is True
+    assert not_on_or_after(f"{current_year}-01-01T00:00:00Z") is False
 
 
 def test_parse_duration_1():

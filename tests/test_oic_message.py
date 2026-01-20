@@ -211,7 +211,7 @@ def test_claims_ser_json():
     assert _eq(claims.keys(), ["name", "nickname", "email", "email_verified", "picture"])
 
 
-class TestProviderConfigurationResponse(object):
+class TestProviderConfigurationResponse:
     def test_deserialize(self):
         resp = {
             "authorization_endpoint": "https://server.example.com/connect/authorize",
@@ -400,7 +400,7 @@ class TestProviderConfigurationResponse(object):
             ProviderConfigurationResponse(**provider_config).verify()
 
 
-class TestRegistrationRequest(object):
+class TestRegistrationRequest:
     def test_deserialize(self):
         msg = {
             "application_type": "web",
@@ -467,7 +467,7 @@ class TestRegistrationRequest(object):
             registration_req.verify()
 
 
-class TestRegistrationResponse(object):
+class TestRegistrationResponse:
     def test_deserialize(self):
         msg = {
             "client_id": "s6BhdRkqt3",
@@ -497,7 +497,7 @@ class TestRegistrationResponse(object):
         assert _eq(msg.keys(), resp.keys())
 
 
-class TestAuthorizationRequest(object):
+class TestAuthorizationRequest:
     def test_deserialize(self):
         query = (
             "response_type=token%20id_token&client_id=0acf77d4-b486-4c99"
@@ -527,7 +527,7 @@ class TestAuthorizationRequest(object):
             ar.verify()
 
 
-class TestAuthorizationResponse(object):
+class TestAuthorizationResponse:
     def test_verify_token_type(self):
         args = {"access_token": "foobar", "token_type": "bearer"}
         ar = AuthorizationResponse(**args)
@@ -539,7 +539,7 @@ class TestAuthorizationResponse(object):
             ar.verify()
 
 
-class TestAccessTokenResponse(object):
+class TestAccessTokenResponse:
     def test_faulty_idtoken(self):
         _now = time_util.utc_time_sans_frac()
         idval = {
@@ -603,7 +603,7 @@ class TestAccessTokenResponse(object):
             at.verify()
 
 
-class TestIdToken(object):
+class TestIdToken:
     """Unittests for IdToken class."""
 
     @freeze_time("2020-01-01 11:00:00")
@@ -1354,7 +1354,7 @@ class TestLogoutToken:
             lt.verify()
 
 
-class TestBackchannelLogout(object):
+class TestBackchannelLogout:
     @pytest.fixture(autouse=True)
     def setup(self):
         self.kj = KeyJar()
@@ -1401,7 +1401,7 @@ class TestBackchannelLogout(object):
             bclr.verify(key=self.key)
 
 
-class TestFrontchannelLogout(object):
+class TestFrontchannelLogout:
     def test_verify_request(self):
         # May be completely empty
         fclr = FrontChannelLogoutRequest()

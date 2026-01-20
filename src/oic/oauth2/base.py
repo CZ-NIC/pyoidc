@@ -18,7 +18,7 @@ __author__ = "roland"
 logger = logging.getLogger(__name__)
 
 
-class PBase(object):
+class PBase:
     """Class for OAuth2 clients and servers."""
 
     def __init__(

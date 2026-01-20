@@ -60,7 +60,7 @@ def static(environ, start_response, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [content]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -124,7 +124,7 @@ def application(environ, start_response):
         atresp = _cli.do_access_token_request(request_args=rargs)
         # Access token should be stored somewhere for later usage
         Token[atresp["state"]] = atresp
-        resp = Response("Got access token: %s" % atresp["access_token"])
+        resp = Response("Got access token: {}".format(atresp["access_token"]))
         return resp(environ, start_response)
 
     return as_choice(environ, start_response)

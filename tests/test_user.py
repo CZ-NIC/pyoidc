@@ -44,7 +44,7 @@ def create_return_form_env(user, password, query):
     return urlencode(_dict)
 
 
-class TestUsernamePasswordMako(object):
+class TestUsernamePasswordMako:
     def test_authenticated_as_no_cookie(self):
         authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authorization_endpoint")
         res = authn.authenticated_as()

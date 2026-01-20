@@ -80,7 +80,7 @@ def static(self, environ, start_response, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -94,7 +94,7 @@ def key_rollover(self, environ, start_response, _):
     _txt = get_post(environ)
     _jwks = json.loads(_txt)
     # logger.info("Key rollover to")
-    provider.do_key_rollover(_jwks, "key_%d_%%d" % int(time.time()))
+    provider.do_key_rollover(_jwks, f"key_{int(time.time())}_%d")
     # Dump to file
     f = open(jwksFileName, "w")
     f.write(json.dumps(provider.keyjar.export_jwks()))
@@ -109,7 +109,7 @@ def clear_keys(self, environ, start_response, _):
     return resp(environ, start_response)
 
 
-class Application(object):
+class Application:
     def __init__(self, provider, urls):
         self.provider = provider
 
@@ -138,7 +138,7 @@ class Application(object):
         )
 
         for endp in self.endpoints:
-            self.urls.append(("^%s" % endp.etype, endp.func))
+            self.urls.append(("^{}".format(endp.etype), endp.func))
 
     # noinspection PyUnusedLocal
     def safe(self, environ, start_response):
@@ -163,7 +163,7 @@ class Application(object):
             resp = Unauthorized("Not authorized")
             return resp(environ, start_response)
 
-        info = "'%s' secrets" % _sinfo["sub"]
+        info = "'{}' secrets".format(_sinfo["sub"])
         resp = Response(info)
         return resp(environ, start_response)
 
@@ -172,7 +172,7 @@ class Application(object):
         try:
             info = open(environ["PATH_INFO"]).read()
             resp = Response(info)
-        except (OSError, IOError):
+        except OSError:
             resp = NotFound(environ["PATH_INFO"])
 
         return resp(environ, start_response)
@@ -287,11 +287,11 @@ class Application(object):
                 try:
                     return callback(environ, start_response)
                 except Exception as err:
-                    print("%s" % err)
+                    print("{}".format(err))
                     message = traceback.format_exception(*sys.exc_info())
                     print(message)
                     logger.exception("%s", err)
-                    resp = ServiceError("%s" % err)
+                    resp = ServiceError("{}".format(err))
                     return resp(environ, start_response)
 
         LOGGER.debug("unknown side: %s", path)
@@ -330,7 +330,7 @@ if __name__ == "__main__":
     config.ISSUER = config.ISSUER + ":{}/".format(config.PORT)
     config.SERVICEURL = config.SERVICEURL.format(issuer=config.ISSUER)
     endPoints = config.AUTHENTICATION["UserPassword"]["EndPoints"]
-    fullEndPointsPath = ["%s%s" % (config.ISSUER, ep) for ep in endPoints]
+    fullEndPointsPath = ["{}{}".format(config.ISSUER, ep) for ep in endPoints]
 
     # TODO: why this instantiation happens so early? can I move it later?
     # An OIDC Authorization/Authentication server is designed to
@@ -350,7 +350,7 @@ if __name__ == "__main__":
         "login.mako",  # a mako template
         lookup,  # lookup template
         usernamePasswords,  # username/password dictionary-like database
-        "%sauthorization" % config.ISSUER,  # where to send the user after authentication
+        "{}authorization".format(config.ISSUER),  # where to send the user after authentication
         None,  # templ_arg_func ??!!
         fullEndPointsPath,
     )  # verification endpoints
@@ -443,7 +443,7 @@ if __name__ == "__main__":
         f = open(jwksFileName, "w")
         f.write(json.dumps(jwks))
         f.close()
-        provider.jwks_uri = "%s%s" % (provider.baseurl, jwksFileName)
+        provider.jwks_uri = "{}{}".format(provider.baseurl, jwksFileName)
 
     # for b in OAS.keyjar[""]:
     #    LOGGER.info("OC3 server keys: %s" % b)

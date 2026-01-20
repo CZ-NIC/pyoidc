@@ -2,7 +2,6 @@ import hashlib
 import logging
 import time
 import warnings
-from typing import Dict
 
 from oic import rndstr
 from oic.exception import AuthzError, PyoidcError
@@ -246,7 +245,7 @@ class Consumer(Client):
         logger.debug("- begin -")
 
         # Store the request and the redirect uri used
-        self.redirect_uris = ["%s%s" % (baseurl, self.authz_page)]
+        self.redirect_uris = ["{}{}".format(baseurl, self.authz_page)]
         self._request = request
 
         # Put myself in the dictionary of sessions, keyed on session-id
@@ -256,7 +255,7 @@ class Consumer(Client):
         sid = stateID(request, self.seed)
         self.grant[sid] = Grant(seed=self.seed)
         self._backup(sid)
-        self.sdb["seed:%s" % self.seed] = sid
+        self.sdb["seed:{}".format(self.seed)] = sid
 
         if not response_type:
             response_type = self.response_type
@@ -336,8 +335,8 @@ class Consumer(Client):
     def client_auth_info(self):
         if self.password:
             http_args = {"client_password": self.password}
-            request_args: Dict[str, str] = {}
-            extra_args: Dict[str, str] = {}
+            request_args: dict[str, str] = {}
+            extra_args: dict[str, str] = {}
         elif self.client_secret:
             http_args = {}
             request_args = {

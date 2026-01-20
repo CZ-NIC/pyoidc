@@ -1,5 +1,4 @@
 import json
-from typing import Dict
 from urllib.parse import parse_qs, urlparse
 
 from Cryptodome.PublicKey import RSA
@@ -28,7 +27,7 @@ def sign_http_args(method, url, headers, body=""):
     return kwargs
 
 
-class PoPCallBack(object):
+class PoPCallBack:
     def __init__(self, key, alg):
         self.key = key
         self.alg = alg
@@ -49,11 +48,11 @@ class PoPCallBack(object):
         return kwargs
 
 
-class PoPClient(object):
+class PoPClient:
     def __init__(self, key_size=2048, sign_alg="RS256"):
         self.key_size = key_size
-        self.state2key: Dict[str, RSAKey] = {}
-        self.token2key: Dict[str, RSAKey] = {}
+        self.state2key: dict[str, RSAKey] = {}
+        self.token2key: dict[str, RSAKey] = {}
         self.alg = sign_alg
 
     def update(self, msg, state, key_size=0):
@@ -82,9 +81,9 @@ class PoPClient(object):
         self.token2key[resp["access_token"]] = self.state2key[resp["state"]]
 
 
-class PoPAS(object):
+class PoPAS:
     def __init__(self, me):
-        self.thumbprint2key: Dict[str, RSAKey] = {}
+        self.thumbprint2key: dict[str, RSAKey] = {}
         self.keyjar = None
         self.me = me
 
@@ -113,9 +112,9 @@ class PoPAS(object):
         return tir
 
 
-class PoPRS(object):
+class PoPRS:
     def __init__(self):
-        self.token2key: Dict[str, RSAKey] = {}
+        self.token2key: dict[str, RSAKey] = {}
 
     def store_key(self, access_token, tir):
         """

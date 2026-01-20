@@ -3,7 +3,7 @@ import copy
 __author__ = "rolandh"
 
 
-class UserInfo(object):
+class UserInfo:
     """Read only interface to a user info store."""
 
     def __init__(self, db=None):

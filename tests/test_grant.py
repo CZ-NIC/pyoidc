@@ -16,7 +16,7 @@ def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
-class TestGrant(object):
+class TestGrant:
     def test_expiration_time(self):
         grant = Grant()
         assert grant.exp_in == 600
@@ -94,7 +94,7 @@ class TestGrant(object):
         assert len(grant.tokens) == 1
 
 
-class TestToken(object):
+class TestToken:
     def test_access_token(self):
         atr = AccessTokenResponse(
             access_token="2YotnFZFEjr1zCsicMWpAA",

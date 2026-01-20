@@ -120,7 +120,7 @@ class RegistrationRequest(Message):
         if "redirect_uris" in self:
             for uri in self["redirect_uris"]:
                 if urlparse(uri).fragment:
-                    raise InvalidRedirectUri("redirect_uri contains fragment: %s" % uri)
+                    raise InvalidRedirectUri("redirect_uri contains fragment: {}".format(uri))
 
         for uri in ["client_uri", "logo_uri", "tos_uri", "policy_uri"]:
             if uri in self:
@@ -142,7 +142,7 @@ class RegistrationRequest(Message):
                 _ss.append(unpack_software_statement(_s, "", kwargs["keyjar"]))
             self["__software_statement"] = _ss
 
-        return super(RegistrationRequest, self).verify(**kwargs)
+        return super().verify(**kwargs)
 
 
 class ClientInfoResponse(RegistrationRequest):

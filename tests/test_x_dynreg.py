@@ -31,7 +31,7 @@ def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
-class TestSoftwareStatement(object):
+class TestSoftwareStatement:
     @pytest.fixture(autouse=True)
     def create_provider(self):
         jwks, keyjar, kidd = build_keyjar(KEYS)
@@ -62,7 +62,7 @@ class DummyAuthn(UserAuthnMethod):
         return {"uid": self.user}
 
 
-class TestProvider(object):
+class TestProvider:
     SERVER_INFO = {
         "version": "3.0",
         "issuer": "https://connect-op.heroku.com",
@@ -172,8 +172,8 @@ class TestProvider(object):
 
         resp = self.provider.client_info_endpoint(
             "GET",
-            environ={"HTTP_AUTHORIZATION": "Bearer %s" % (_resp["registration_access_token"],)},
-            query="client_id=%s" % _resp["client_id"],
+            environ={"HTTP_AUTHORIZATION": "Bearer {}".format(_resp["registration_access_token"])},
+            query="client_id={}".format(_resp["client_id"]),
             request=request.to_json(),
         )
 
@@ -212,9 +212,9 @@ class TestProvider(object):
         update_req = RegistrationRequest(**update)
         resp = self.provider.client_info_endpoint(
             request=update_req.to_json(),
-            environ={"HTTP_AUTHORIZATION": "Bearer %s" % (_resp["registration_access_token"],)},
+            environ={"HTTP_AUTHORIZATION": "Bearer {}".format(_resp["registration_access_token"])},
             method="PUT",
-            query="client_id=%s" % _resp["client_id"],
+            query="client_id={}".format(_resp["client_id"]),
         )
 
         _resp_up = ClientInfoResponse().from_json(resp.message)
@@ -245,9 +245,9 @@ class TestProvider(object):
         _resp = ClientInfoResponse().from_json(resp.message)
         resp = self.provider.client_info_endpoint(
             request=request.to_json(),
-            environ={"HTTP_AUTHORIZATION": "Bearer %s" % (_resp["registration_access_token"],)},
+            environ={"HTTP_AUTHORIZATION": "Bearer {}".format(_resp["registration_access_token"])},
             method="DELETE",
-            query="client_id=%s" % _resp["client_id"],
+            query="client_id={}".format(_resp["client_id"]),
         )
 
         assert isinstance(resp, NoContent)
@@ -255,8 +255,8 @@ class TestProvider(object):
         # A read should fail
         resp = self.provider.client_info_endpoint(
             "",
-            environ={"HTTP_AUTHORIZATION": "Bearer %s" % (_resp["registration_access_token"],)},
-            query="client_id=%s" % _resp["client_id"],
+            environ={"HTTP_AUTHORIZATION": "Bearer {}".format(_resp["registration_access_token"])},
+            query="client_id={}".format(_resp["client_id"]),
         )
 
         assert isinstance(resp, Unauthorized)

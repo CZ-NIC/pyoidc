@@ -18,9 +18,9 @@ def db_file_path():
     return db_file.name
 
 
-class TestClientManagementRun(object):
+class TestClientManagementRun:
     def test_help_prints_usage_instructions(self):
-        result = run(CLI_INVOCATION + "--help", shell=True, stdout=PIPE, stderr=PIPE)
+        result = run(CLI_INVOCATION + "--help", shell=True, capture_output=True)
         assert result.stdout.decode().startswith("usage: ")
         assert result.stderr.decode() == ""
 

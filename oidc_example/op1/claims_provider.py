@@ -49,7 +49,7 @@ def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
                 result[key] = identity[key]
             except KeyError:
                 if restr == {"essential": True}:
-                    raise Exception("Missing property '%s'" % key)
+                    raise Exception("Missing property '{}'".format(key))
     else:
         result = identity
 
@@ -144,7 +144,7 @@ ENDPOINTS = [
 URLS = [(r"^.well-known/openid-configuration", op_info)]
 
 for endp in ENDPOINTS:
-    URLS.append(("^%s$" % endp.etype, endp))
+    URLS.append(("^{}$".format(endp.etype), endp))
 
 
 def application(environ, start_response):
@@ -254,12 +254,12 @@ if __name__ == "__main__":
     else:
         if config["baseurl"].endswith("/"):
             config["baseurl"] = config["baseurl"][:-1]
-        OAS.baseurl = "%s:%d" % (config["baseurl"], args.port)
+        OAS.baseurl = f"{config['baseurl']}:{args.port}"
 
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-    OAS.claims_userinfo_endpoint = "%s%s" % (OAS.baseurl, UserClaimsInfoEndpoint.etype)
+    OAS.claims_userinfo_endpoint = "{}{}".format(OAS.baseurl, UserClaimsInfoEndpoint.etype)
 
     SRV = wsgiserver.CherryPyWSGIServer(("0.0.0.0", args.port), application)  # nosec
     SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt", "certs/server.key")

@@ -15,7 +15,7 @@ def cdb():
     return CDB(file.name)
 
 
-class TestCDB(object):
+class TestCDB:
     def test_create(self, cdb):
         info = self._create_new(cdb)
         assert info == cdb[info["client_id"]]

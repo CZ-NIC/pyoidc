@@ -3,9 +3,9 @@ import json
 import logging
 import warnings
 from collections import namedtuple
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from json import JSONDecodeError
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Optional, Union
 from urllib.parse import parse_qs, urlencode
 
 from jwkest import as_unicode, b64d, jwe, jws
@@ -37,7 +37,7 @@ class MissingRequiredAttribute(MessageException):
         self.message = message
 
     def __str__(self):
-        return "Missing required attribute '%s'" % self.args[0]
+        return "Missing required attribute '{}'".format(self.args[0])
 
 
 class MissingRequiredValue(MessageException):
@@ -127,7 +127,7 @@ def jwt_header(txt):
 
 class Message(MutableMapping):
     c_param: Mapping[str, ParamDefinition] = {}
-    c_default: Dict[str, Any] = {}
+    c_default: dict[str, Any] = {}
     c_allowed_values = {}  # type: ignore
 
     def __init__(self, **kwargs):
@@ -175,9 +175,9 @@ class Message(MutableMapping):
         if not self.lax:
             for attribute, cparam in _spec.items():
                 if cparam.required and attribute not in self._dict:
-                    raise MissingRequiredAttribute("%s" % attribute, "%s" % self)
+                    raise MissingRequiredAttribute("{}".format(attribute), "{}".format(self))
 
-        params: List[Tuple[str, Optional[Union[str, bytes, Message]]]] = []
+        params: list[tuple[str, Optional[Union[str, bytes, Message]]]] = []
 
         for key, val in self._dict.items():
             cparam = self._extract_cparam(key, _spec)
@@ -216,7 +216,7 @@ class Message(MutableMapping):
         try:
             return urlencode(params)
         except UnicodeEncodeError:
-            _val2: List[Tuple[str, Optional[Union[str, bytes, Message]]]] = []
+            _val2: list[tuple[str, Optional[Union[str, bytes, Message]]]] = []
             for k, v in params:
                 if isinstance(v, str):
                     _val2.append((k, v.encode("utf-8")))
@@ -225,13 +225,13 @@ class Message(MutableMapping):
             return urlencode(_val2)
 
     def serialize(self, method="urlencoded", lev=0, **kwargs):
-        return getattr(self, "to_%s" % method)(lev=lev, **kwargs)
+        return getattr(self, "to_{}".format(method))(lev=lev, **kwargs)
 
     def deserialize(self, info, method="urlencoded", **kwargs):
         try:
-            func = getattr(self, "from_%s" % method)
+            func = getattr(self, "from_{}".format(method))
         except AttributeError:
-            raise FormatError("Unknown serialization method (%s)" % method)
+            raise FormatError("Unknown serialization method ({})".format(method))
         else:
             return func(info, **kwargs)
 
@@ -415,7 +415,7 @@ class Message(MutableMapping):
             else:
                 for v in val:
                     if not isinstance(v, vtype):
-                        raise DecodeError(ERRTXT % (key, "type != %s (%s)" % (vtype, type(v))))
+                        raise DecodeError(ERRTXT % (key, "type != {} ({})".format(vtype, type(v))))
             self._dict[skey] = val
             return
         if isinstance(val, dict):
@@ -427,7 +427,7 @@ class Message(MutableMapping):
                 self._dict[skey] = val
                 return
 
-        raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
+        raise DecodeError(ERRTXT % (key, "type != {}".format(vtype)))
 
     def to_json(self, lev=0, indent=None):
         if lev:
@@ -580,9 +580,9 @@ class Message(MutableMapping):
 
             if "algs" in kwargs and "encalg" in kwargs["algs"]:
                 if kwargs["algs"]["encalg"] != _jw["alg"]:
-                    raise WrongEncryptionAlgorithm("%s != %s" % (_jw["alg"], kwargs["algs"]["encalg"]))
+                    raise WrongEncryptionAlgorithm("{} != {}".format(_jw["alg"], kwargs["algs"]["encalg"]))
                 if kwargs["algs"]["encenc"] != _jw["enc"]:
-                    raise WrongEncryptionAlgorithm("%s != %s" % (_jw["enc"], kwargs["algs"]["encenc"]))
+                    raise WrongEncryptionAlgorithm("{} != {}".format(_jw["enc"], kwargs["algs"]["encenc"]))
             if keyjar:
                 dkeys = keyjar.get_decrypt_key(owner="")
                 if "sender" in kwargs:
@@ -608,7 +608,7 @@ class Message(MutableMapping):
             if "algs" in kwargs and "sign" in kwargs["algs"]:
                 _alg = _jw.jwt.headers["alg"]
                 if kwargs["algs"]["sign"] != _alg:
-                    raise WrongSigningAlgorithm("%s != %s" % (_alg, kwargs["algs"]["sign"]))
+                    raise WrongSigningAlgorithm("{} != {}".format(_alg, kwargs["algs"]["sign"]))
             try:
                 _jwt = JWT().unpack(txt)
                 jso = _jwt.payload()
@@ -632,7 +632,7 @@ class Message(MutableMapping):
 
                     if "alg" in _header and _header["alg"] != "none":
                         if not key:
-                            raise MissingSigningKey("alg=%s" % _header["alg"])
+                            raise MissingSigningKey("alg={}".format(_header["alg"]))
 
                     logger.debug("Found signing key.")
                     try:
@@ -685,11 +685,11 @@ class Message(MutableMapping):
             val = self._dict.get(attribute)
             if val is None:
                 if cparam.required:
-                    raise MissingRequiredAttribute("%s" % attribute)
+                    raise MissingRequiredAttribute("{}".format(attribute))
                 continue
             if cparam.type is not bool and not val:
                 if cparam.required:
-                    raise MissingRequiredAttribute("%s" % attribute)
+                    raise MissingRequiredAttribute("{}".format(attribute))
                 continue
 
             if attribute not in _allowed:
@@ -739,12 +739,12 @@ class Message(MutableMapping):
         _l = as_unicode(location)
         _qp = as_unicode(self.to_urlencoded())
         if fragment_enc:
-            return "%s#%s" % (_l, _qp)
+            return "{}#{}".format(_l, _qp)
         else:
             if "?" in location:
-                return "%s&%s" % (_l, _qp)
+                return "{}&{}".format(_l, _qp)
             else:
-                return "%s?%s" % (_l, _qp)
+                return "{}?{}".format(_l, _qp)
 
     def __setitem__(self, key, value):
         try:
@@ -794,7 +794,7 @@ class Message(MutableMapping):
             for key, val in item.items():
                 self._dict[key] = val
         else:
-            raise ValueError("Can't update message using: '%s'" % (item,))
+            raise ValueError("Can't update message using: '{}'".format(item))
 
     def to_jwe(self, keys, enc, alg, lev=0):
         """
@@ -865,7 +865,7 @@ def add_non_standard(msg1, msg2):
 
 def list_serializer(vals, sformat="urlencoded", lev=0):
     if isinstance(vals, str) or not isinstance(vals, list):
-        raise ValueError("Expected list: %s" % vals)
+        raise ValueError("Expected list: {}".format(vals))
     if sformat == "urlencoded":
         return " ".join(vals)
     else:
@@ -1004,7 +1004,7 @@ class AuthorizationResponse(Message):
     }
 
     def verify(self, **kwargs):
-        super(AuthorizationResponse, self).verify(**kwargs)
+        super().verify(**kwargs)
 
         if "client_id" in self:
             try:
@@ -1134,7 +1134,7 @@ def factory(msgtype):
     try:
         return MSG[msgtype]
     except KeyError:
-        raise FormatError("Unknown message type: %s" % msgtype)
+        raise FormatError("Unknown message type: {}".format(msgtype))
 
 
 MessageTuple = namedtuple("MessageTuple", ["request_cls", "response_cls"])

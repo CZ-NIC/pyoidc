@@ -1,7 +1,7 @@
 __author__ = "rolandh"
 
 
-class ClaimsMode(object):
+class ClaimsMode:
     def __init__(self, user2mode):
         self.user2mode = user2mode
 
