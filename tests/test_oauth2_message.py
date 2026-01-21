@@ -885,7 +885,7 @@ def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer():
 
     msg.get_verify_keys(KEYJARS["A"], keys, {"iss": "A"}, header, {}, no_kid_issuer=no_kid_issuer)
     assert len(keys) == 3
-    assert set([k.kid for k in keys]) == set(a_kids)
+    assert {k.kid for k in keys} == set(a_kids)
 
 
 def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer_lim():
@@ -900,7 +900,7 @@ def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer_lim():
 
     msg.get_verify_keys(KEYJARS["A"], keys, {"iss": "A"}, header, {}, no_kid_issuer=no_kid_issuer)
     assert len(keys) == 2
-    assert set([k.kid for k in keys]) == set(a_kids)
+    assert {k.kid for k in keys} == set(a_kids)
 
 
 def test_get_verify_keys_matching_kid():

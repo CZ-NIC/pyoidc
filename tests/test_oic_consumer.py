@@ -147,17 +147,17 @@ class TestOICConsumer:
     def test_backup_restore(self):
         authz_org_url = "http://example.org/authorization"
 
-        _dict = sorted(list(self.consumer.__dict__.items()))
+        _dict = sorted(self.consumer.__dict__.items())
 
         self.consumer._backup("sid")
         self.consumer.restore("sid")
-        assert sorted(_dict) == sorted(list(self.consumer.__dict__.items()))
+        assert sorted(_dict) == sorted(self.consumer.__dict__.items())
 
         self.consumer.authorization_endpoint = authz_org_url
-        assert _dict != sorted(list(self.consumer.__dict__.items()))
+        assert _dict != sorted(self.consumer.__dict__.items())
 
         self.consumer.restore("sid")
-        assert _dict == sorted(list(self.consumer.__dict__.items()))
+        assert _dict == sorted(self.consumer.__dict__.items())
 
     def test_backup_restore_update(self):
         authz_org_url = "http://example.org/authorization"

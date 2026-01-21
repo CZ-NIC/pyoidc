@@ -226,7 +226,7 @@ PREFERENCE2PROVIDER = {
     "grant_types": "grant_types_supported",
 }
 
-PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
+PROVIDER2PREFERENCE = {v: k for k, v in PREFERENCE2PROVIDER.items()}
 
 PROVIDER_DEFAULT = {
     "token_endpoint_auth_method": "client_secret_basic",
@@ -897,7 +897,7 @@ class Client(oauth2.Client):
 
         path, body, kwargs = get_or_post(uri, method, uir, **kwargs)
 
-        h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])
+        h_args = {k: v for k, v in kwargs.items() if k in HTTP_ARGS}
 
         return path, body, method, h_args
 
@@ -980,7 +980,7 @@ class Client(oauth2.Client):
     def get_userinfo_claims(self, access_token, endpoint, method="POST", schema_class=OpenIDSchema, **kwargs):
         uir = UserInfoRequest(access_token=access_token)
 
-        h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])
+        h_args = {k: v for k, v in kwargs.items() if k in HTTP_ARGS}
 
         if "authn_method" in kwargs:
             http_args = self.init_authentication_method(**kwargs)
@@ -1017,7 +1017,7 @@ class Client(oauth2.Client):
                     aggregated_claims = Message().from_jwt(spec["JWT"].encode("utf-8"), keyjar=self.keyjar, sender=csrc)
                     claims = [value for value, src in userinfo["_claim_names"].items() if src == csrc]
 
-                    if set(claims) != set(list(aggregated_claims.keys())):
+                    if set(claims) != set(aggregated_claims.keys()):
                         logger.warning("Claims from claim source doesn't match what's in the userinfo")
 
                     for key, vals in aggregated_claims.items():
@@ -1057,7 +1057,7 @@ class Client(oauth2.Client):
 
                 claims = [value for value, src in userinfo["_claim_names"].items() if src == csrc]
 
-                if set(claims) != set(list(_uinfo.keys())):
+                if set(claims) != set(_uinfo.keys()):
                     logger.warning("Claims from claim source doesn't match what's in the userinfo")
 
                 for key, vals in _uinfo.items():
@@ -1816,7 +1816,7 @@ def scope2claims(scopes, extra_scope_dict=None):
         trans_map.update(extra_scope_dict)
     for scope in scopes:
         try:
-            claims = dict([(name, None) for name in trans_map[scope]])
+            claims = dict.fromkeys(trans_map[scope])
             res.update(claims)
         except KeyError:
             continue

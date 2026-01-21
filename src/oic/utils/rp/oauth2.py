@@ -214,7 +214,7 @@ class OAuthClients:
                 behaviour
         :return: client instance
         """
-        _key_set = set(list(kwargs.keys()))
+        _key_set = set(kwargs.keys())
         try:
             _verify_ssl = kwargs["verify_ssl"]
         except KeyError:

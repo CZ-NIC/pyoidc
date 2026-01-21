@@ -793,7 +793,7 @@ class TestClient:
     def test_verify_id_token_reject_wrong_aud(self, monkeypatch):
         issuer = "https://provider.example.com"
         monkeypatch.setattr(self.client, "provider_info", {"issuer": issuer})
-        id_token = IdToken(**dict(iss=issuer, aud=["nobody"]))
+        id_token = IdToken(**{"iss": issuer, "aud": ["nobody"]})
 
         with pytest.raises(OtherError) as exc:
             self.client._verify_id_token(id_token)
@@ -803,11 +803,11 @@ class TestClient:
         issuer = "https://provider.example.com"
         monkeypatch.setattr(self.client, "provider_info", {"issuer": issuer})
         id_token = IdToken(
-            **dict(
-                iss=issuer,
-                aud=["nobody", "somebody", self.client.client_id],
-                azp="nobody",
-            )
+            **{
+                "iss": issuer,
+                "aud": ["nobody", "somebody", self.client.client_id],
+                "azp": "nobody",
+            }
         )
 
         with pytest.raises(OtherError) as exc:

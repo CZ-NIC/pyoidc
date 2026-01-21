@@ -207,7 +207,7 @@ class Consumer(Client):
             setattr(self, key, val)
 
     def dictionary(self):
-        return dict([(k, v) for k, v in self.__dict__.items() if k not in IGNORE])
+        return {k: v for k, v in self.__dict__.items() if k not in IGNORE}
 
     def _backup(self, sid):
         """Store instance variable values in the session store under a session identifier.

@@ -118,7 +118,7 @@ def gather_keys(comb, collection, jso, target):
 
 
 def swap_dict(dic):
-    return dict([(val, key) for key, val in dic.items()])
+    return {val: key for key, val in dic.items()}
 
 
 def jwt_header(txt):
@@ -402,7 +402,7 @@ class Message(MutableMapping):
                 try:
                     _val = []
                     for v in val:
-                        _val.append(vtype(**dict([(str(x), y) for x, y in v.items()])))
+                        _val.append(vtype(**{str(x): y for x, y in v.items()}))
                     val = _val
                 except Exception as exc:
                     raise DecodeError(ERRTXT % (key, exc)) from exc
@@ -768,7 +768,7 @@ class Message(MutableMapping):
         return len(self._dict)
 
     def extra(self):
-        return dict([(key, val) for key, val in self._dict.items() if key not in self.c_param])
+        return {key: val for key, val in self._dict.items() if key not in self.c_param}
 
     def only_extras(self):
         extras = [key for key in self._dict.keys() if key in self.c_param]
@@ -839,7 +839,7 @@ class Message(MutableMapping):
 
 
 def by_schema(cls, **kwa):
-    return dict([(key, val) for key, val in kwa.items() if key in cls.c_param])
+    return {key: val for key, val in kwa.items() if key in cls.c_param}
 
 
 def add_non_standard(msg1, msg2):

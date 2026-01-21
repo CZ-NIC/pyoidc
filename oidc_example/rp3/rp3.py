@@ -245,7 +245,7 @@ class Application:
                 except KeyError:
                     pass
 
-                kwargs = dict([(p, session[p]) for p in ["id_token", "userinfo", "user_id"] if p in session])
+                kwargs = {p: session[p] for p in ["id_token", "userinfo", "user_id"] if p in session}
 
                 return opresult(environ, start_response, **kwargs)
         elif path == "rp":  # After having chosen which OP to authenticate at

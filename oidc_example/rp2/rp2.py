@@ -36,7 +36,7 @@ RP = None
 def setup_server_env(conf):
     global SERVER_ENV
 
-    SERVER_ENV = dict([(k, v) for k, v in conf.__dict__.items() if not k.startswith("__")])
+    SERVER_ENV = {k: v for k, v in conf.__dict__.items() if not k.startswith("__")}
     SERVER_ENV["template_lookup"] = LOOKUP
     SERVER_ENV["base_url"] = conf.BASE
     # SERVER_ENV["CACHE"] = {}

@@ -302,7 +302,7 @@ class KeyBundle:
 
     def jwks(self, private=False):
         self._uptodate()
-        keys = list()
+        keys = []
         for k in self._keys:
             if private:
                 key = k.serialize(private)

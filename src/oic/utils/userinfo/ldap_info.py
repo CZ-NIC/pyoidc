@@ -65,7 +65,7 @@ class UserInfoLDAP(UserInfo):
         self.bind()
         self.ld: LDAPObject = None
         self.openid2ldap = attrmap
-        self.ldap2openid = dict([(v, k) for k, v in self.openid2ldap.items()])
+        self.ldap2openid = {v: k for k, v in self.openid2ldap.items()}
 
     def bind(self):
         self.ld = ldap.initialize(self.ldapuri)

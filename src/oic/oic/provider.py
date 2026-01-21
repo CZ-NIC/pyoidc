@@ -1389,7 +1389,7 @@ class Provider(AProvider):
             return _cinfo
 
         response_cls = self.server.message_factory.get_response_type("registration_endpoint")
-        args = dict([(k, v) for k, v in _cinfo.items() if k in response_cls.c_param])
+        args = {k: v for k, v in _cinfo.items() if k in response_cls.c_param}
 
         self.comb_uri(args)
         response = response_cls(**args)
@@ -1455,7 +1455,7 @@ class Provider(AProvider):
 
         logger.debug("Client '%s' reads client info", client_id)
         response_cls = self.server.message_factory.get_response_type("registration_endpoint")
-        args = dict([(k, v) for k, v in self.cdb[client_id].items() if k in response_cls.c_param])
+        args = {k: v for k, v in self.cdb[client_id].items() if k in response_cls.c_param}
 
         self.comb_uri(args)
         response = response_cls(**args)

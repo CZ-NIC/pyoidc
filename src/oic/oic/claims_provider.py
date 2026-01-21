@@ -137,7 +137,7 @@ class ClaimsServer(Provider):
             _log_info("Failed to verify client due to: {}".format(err))
 
         if "claims_names" in ucreq:
-            claim_args = dict([(n, {"optional": True}) for n in ucreq["claims_names"]])
+            claim_args = {n: {"optional": True} for n in ucreq["claims_names"]}
             uic: Optional[Claims] = Claims(**claim_args)
         else:
             uic = None

@@ -136,7 +136,7 @@ class TestClient:
     def test_parse_authz_resp_dict(self):
         code = "SplxlOBeZQQYbYS6WxSbIA"
         state = "ghi"
-        resp = dict(code=code, state=state)
+        resp = {"code": code, "state": state}
         aresp = self.client.parse_response(AuthorizationResponse, info=resp, sformat="dict")
 
         assert aresp["code"] == code

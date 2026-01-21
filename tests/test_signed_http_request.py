@@ -152,7 +152,7 @@ def test_sign_specifies_jws_typ_pop():
 def test_verify_reject_jws_wo_typ_pop():
     method = "GET"
 
-    signature_without_typ = JWS(json.dumps(dict(m=method)), alg=ALG).sign_compact([SIGN_KEY])
+    signature_without_typ = JWS(json.dumps({"m": method}), alg=ALG).sign_compact([SIGN_KEY])
     shr = SignedHttpRequest(SIGN_KEY)
     with pytest.raises(ValidationError) as exc:
         shr.verify(signature_without_typ, method=method)

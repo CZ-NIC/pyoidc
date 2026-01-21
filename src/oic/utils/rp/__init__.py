@@ -273,7 +273,7 @@ class OIDCClients:
             "provider_info"]
         :return: client instance
         """
-        _key_set = set(list(kwargs.keys()))
+        _key_set = set(kwargs.keys())
         try:
             _verify_ssl = kwargs["verify_ssl"]
         except KeyError:
@@ -316,14 +316,14 @@ class OIDCClients:
             # register the client
             client.register(client.provider_info["registration_endpoint"], **kwargs["client_info"])
             self.get_path(kwargs["client_info"]["redirect_uris"], issuer)
-        elif _key_set == set(["client_info", "srv_discovery_url"]):
+        elif _key_set == {"client_info", "srv_discovery_url"}:
             # Ship the webfinger part
             # Gather OP information
             client.provider_config(kwargs["srv_discovery_url"])
             # register the client
             client.register(client.provider_info["registration_endpoint"], **kwargs["client_info"])
             self.get_path(kwargs["client_info"]["redirect_uris"], kwargs["srv_discovery_url"])
-        elif _key_set == set(["provider_info", "client_info"]):
+        elif _key_set == {"provider_info", "client_info"}:
             client.handle_provider_config(
                 ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
@@ -334,7 +334,7 @@ class OIDCClients:
                 kwargs["client_info"]["redirect_uris"],
                 kwargs["provider_info"]["issuer"],
             )
-        elif _key_set == set(["provider_info", "client_registration"]):
+        elif _key_set == {"provider_info", "client_registration"}:
             client.handle_provider_config(
                 ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
@@ -344,7 +344,7 @@ class OIDCClients:
                 kwargs["client_info"]["redirect_uris"],
                 kwargs["provider_info"]["issuer"],
             )
-        elif _key_set == set(["srv_discovery_url", "client_registration"]):
+        elif _key_set == {"srv_discovery_url", "client_registration"}:
             client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(**kwargs["client_registration"]))
             self.get_path(
