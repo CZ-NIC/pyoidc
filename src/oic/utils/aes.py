@@ -51,7 +51,7 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
     try:
         return AES.new(tobytes(key), POSTFIX_MODE[cmode], tobytes(iv)), iv
     except KeyError:
-        raise AESError("Unsupported chaining mode")
+        raise AESError("Unsupported chaining mode") from None
 
 
 def encrypt(
@@ -200,4 +200,4 @@ class AEAD:
         try:
             return self.kernel.decrypt_and_verify(cipherdata, tag)
         except ValueError:
-            raise AESError("Failed to verify data")
+            raise AESError("Failed to verify data") from None

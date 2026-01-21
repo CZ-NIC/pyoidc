@@ -228,8 +228,8 @@ class Message(MutableMapping):
     def deserialize(self, info, method="urlencoded", **kwargs):
         try:
             func = getattr(self, "from_{}".format(method))
-        except AttributeError:
-            raise FormatError("Unknown serialization method ({})".format(method))
+        except AttributeError as err:
+            raise FormatError("Unknown serialization method ({})".format(method)) from err
         else:
             return func(info, **kwargs)
 
@@ -273,8 +273,8 @@ class Message(MutableMapping):
                     else:
                         try:
                             self._dict[key] = cparam.type(val[0])
-                        except KeyError:
-                            raise ParameterError(key)
+                        except KeyError as err:
+                            raise ParameterError(key) from err
                 else:
                     raise TooManyValues("{}".format(key))
 
@@ -347,12 +347,12 @@ class Message(MutableMapping):
                     try:
                         val = _deser(val, sformat="dict")
                     except Exception as exc:
-                        raise DecodeError(ERRTXT % (key, exc))
+                        raise DecodeError(ERRTXT % (key, exc)) from exc
                 elif vtyp is int:
                     try:
                         self._dict[skey] = int(val)
-                    except (ValueError, TypeError):
-                        raise ParameterError('"{}", wrong type of value for "{}"'.format(val, skey))
+                    except (ValueError, TypeError) as err:
+                        raise ParameterError('"{}", wrong type of value for "{}"'.format(val, skey)) from err
                     else:
                         return
                 elif vtyp is bool:
@@ -387,7 +387,7 @@ class Message(MutableMapping):
                 try:
                     self._dict[skey] = _deser(val, sformat="urlencoded")
                 except Exception as exc:
-                    raise DecodeError(ERRTXT % (key, exc))
+                    raise DecodeError(ERRTXT % (key, exc)) from exc
             else:
                 setattr(self, skey, [val])
             return
@@ -396,7 +396,7 @@ class Message(MutableMapping):
                 try:
                     val = _deser(val, sformat="dict")
                 except Exception as exc:
-                    raise DecodeError(ERRTXT % (key, exc))
+                    raise DecodeError(ERRTXT % (key, exc)) from exc
 
             if issubclass(vtype, Message):
                 try:
@@ -405,7 +405,7 @@ class Message(MutableMapping):
                         _val.append(vtype(**dict([(str(x), y) for x, y in v.items()])))
                     val = _val
                 except Exception as exc:
-                    raise DecodeError(ERRTXT % (key, exc))
+                    raise DecodeError(ERRTXT % (key, exc)) from exc
             else:
                 for v in val:
                     if not isinstance(v, vtype):
@@ -416,7 +416,7 @@ class Message(MutableMapping):
             try:
                 val = _deser(val, sformat="dict")
             except Exception as exc:
-                raise DecodeError(ERRTXT % (key, exc))
+                raise DecodeError(ERRTXT % (key, exc)) from exc
             else:
                 self._dict[skey] = val
                 return
@@ -433,8 +433,8 @@ class Message(MutableMapping):
         """Create the Message from json encoded string."""
         try:
             unpacked = json.loads(txt)
-        except JSONDecodeError:
-            raise DecodeError("Cannot unpack, not a valid JSON.")
+        except JSONDecodeError as err:
+            raise DecodeError("Cannot unpack, not a valid JSON.") from err
         if not isinstance(unpacked, dict):
             raise DecodeError("Cannot unpack, not a valid message.")
         return self.from_dict(unpacked)
@@ -1118,11 +1118,12 @@ def factory(msgtype):
     warnings.warn(
         "`factory` is deprecated. Use `OauthMessageFactory` instead.",
         DeprecationWarning,
+        stacklevel=2,
     )
     try:
         return MSG[msgtype]
-    except KeyError:
-        raise FormatError("Unknown message type: {}".format(msgtype))
+    except KeyError as err:
+        raise FormatError("Unknown message type: {}".format(msgtype)) from err
 
 
 MessageTuple = namedtuple("MessageTuple", ["request_cls", "response_cls"])
@@ -1136,16 +1137,16 @@ class MessageFactory:
         """Return class representing the request_cls for given endpoint."""
         try:
             return getattr(cls, endpoint).request_cls
-        except AttributeError:
-            raise MessageException("Unknown endpoint.")
+        except AttributeError as err:
+            raise MessageException("Unknown endpoint.") from err
 
     @classmethod
     def get_response_type(cls, endpoint: str):
         """Return class representing the response_cls for given endpoint."""
         try:
             return getattr(cls, endpoint).response_cls
-        except AttributeError:
-            raise MessageException("Unknown endpoint.")
+        except AttributeError as err:
+            raise MessageException("Unknown endpoint.") from err
 
 
 class OauthMessageFactory(MessageFactory):

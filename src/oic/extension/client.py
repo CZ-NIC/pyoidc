@@ -313,7 +313,7 @@ class Client(oauth2.Client):
             _h = CC_METHOD[_method](_cv).digest()
             code_challenge = b64e(_h).decode("ascii")
         except KeyError:
-            raise Unsupported("PKCE Transformation method:{}".format(_method))
+            raise Unsupported("PKCE Transformation method:{}".format(_method)) from None
 
         # TODO store code_verifier
 
@@ -363,8 +363,8 @@ class Client(oauth2.Client):
             try:
                 resp.verify()
                 self.store_response(resp, response.text)
-            except Exception:
-                raise PyoidcError("Registration failed: {}".format(response.text))
+            except Exception as err:
+                raise PyoidcError("Registration failed: {}".format(response.text)) from err
 
         return resp
 

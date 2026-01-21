@@ -1285,8 +1285,8 @@ class Provider(AProvider):
 
         try:
             si_redirects = json.loads(res.text)
-        except ValueError:
-            raise InvalidSectorIdentifier("Error deserializing sector_identifier_uri content")
+        except ValueError as err:
+            raise InvalidSectorIdentifier("Error deserializing sector_identifier_uri content") from err
 
         if "redirect_uris" in request:
             logger.debug("redirect_uris: %s", request["redirect_uris"])
@@ -2093,7 +2093,7 @@ class Provider(AProvider):
         try:
             return verifier.unpack(sjwt)
         except Exception as err:
-            raise ValueError(err)
+            raise ValueError(err) from err
 
     def do_verified_logout(
         self, sid: str, client_id: str, alla: bool = False, **kwargs

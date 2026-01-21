@@ -60,8 +60,8 @@ class HeartSoftwareStatement(JasonWebToken):
         if "jwks" in self:
             try:
                 _keys = self["jwks"]["keys"]
-            except KeyError:
-                raise SyntaxError('"keys" parameter missing')
+            except KeyError as err:
+                raise SyntaxError('"keys" parameter missing') from err
             else:
                 # will raise an exception if syntax error
                 KeyBundle(_keys)

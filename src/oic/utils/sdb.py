@@ -149,7 +149,7 @@ class Token:
         try:
             typ, key = self.type_and_key(token)
         except (Error, InvalidToken):
-            raise WrongTokenType
+            raise WrongTokenType from None
         if typ != self.type:
             raise WrongTokenType
         if typ == "R":
@@ -402,12 +402,14 @@ class SessionDB:
                 "Setting a `refresh_token_expires_in` has no effect, please set the expiration on "
                 "`refresh_token_factory`.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         self.base_url = base_url
         if not isinstance(db, SessionBackend):
             warnings.warn(
                 "Please use `SessionBackend` to ensure proper API for the database.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         self._db = db
 
@@ -632,7 +634,7 @@ class SessionDB:
             try:
                 (_, key) = self.token_factory["code"].type_and_key(token)
             except Exception:
-                raise WrongTokenType("Not a grant token")
+                raise WrongTokenType("Not a grant token") from None
 
             dic = self._db[key]
 

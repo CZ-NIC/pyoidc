@@ -47,9 +47,9 @@ def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
         for key, restr in claims.items():
             try:
                 result[key] = identity[key]
-            except KeyError:
+            except KeyError as err:
                 if restr == {"essential": True}:
-                    raise Exception("Missing property '{}'".format(key))
+                    raise Exception("Missing property '{}'".format(key)) from err
     else:
         result = identity
 
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     OAS = ClaimsServer(config["issuer"], sdb, cdb, userinfo, verify_client)
 
     if "keys" in config:
-        for typ, info in config["keys"].items():
+        for _typ, info in config["keys"].items():
             OAS.keyjar.add_kb("", keybundle_from_local_file(info["key"], "rsa", ["ver", "sig"]))
             try:
                 OAS.jwks_uri.append(info["jwk"])

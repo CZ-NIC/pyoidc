@@ -151,7 +151,7 @@ class ClientSecretPost(ClientSecretBasic):
                 if self.cli.client_secret:
                     cis["client_secret"] = self.cli.client_secret
                 else:
-                    raise AuthnFailure("Missing client secret")
+                    raise AuthnFailure("Missing client secret") from None
 
         cis["client_id"] = self.cli.client_id
 
@@ -207,7 +207,7 @@ class BearerHeader(ClientAuthnMethod):
         try:
             cred = environ["HTTP_AUTHORIZATION"]
         except KeyError:
-            raise AuthnFailure("missing authorization info")
+            raise AuthnFailure("missing authorization info") from None
 
         if not cred.startswith("Bearer "):
             raise AuthnFailure("Wrong type of authorization token")
@@ -231,7 +231,7 @@ class BearerBody(ClientAuthnMethod):
                     kwargs["state"]
                 except KeyError:
                     if not self.cli.state:
-                        raise AuthnFailure("Missing state specification")
+                        raise AuthnFailure("Missing state specification") from None
                     kwargs["state"] = self.cli.state
 
                 cis["access_token"] = self.cli.get_token(**kwargs).access_token
@@ -344,7 +344,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             bjwt = AuthnToken().from_jwt(areq["client_assertion"], keyjar=self.cli.keyjar, **argv)
         except (Invalid, MissingKey) as err:
             logger.info("%s", sanitize(err))
-            raise AuthnFailure("Could not verify client_assertion.")
+            raise AuthnFailure("Could not verify client_assertion.") from None
 
         logger.debug("authntoken: %s", sanitize(bjwt.to_dict()))
         areq["parsed_client_assertion"] = bjwt
@@ -438,7 +438,7 @@ def get_client_id(cdb, req, authn):
         try:
             _id = str(req["client_id"])
         except KeyError:
-            raise FailedAuthentication("Missing client_id")
+            raise FailedAuthentication("Missing client_id") from None
     elif authn.startswith("Basic "):
         logger.debug("Basic auth")
         (_id, _secret) = base64.b64decode(authn[6:].encode("utf-8")).decode("utf-8").split(":")
@@ -453,7 +453,7 @@ def get_client_id(cdb, req, authn):
             _id = cdb[_token]
         except KeyError:
             logger.debug("Unknown access token")
-            raise FailedAuthentication("Unknown access token")
+            raise FailedAuthentication("Unknown access token") from None
     else:
         raise FailedAuthentication("AuthZ type I don't know")
     # We have the client_id by now, so let's verify it

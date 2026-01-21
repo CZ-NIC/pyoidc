@@ -1,7 +1,7 @@
 try:
     import saml2
 except ImportError:
-    raise ImportError("This module can be used only with saml2 installed.")
+    raise ImportError("This module can be used only with saml2 installed.") from None
 
 
 import base64
@@ -346,7 +346,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             logger.debug("ht_args: %s", ht_args)
         except Exception as exc:
             logger.exception("%s", exc)
-            raise ServiceErrorException("Failed to construct the AuthnRequest: {}".format(exc))
+            raise ServiceErrorException("Failed to construct the AuthnRequest: {}".format(exc)) from exc
 
         # remember the request
         self.cache_outstanding_queries[_sid] = self.return_to

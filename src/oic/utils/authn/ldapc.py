@@ -1,7 +1,7 @@
 try:
     import ldap
 except ImportError:
-    raise ImportError("This module can be used only with pyldap installed.")
+    raise ImportError("This module can be used only with pyldap installed.") from None
 
 from oic.exception import PyoidcError
 from oic.utils.authn.user import UsernamePasswordMako
@@ -28,7 +28,7 @@ class LDAPAuthn(UsernamePasswordMako):
         template_lookup,
         ldap_user="",
         ldap_pwd="",
-        verification_endpoints=["verify"],
+        verification_endpoints=None,
     ):
         """Authenticate user against LDAP.
 
@@ -45,6 +45,8 @@ class LDAPAuthn(UsernamePasswordMako):
             that as. "" is a anonymous user
         :param ldap_pwd: The password for the ldap_user
         """
+        if verification_endpoints is None:
+            verification_endpoints = ["verify"]
         UsernamePasswordMako.__init__(
             self,
             srv,
@@ -71,9 +73,9 @@ class LDAPAuthn(UsernamePasswordMako):
         """
         try:
             _dn = self.pattern["dn"]["pattern"] % user
-        except KeyError:
+        except KeyError as err:
             if "search" not in self.pattern:
-                raise LDAPCError("unknown search pattern")
+                raise LDAPCError("unknown search pattern") from err
             else:
                 args = {
                     "filterstr": self.pattern["filterstr"] % user,
@@ -89,13 +91,13 @@ class LDAPAuthn(UsernamePasswordMako):
                 result = self.ldap.search_s(**args)
                 # result is a list of tuples (dn, entry)
                 if not result:
-                    raise AssertionError
+                    raise AssertionError from None
                 elif len(result) > 1:
-                    raise AssertionError
+                    raise AssertionError from None
                 else:
                     _dn = result[0][0]
 
         try:
             self.ldap.simple_bind_s(_dn, pwd)
-        except Exception:
-            raise AssertionError
+        except Exception as err:
+            raise AssertionError from err

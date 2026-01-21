@@ -126,8 +126,8 @@ class RegistrationRequest(Message):
             if uri in self:
                 try:
                     resp = requests.request("GET", str(self[uri]), allow_redirects=True, verify=False)
-                except requests.ConnectionError:
-                    raise MissingPage(self[uri])
+                except requests.ConnectionError as err:
+                    raise MissingPage(self[uri]) from err
 
                 if resp.status_code not in SUCCESSFUL:
                     raise MissingPage(self[uri])

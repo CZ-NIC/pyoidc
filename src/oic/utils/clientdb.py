@@ -20,9 +20,6 @@ class BaseClientDatabase(metaclass=ABCMeta):
     * ``items(self)``
     """
 
-    def __init__(self):
-        """Perform initialization of storage. Derived classes may override."""
-
     @abstractmethod
     def __getitem__(self, key):
         """Retrieve an item by a key. Raises KeyError if item not found."""

@@ -131,7 +131,7 @@ class AuthnBroker:
             return [(b, c) for a, b, c in res]
 
     def get_method(self, name):
-        for key, item in self.db["info"].items():
+        for _key, item in self.db["info"].items():
             if item["method"].__class__.__name__ == name:
                 return item["method"]
         raise KeyError("No method by that name")
@@ -163,7 +163,7 @@ class AuthnBroker:
 
     def __getitem__(self, item):
         i = 0
-        for key, info in self.db["info"].items():
+        for _key, info in self.db["info"].items():
             if i == item:
                 return info["method"], info["ref"]
             i += 1

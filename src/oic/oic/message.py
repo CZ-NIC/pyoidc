@@ -281,7 +281,7 @@ def verify_id_token(instance, check_hash=False, **kwargs):
         try:
             _jws = _jwe.decrypt(keys=kwargs["keyjar"].get_decrypt_key())
         except JWEException as err:
-            raise VerificationError("Could not decrypt id_token", err)
+            raise VerificationError("Could not decrypt id_token", err) from err
     _packer = JWT()
     _body = _packer.unpack(_jws).payload()
 
@@ -289,8 +289,8 @@ def verify_id_token(instance, check_hash=False, **kwargs):
         try:
             if _body["iss"] not in kwargs["keyjar"]:
                 raise ValueError("Unknown issuer")
-        except KeyError:
-            raise MissingRequiredAttribute("iss")
+        except KeyError as err:
+            raise MissingRequiredAttribute("iss") from err
 
     if _jwe is not None:
         # Use the original encrypted token to set correct headers
@@ -566,8 +566,8 @@ class OpenIDSchema(Message):
                 except ValueError:
                     try:
                         time.strptime(self["birthdate"], "0000-%m-%d")
-                    except ValueError:
-                        raise VerificationError("Birthdate format error", self)
+                    except ValueError as err:
+                        raise VerificationError("Birthdate format error", self) from err
 
         if any(val is None for val in self.values()):
             return False
@@ -749,8 +749,8 @@ class IdToken(OpenIDSchema):
 
         try:
             _exp = self["exp"]
-        except KeyError:
-            raise MissingRequiredAttribute("exp")
+        except KeyError as err:
+            raise MissingRequiredAttribute("exp") from err
         else:
             if (_now - _skew) > _exp:
                 raise EXPError("Invalid expiration time")
@@ -762,8 +762,8 @@ class IdToken(OpenIDSchema):
 
         try:
             _iat = self["iat"]
-        except KeyError:
-            raise MissingRequiredAttribute("iat")
+        except KeyError as err:
+            raise MissingRequiredAttribute("iat") from err
         else:
             if (_iat + _storage_time) < (_now - _skew):
                 raise IATError("Issued too long ago")
@@ -1145,7 +1145,7 @@ MSG = {
 
 
 def factory(msgtype):
-    warnings.warn("`factory` is deprecated. Use `OIDCMessageFactory` instead.", DeprecationWarning)
+    warnings.warn("`factory` is deprecated. Use `OIDCMessageFactory` instead.", DeprecationWarning, stacklevel=2)
     for _, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj) and issubclass(obj, Message):
             try:

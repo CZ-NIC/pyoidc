@@ -60,8 +60,8 @@ def _verify_params(params, req, str_format, hash_size, strict_verification, key)
     buffer = ""
     try:
         buffer = "".join([str_format.format(k, params[k]) for k in key_order])
-    except KeyError:
-        raise ValidationError("Too few {}".format(key))
+    except KeyError as err:
+        raise ValidationError("Too few {}".format(key)) from err
 
     _equals(req_hash, b64_hash(buffer, hash_size))
 
@@ -128,8 +128,8 @@ class SignedHttpRequest:
 
         try:
             unpacked_req = _jw.verify_compact(signature, keys=[self.key])
-        except JWKESTException:
-            raise ValidationError("Could not verify signature")
+        except JWKESTException as err:
+            raise ValidationError("Could not verify signature") from err
 
         _header = _jw.jwt.headers
         if "typ" not in _header or _header["typ"] != "pop":

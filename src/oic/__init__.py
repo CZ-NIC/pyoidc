@@ -20,6 +20,7 @@ except ImportError:
         warnings.warn(
             "No good random number generator available on this platform. Security tokens will be weak and guessable.",
             RuntimeWarning,
+            stacklevel=2,
         )
 
 __author__ = "Roland Hedberg"

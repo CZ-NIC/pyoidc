@@ -318,8 +318,8 @@ class Client(PBase):
         if not uri:
             try:
                 uri = getattr(self, endpoint)
-            except Exception:
-                raise MissingEndpoint("No '{}' specified".format(endpoint))
+            except Exception as err:
+                raise MissingEndpoint("No '{}' specified".format(endpoint)) from err
 
         if not uri:
             raise MissingEndpoint("No '{}' specified".format(endpoint))
@@ -335,8 +335,8 @@ class Client(PBase):
         """
         try:
             return self.grant[state]
-        except KeyError:
-            raise GrantError("No grant found for state:'{}'".format(state))
+        except KeyError as err:
+            raise GrantError("No grant found for state:'{}'".format(state)) from err
 
     def get_token(self, also_expired: bool = False, **kwargs) -> Token:
         """Get a specific token.
@@ -359,8 +359,8 @@ class Client(PBase):
                 if not token:
                     try:
                         token = self.get_grant(kwargs["state"]).get_token("")
-                    except (KeyError, GrantError):
-                        raise TokenError("No token found for scope")
+                    except (KeyError, GrantError) as err:
+                        raise TokenError("No token found for scope") from err
 
         if token is None:
             raise TokenError("No suitable token found")
@@ -1031,8 +1031,8 @@ class Client(PBase):
         try:
             _h = CC_METHOD[_method](_cv).digest()
             code_challenge = b64e(_h).decode("ascii")
-        except KeyError:
-            raise Unsupported("PKCE Transformation method:{}".format(_method))
+        except KeyError as err:
+            raise Unsupported("PKCE Transformation method:{}".format(_method)) from err
 
         # TODO store code_verifier
 
@@ -1112,7 +1112,7 @@ class Client(PBase):
                 # FIXME: This should catch specific exception from `from_json()`
                 _err_txt = "Faulty provider config response: {}".format(e)
                 logger.error(sanitize(_err_txt))
-                raise ParseError(_err_txt)
+                raise ParseError(_err_txt) from e
         else:
             raise CommunicationError("Trying '{}', status {}".format(url, r.status_code))
 

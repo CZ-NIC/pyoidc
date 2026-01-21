@@ -261,7 +261,7 @@ def response_types_to_grant_types(resp_types, **kwargs):
         try:
             _gt = rt2gt[" ".join(_rt)]
         except KeyError:
-            raise ValueError("No such response type combination: {}".format(resp_types))
+            raise ValueError("No such response type combination: {}".format(resp_types)) from None
         else:
             _res.update(set(_gt))
 
@@ -448,7 +448,7 @@ class Client(oauth2.Client):
             try:
                 encenc = self.behaviour["request_object_encryption_enc"]
             except KeyError:
-                raise MissingRequiredAttribute("No request_object_encryption_enc specified")
+                raise MissingRequiredAttribute("No request_object_encryption_enc specified") from None
 
         _jwe = JWE(msg, alg=encalg, enc=encenc)
         _kty = jwe.alg2keytype(encalg)
@@ -878,7 +878,7 @@ class Client(oauth2.Client):
                     try:
                         _ttype = cast(str, token.token_type)
                     except AttributeError:
-                        raise MissingParameter("Unspecified token type")
+                        raise MissingParameter("Unspecified token type") from None
 
             if "as_query_parameter" == _behav:
                 method = "GET"
@@ -937,7 +937,7 @@ class Client(oauth2.Client):
             try:
                 res = ErrorResponse().from_json(resp.text)
             except Exception:
-                raise RequestError(resp.text)
+                raise RequestError(resp.text) from None
             else:
                 self.store_response(res, resp.text)
                 return res
@@ -1193,17 +1193,17 @@ class Client(oauth2.Client):
                 resp.verify()
             except oauth2.message.MissingRequiredAttribute as err:
                 logger.error("%s", err)
-                raise RegistrationError(err)
-            except Exception:
+                raise RegistrationError(err) from err
+            except Exception as err:
                 resp = ErrorResponse().deserialize(response.text, "json")
                 if resp.verify():
                     logger.error(err_msg.format(sanitize(resp.to_json())))
                     if self.events:
                         self.events.store("protocol response", resp)
-                    raise RegistrationError(resp.to_dict())
+                    raise RegistrationError(resp.to_dict()) from err
                 else:  # Something else
                     logger.error(unk_msg.format(sanitize(response.text)))
-                    raise RegistrationError(response.text)
+                    raise RegistrationError(response.text) from err
             else:
                 # got a proper registration response
                 self.store_response(resp, response.text)
@@ -1211,9 +1211,9 @@ class Client(oauth2.Client):
         elif 400 <= response.status_code <= 499:
             try:
                 resp = ErrorResponse().deserialize(response.text, "json")
-            except JSONDecodeError:
+            except JSONDecodeError as err:
                 logger.error(unk_msg.format(sanitize(response.text)))
-                raise RegistrationError(response.text)
+                raise RegistrationError(response.text) from err
 
             if resp.verify():
                 logger.error(err_msg.format(sanitize(resp.to_json())))
@@ -1281,8 +1281,8 @@ class Client(oauth2.Client):
         if "redirect_uris" not in req:
             try:
                 req["redirect_uris"] = self.redirect_uris
-            except AttributeError:
-                raise MissingRequiredAttribute("redirect_uris", req)
+            except AttributeError as err:
+                raise MissingRequiredAttribute("redirect_uris", req) from err
 
         try:
             if self.provider_info["require_request_uri_registration"] is True:
@@ -1506,7 +1506,7 @@ class Server(oauth2.Server):
             req = self.parse_jwt_request(txt=http_req.text, verify=verify, sender=sender)
         except Exception as err:
             logger.error("%s:%s encountered while parsing fetched request", err.__class__, err)
-            raise AuthzError("invalid_openid_request_object")
+            raise AuthzError("invalid_openid_request_object") from err
 
         logger.debug("Fetched request: %s", req)
         return req

@@ -502,7 +502,7 @@ if __name__ == "__main__":
 
     ac = AuthnBroker()
 
-    for authkey, value in config.AUTHORIZATION.items():
+    for authkey, _value in config.AUTHORIZATION.items():
         authn = None
         if "CAS" == authkey:
             from oic.utils.authn.ldap_member import UserLDAPMemberValidation

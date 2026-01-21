@@ -47,10 +47,10 @@ class OIDCExampleRP:
         auth_response = session["client"].parse_response(AuthorizationResponse, info=query_string, sformat="urlencoded")
 
         if auth_response["state"] != session["state"]:
-            raise "The OIDC state does not match."
+            raise Exception("The OIDC state does not match.")
 
         if "id_token" in auth_response and auth_response["id_token"]["nonce"] != session["nonce"]:
-            raise "The OIDC nonce does not match."
+            raise Exception("The OIDC nonce does not match.")
 
         return auth_response
 

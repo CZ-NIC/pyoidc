@@ -153,6 +153,7 @@ class Consumer(Client):
             warnings.warn(
                 "Please use `SessionBackend` to ensure proper API for the database.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         self.sdb = session_db
 
@@ -161,6 +162,7 @@ class Consumer(Client):
                 warnings.warn(
                     "Please use `SessionBackend` to ensure proper API for the database.",
                     DeprecationWarning,
+                    stacklevel=2,
                 )
             self.sso_db: SessionBackend = sso_db
         else:
@@ -336,8 +338,8 @@ class Consumer(Client):
         _state = aresp["state"]
         try:
             self.update(_state)
-        except KeyError:
-            raise UnknownState(_state, aresp)
+        except KeyError as err:
+            raise UnknownState(_state, aresp) from err
 
         self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
         return aresp, _state
@@ -547,7 +549,7 @@ class Consumer(Client):
         try:
             req.verify(**kwargs)
         except (MessageException, ValueError, NotForMe) as err:
-            raise MessageException("Bogus logout request: {}".format(err))
+            raise MessageException("Bogus logout request: {}".format(err)) from err
 
         # Find the subject through 'sid' or 'sub'
 

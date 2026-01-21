@@ -94,14 +94,14 @@ def parse_duration(duration):
                 mod = duration[index:].index(code)
                 try:
                     dic[typ] = int(duration[index : index + mod])
-                except ValueError:
+                except ValueError as err:
                     if code == "S":
                         try:
                             dic[typ] = float(duration[index : index + mod])
-                        except ValueError:
-                            raise TimeUtilError("Not a float")
+                        except ValueError as err2:
+                            raise TimeUtilError("Not a float") from err2
                     else:
-                        raise TimeUtilError("Fractions not allow on anything byt seconds")
+                        raise TimeUtilError("Fractions not allow on anything byt seconds") from err
                 index = mod + index + 1
             except ValueError:
                 dic[typ] = 0
@@ -275,14 +275,14 @@ def str_to_time(timestr, time_format=TIME_FORMAT):
         return 0
     try:
         then = time.strptime(timestr, time_format)
-    except ValueError:  # assume it's a format problem
+    except ValueError as err:  # assume it's a format problem
         try:
             elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
         except Exception as exc:
             print("Exception: {} on {}".format(exc, timestr), file=sys.stderr)
             raise
         if elem is None:
-            raise TimeUtilError("Error parsing time")
+            raise TimeUtilError("Error parsing time") from err
         then = time.strptime(elem.groups()[0] + "Z", TIME_FORMAT)
 
     return time.gmtime(calendar.timegm(then))

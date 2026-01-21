@@ -1,7 +1,7 @@
 try:
     import ldap
 except ImportError:
-    raise ImportError("This module can be used only with pyldap installed.")
+    raise ImportError("This module can be used only with pyldap installed.") from None
 
 import logging
 

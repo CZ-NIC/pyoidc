@@ -218,7 +218,8 @@ class Provider:
         self.sdb = sdb
         if not isinstance(cdb, BaseClientDatabase):
             warnings.warn(
-                "ClientDatabase should be an instance of oic.utils.clientdb.BaseClientDatabase to ensure proper API."
+                "ClientDatabase should be an instance of oic.utils.clientdb.BaseClientDatabase to ensure proper API.",
+                stacklevel=2,
             )
         self.cdb = cdb
         self.server = server_cls(
@@ -360,7 +361,7 @@ class Provider:
                     cid = areq["client_id"]
                 except KeyError:
                     logger.error("No client id found")
-                    raise UnknownClient("No client_id provided")
+                    raise UnknownClient("No client_id provided") from None
                 else:
                     logger.info("Unknown client: %s", cid)
                     raise UnknownClient(areq["client_id"])

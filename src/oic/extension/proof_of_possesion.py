@@ -80,8 +80,8 @@ class PoPProvider(Provider):
             data = _jws.verify_compact(access_token, self.keyjar.get_verify_key(owner=""))
             try:
                 return keyrep(data["cnf"]["jwk"])
-            except KeyError:
-                raise NonPoPTokenError("Could not extract public key as JWK from access token")
+            except KeyError as err:
+                raise NonPoPTokenError("Could not extract public key as JWK from access token") from err
 
         raise NonPoPTokenError("Unsigned access token, maybe not PoP?")
 

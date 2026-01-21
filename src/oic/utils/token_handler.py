@@ -63,8 +63,8 @@ class TokenHandler:
         # No default, either there is an explicit policy or there is not
         try:
             lifetime = self.token_policy["access_token"][target_id][grant_type]
-        except KeyError:
-            raise NotAllowed("Access token for grant_type {} for target_id {} not allowed")
+        except KeyError as err:
+            raise NotAllowed("Access token for grant_type {} for target_id {} not allowed") from err
 
         sid = rndstr(32)
         return self.token_factory(
@@ -92,15 +92,15 @@ class TokenHandler:
         try:
             if target_id != info["azr"]:
                 raise NotAllowed("{} can't use this token".format(target_id))
-        except KeyError:
+        except KeyError as err:
             if target_id not in info["aud"]:
-                raise NotAllowed("{} can't use this token".format(target_id))
+                raise NotAllowed("{} can't use this token".format(target_id)) from err
 
         if self.token_factory.is_valid(info):
             try:
                 lifetime = self.token_policy["access_token"][target_id][grant_type]
-            except KeyError:
-                raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed")
+            except KeyError as err:
+                raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed") from err
             else:
                 sid = self.token_factory.db[info["jti"]]
                 try:
@@ -113,8 +113,8 @@ class TokenHandler:
     def get_refresh_token(self, target_id, grant_type, sid):
         try:
             lifetime = self.token_policy["refresh_token"][target_id][grant_type]
-        except KeyError:
-            raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed")
+        except KeyError as err:
+            raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed") from err
         else:
             return self.refresh_token_factory(sid, target_id=target_id, lifetime=lifetime)
 

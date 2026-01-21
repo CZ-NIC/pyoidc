@@ -81,7 +81,7 @@ class MailTwoFactor(AuthnModule):
                 receiver = self.user_db[username]["email"]
             except KeyError:
                 # Missing user or no mail address
-                self.FAILED_AUTHN
+                return self.FAILED_AUTHN
 
             # Generate code and send it
             now = time.time()

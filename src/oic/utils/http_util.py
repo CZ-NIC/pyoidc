@@ -452,7 +452,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
         try:
             cleartext = crypt.decrypt_and_verify(ciphertext, tag)
         except AESError:
-            raise InvalidCookieSign
+            raise InvalidCookieSign from None
         return cleartext.decode("utf-8"), timestamp
     return None
 
@@ -575,7 +575,7 @@ class CookieDealer:
             raise ImproperlyConfigured(msg)
 
         if not getattr(srv, "seed", None):
-            setattr(srv, "seed", rndstr().encode("utf-8"))
+            srv.seed = rndstr().encode("utf-8")
 
     def delete_cookie(self, cookie_name=None):
         return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1, kill=True)

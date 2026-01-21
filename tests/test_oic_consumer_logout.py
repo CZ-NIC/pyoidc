@@ -344,7 +344,7 @@ class TestOICConsumerLogout:
         self.consumer.update("sid")
 
         with pytest.raises(AttributeError):
-            getattr(self.consumer, "foo")
+            self.consumer.foo  # type: ignore[attr-defined]
 
 
 def test_session_update():

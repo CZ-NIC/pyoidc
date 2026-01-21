@@ -7,7 +7,7 @@ target-version = "py39"
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "W", "I", "G", "ISC", "RSE", "UP", "D"]
+select = ["E4", "E7", "E9", "F", "W", "I", "G", "ISC", "RSE", "UP", "D", "B"]
 ignore = ["UP032", "D1"]
 
 [tool.ruff.lint.per-file-ignores]

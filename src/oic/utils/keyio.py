@@ -129,7 +129,7 @@ class KeyBundle:
                 except KeyError:
                     continue
                 except TypeError:
-                    raise JWKSError("Inappropriate JWKS argument type")
+                    raise JWKSError("Inappropriate JWKS argument type") from None
                 except JWKException as err:
                     logger.warning("Loading a key failed: %s", err)
                 else:
@@ -738,8 +738,8 @@ class KeyJar:
         """
         try:
             _keys = jwks["keys"]
-        except KeyError:
-            raise ValueError("Not a proper JWKS")
+        except KeyError as err:
+            raise ValueError("Not a proper JWKS") from err
         else:
             try:
                 self.issuer_keys[issuer].append(
@@ -1073,7 +1073,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
 
         if typ == "RSA":
             if "key" in spec:
-                error_to_catch = getattr(builtins, "FileNotFoundError", getattr(builtins, "IOError"))
+                error_to_catch = getattr(builtins, "FileNotFoundError", builtins.IOError)
                 try:
                     kb = KeyBundle(
                         source="file://{}".format(spec["key"]),
@@ -1106,7 +1106,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
 
 
 def update_keyjar(keyjar):
-    for iss, kbl in keyjar.items():
+    for _iss, kbl in keyjar.items():
         for kb in kbl:
             kb.update()
 

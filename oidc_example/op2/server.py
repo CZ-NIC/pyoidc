@@ -419,7 +419,7 @@ if __name__ == "__main__":
     )
 
     _urls = []
-    for authkey, value in config.AUTHENTICATION.items():
+    for authkey, _value in config.AUTHENTICATION.items():
         authn = None
 
         if "UserPassword" == authkey:
@@ -430,7 +430,7 @@ if __name__ == "__main__":
 
         # Ensure javascript_login_authn to be defined
         try:
-            javascript_login_authn
+            javascript_login_authn  # noqa: B018
         except NameError:
             javascript_login_authn = None
 

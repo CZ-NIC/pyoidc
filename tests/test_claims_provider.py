@@ -63,9 +63,9 @@ def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
         for key, restr in user_info_claims["claims"].items():
             try:
                 result[key] = identity[key]
-            except KeyError:
+            except KeyError as err:
                 if restr == {"essential": True}:
-                    raise Exception("Missing property '{}'".format(key))
+                    raise Exception("Missing property '{}'".format(key)) from err
     else:
         result = identity
 

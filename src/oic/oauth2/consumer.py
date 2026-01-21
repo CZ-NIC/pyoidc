@@ -286,8 +286,8 @@ class Consumer(Client):
 
             try:
                 self.update(aresp["state"])
-            except KeyError:
-                raise UnknownState(aresp["state"])
+            except KeyError as err:
+                raise UnknownState(aresp["state"]) from err
 
             self._backup(aresp["state"])
 
@@ -301,8 +301,8 @@ class Consumer(Client):
 
             try:
                 self.update(atr["state"])
-            except KeyError:
-                raise UnknownState(atr["state"])
+            except KeyError as err:
+                raise UnknownState(atr["state"]) from err
 
             self.seed = self.grant[atr["state"]].seed
 

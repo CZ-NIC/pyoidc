@@ -116,10 +116,10 @@ class OAuthClient(client.Client):
 
         try:
             authresp = self.parse_response(respcls, response, sformat=format, keyjar=self.keyjar)
-        except ResponseError:
+        except ResponseError as err:
             msg = "Could not parse response: '{}'"
             logger.error(msg.format(sanitize(response)))
-            raise OAuth2Error("Problem parsing response")
+            raise OAuth2Error("Problem parsing response") from err
 
         logger.info("%s: %s", respcls.__name__, sanitize(authresp))
 

@@ -168,7 +168,7 @@ def application(environ, start_response):
         for _cli in SERVER_ENV["OIC_CLIENT"].values():
             if _uri in _cli.redirect_uris:
                 session["callback"] = False
-                func = getattr(RP, "callback")
+                func = RP.callback
                 return func(environ, SERVER_ENV, start_response, query, session)
 
     if path == "rpAcr":
@@ -177,12 +177,12 @@ def application(environ, start_response):
     if path == "rpAuth":
         # Only called if multiple arc_values (that is authentications) exists.
         if "acr" in query and query["acr"][0] in session["acr_values"]:
-            func = getattr(RP, "create_authnrequest")
+            func = RP.create_authnrequest
             return func(environ, SERVER_ENV, start_response, session, query["acr"][0])
 
     if session["client"] is not None:
         session["callback"] = True
-        func = getattr(RP, "begin")
+        func = RP.begin
         return func(environ, SERVER_ENV, start_response, session, "")
 
     if path == "rp":
@@ -198,7 +198,7 @@ def application(environ, start_response):
             h.update(link.encode("utf-8"))
             opkey = base64.b16encode(h.digest()).decode("utf-8")
             session["callback"] = True
-            func = getattr(RP, "begin")
+            func = RP.begin
             return func(environ, SERVER_ENV, start_response, session, opkey)
 
     return opbyuid(environ, start_response)

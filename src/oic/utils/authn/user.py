@@ -400,7 +400,7 @@ class SymKeyAuthn(UserAuthnMethod):
         try:
             user = aes.decrypt(self.symkey, encmsg, iv)
         except (AssertionError, KeyError):
-            raise FailedAuthentication("Decryption failed")
+            raise FailedAuthentication("Decryption failed") from None
 
         return {"uid": user}, time.time()
 
