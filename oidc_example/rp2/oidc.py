@@ -248,10 +248,12 @@ class OpenIDConnect:
 
     # noinspection PyUnusedLocal
     def phaseN(self, environ, query, server_env, session):
-        """Step 2: Once the consumer has redirected the user back to the
-        callback URL you can request the access token the user has
-        approved."""
+        """Step 2.
 
+        Once the consumer has redirected the user back to the
+        callback URL you can request the access token the user has
+        approved.
+        """
         client = session["client"]
         logger.debug("info: %s", query)
         logger.debug("keyjar: %s", client.keyjar)
@@ -298,9 +300,7 @@ class OpenIDConnect:
 
     # noinspection PyUnusedLocal
     def callback(self, environ, server_env, start_response, query, session):
-        """
-        This is where we come back after the OP has done the
-        Authorization Request.
+        """This is where we come back after the OP has done the Authorization Request.
 
         :param environ:
         :param server_env:
@@ -331,8 +331,9 @@ class OpenIDConnect:
         return resp(environ, start_response, **argv)
 
     def find_srv_discovery_url(self, resource):
-        """
-        Use Webfinger to find the OP, The input is a unique identifier
+        """Use Webfinger to find the OP.
+
+        The input is a unique identifier
         of the user. Allowed forms are the acct, mail, http and https
         urls. If no protocol specification is given like if only an
         email like identifier is given. It will be translated if possible to
@@ -341,6 +342,5 @@ class OpenIDConnect:
         :param resource: unique identifier of the user.
         :return:
         """
-
         wf = WebFinger(httpd=PBase(verify_ssl=self.extra["ca_bundle"]))
         return wf.discovery_query(resource)

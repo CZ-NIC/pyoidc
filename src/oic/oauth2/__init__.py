@@ -166,28 +166,35 @@ class Client(PBase):
         message_factory: type[MessageFactory] = OauthMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
-        """
-        Initialize the instance.
+        """Initialize the instance.
 
         Keyword Args:
-            settings
+            settings:
                 Instance of :class:`OauthClientSettings` with configuration options.
                 Currently used settings are:
                  - verify_ssl
                  - client_cert
                  - timeout
-
-        :param client_id: The client identifier
-        :param client_authn_method: Methods that this client can use to
-            authenticate itself. It's a dictionary with method names as
-            keys and method classes as values.
-        :param keyjar: The keyjar for this client.
-        :param verify_ssl: Whether the SSL certificate should be verified. Deprecated in favor of settings.
-        :param client_cert: A client certificate to use. Deprecated in favor of settings.
-        :param timeout: Timeout for requests library. Can be specified either as
-            a single integer or as a tuple of integers. For more details, refer to
-            ``requests`` documentation. Deprecated in favor of settings.
-        :param: message_factory: Factory for message classes, should inherit from OauthMessageFactory
+            client_id:
+                The client identifier
+            client_authn_method:
+                Methods that this client can use to
+                authenticate itself. It's a dictionary with method names as
+                keys and method classes as values.
+            config:
+                Client configuration.
+            keyjar:
+                The keyjar for this client.
+            verify_ssl:
+                DEPRECATED Whether the SSL certificate should be verified. Deprecated in favor of settings.
+            client_cert:
+                DEPRECATED A client certificate to use. Deprecated in favor of settings.
+            timeout:
+                DEPRECATED Timeout for requests library. Can be specified either as
+                a single integer or as a tuple of integers. For more details, refer to
+                ``requests`` documentation. Deprecated in favor of settings.
+            message_factory:
+                Factory for message classes, should inherit from OauthMessageFactory
         :return: Client instance
 
         """
@@ -320,8 +327,7 @@ class Client(PBase):
         return uri
 
     def get_grant(self, state: str, **kwargs) -> Grant:
-        """
-        Get the Grant associated with the given state.
+        """Get the Grant associated with the given state.
 
         :param state: The state to check
         :return: The `Grant`.
@@ -333,8 +339,7 @@ class Client(PBase):
             raise GrantError("No grant found for state:'{}'".format(state))
 
     def get_token(self, also_expired: bool = False, **kwargs) -> Token:
-        """
-        Get a specific token.
+        """Get a specific token.
 
         :param also_expired: Return tokens that have expired
         :param state: The state associated with the token grant. Optional.
@@ -598,8 +603,7 @@ class Client(PBase):
         state: str = "",
         **kwargs,
     ) -> Message:
-        """
-        Parse a response.
+        """Parse a response.
 
         :param response: Response type
         :param info: The response, can be either in a JSON or an urlencoded
@@ -766,8 +770,7 @@ class Client(PBase):
         http_args=None,
         **kwargs,
     ):
-        """
-        Perform a request and return the response.
+        """Perform a request and return the response.
 
         :param url: The URL to which the request should be sent
         :param response: Response type
@@ -1008,8 +1011,7 @@ class Client(PBase):
         return self.http_request(uri, method, headers=headers)
 
     def add_code_challenge(self):
-        """
-        PKCE RFC 7636 support.
+        """PKCE RFC 7636 support.
 
         :return:
         """
@@ -1046,8 +1048,7 @@ class Client(PBase):
         keys: bool = True,
         endpoints: bool = True,
     ) -> None:
-        """
-        Deal with Provider Config Response.
+        """Deal with Provider Config Response.
 
         :param pcr: The ProviderConfigResponse instance
         :param issuer: The one I thought should be the issuer of the config
@@ -1132,12 +1133,21 @@ class Server(PBase):
         message_factory: type[MessageFactory] = OauthMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
-        """
-        Initialize the server.
+        """Initialize the server.
 
         Keyword Args:
-            settings
+            settings:
                 Instance of :class:`OauthServerSettings` with configuration options.
+            verify_ssl:
+                DEPRECATED
+            keyjar:
+                Instance of :class:`KeyJar` with keys available to server.
+            client_cert:
+                DEPRECATED
+            timeout:
+                DEPRECATED
+            message_factory:
+                Class inheriting from :class:`MessageFactory` specifying what messages to use for request/response
 
         """
         self.settings = settings or OauthServerSettings()

@@ -48,8 +48,7 @@ ENCODINGS = Literal["json", "urlencoded", "dict", "jwt", "jwe"]
 
 
 def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept=None, **kwargs):
-    """
-    Construct HTTP request.
+    """Construct HTTP request.
 
     :param uri:
     :param method:
@@ -95,8 +94,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept
 
 
 def set_cookie(cookiejar, kaka):
-    """
-    Place a cookie (a http_cookielib.Cookie based on a set-cookie header line) in the cookie jar.
+    """Place a cookie (a http_cookielib.Cookie based on a set-cookie header line) in the cookie jar.
 
     Always chose the shortest expires time.
 

@@ -31,8 +31,7 @@ CC_METHOD = {"S256": hashlib.sha256, "S384": hashlib.sha384, "S512": hashlib.sha
 
 
 def rndstr(size=16):
-    """
-    Return a string of random ascii characters or digits.
+    """Return a string of random ascii characters or digits.
 
     :param size: The length of the string
     :return: string
@@ -45,8 +44,7 @@ BASECH = string.ascii_letters + string.digits + "-._~"
 
 
 def unreserved(size=64):
-    """
-    Return a string of random ascii characters, digits and unreserved characters for use as RFC 7636 code verifiers.
+    """Return a string of random ascii characters, digits and unreserved characters for use as RFC 7636 code verifiers.
 
     :param size: The length of the string
     :return: string

@@ -104,8 +104,7 @@ class OAuthClient(client.Client):
         raise OAuth2Error(txt)
 
     def callback(self, response, session, format="dict"):
-        """
-        Call when an AuthN response has been received from the OP.
+        """Call when an AuthN response has been received from the OP.
 
         :param response: The URL returned by the OP
         :return:
@@ -171,8 +170,7 @@ class OAuthClient(client.Client):
 
 class OAuthClients:
     def __init__(self, config, base_url, seed="", jwks_info=None, verify_ssl=True):
-        """
-        Initialize the client.
+        """Initialize the client.
 
         :param config: Imported configuration module
         :return:
@@ -205,8 +203,7 @@ class OAuthClients:
             self.path[p.path[1:]] = issuer
 
     def create_client(self, **kwargs):
-        """
-        Do an instantiation of a client instance.
+        """Do an instantiation of a client instance.
 
         :param: Keyword arguments
             Keys are:
@@ -336,8 +333,7 @@ class OAuthClients:
             return client
 
     def __getitem__(self, item):
-        """
-        Given a service identifier return a suitable client.
+        """Given a service identifier return a suitable client.
 
         :param item:
         :return:

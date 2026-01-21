@@ -9,8 +9,7 @@ from oic.oauth2.exception import NoClientInfoReceivedError
 
 
 class BaseClientDatabase(metaclass=ABCMeta):
-    """
-    Base implementation for Client management database.
+    """Base implementation for Client management database.
 
     Custom Client databases should derive from this class.
     They must implement the following methods:

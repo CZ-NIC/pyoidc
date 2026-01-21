@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""
-A very simple OAuth2 AS
-"""
+"""A very simple OAuth2 AS."""
 
 import json
 import logging
@@ -125,8 +123,9 @@ class Application:
         return wsgi_wrapper(environ, start_response, self.oas.revocation_endpoint)
 
     def application(self, environ, start_response):
-        """
-        The main WSGI application. Dispatch the current request to
+        """The main WSGI application.
+
+        Dispatch the current request to
         the functions from above and store the regular expression
         captures in the WSGI environment as  `oic.url_args` so that
         the functions from above can access the url placeholders.
@@ -138,7 +137,6 @@ class Application:
             request is done
         :return: The response as a list of lines
         """
-
         path = environ.get("PATH_INFO", "").lstrip("/")
 
         LOGGER.info("path: %s", path)

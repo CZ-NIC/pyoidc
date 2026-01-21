@@ -62,8 +62,7 @@ class KeyBundle:
         keyusage=None,
         timeout=5,
     ):
-        """
-        Initialize the KeyBundle.
+        """Initialize the KeyBundle.
 
         :param keys: A list of dictionaries
             with the keys ["kty", "key", "alg", "use", "kid"]
@@ -113,8 +112,7 @@ class KeyBundle:
                     self.do_local_der(self.source, self.keytype, self.keyusage)
 
     def do_keys(self, keys):
-        """
-        Go from JWK description to binary keys.
+        """Go from JWK description to binary keys.
 
         :param keys:
         :return:
@@ -215,8 +213,7 @@ class KeyBundle:
         return True
 
     def _parse_remote_response(self, response):
-        """
-        Parse JWKS from the HTTP response.
+        """Parse JWKS from the HTTP response.
 
         Should be overridden by subclasses for adding support of e.g. signed
         JWKS.
@@ -249,8 +246,7 @@ class KeyBundle:
         return res
 
     def update(self):
-        """
-        Reload the key if necessary.
+        """Reload the key if necessary.
 
         This is a forced update, will happen even if cache time has not elapsed.
         """
@@ -269,8 +265,7 @@ class KeyBundle:
         return res
 
     def get(self, typ=""):
-        """
-        Return keys matching the typ.
+        """Return keys matching the typ.
 
         :param typ: Type of key (rsa, ec, oct, ..)
         :return: If typ is undefined all the keys as a dictionary otherwise the appropriate keys in a list
@@ -292,8 +287,7 @@ class KeyBundle:
         return self._keys
 
     def remove_key(self, typ, val=None):
-        """
-        Delete key given the type ot type and value.
+        """Delete key given the type ot type and value.
 
         :param typ: Type of key (rsa, ec, oct, ..)
         :param val: The key itself
@@ -347,8 +341,7 @@ class KeyBundle:
         return [key.kid for key in self._keys if key.kid != ""]
 
     def remove_outdated(self, after):
-        """
-        Remove keys that should not be available any more.
+        """Remove keys that should not be available any more.
 
         Outdated means that the key was marked as inactive at a time that was longer ago then what is given in 'after'.
 
@@ -392,8 +385,7 @@ def keybundle_from_local_file(filename, typ, usage):
 
 
 def dump_jwks(kbl, target, private=False):
-    """
-    Write a JWK to a file.
+    """Write a JWK to a file.
 
     :param kbl: List of KeyBundles
     :param target: Name of the file to which everything should be written
@@ -420,8 +412,7 @@ class KeyJar:
     """A keyjar contains a number of KeyBundles."""
 
     def __init__(self, verify_ssl=True, keybundle_cls=KeyBundle, remove_after=3600, timeout=5):
-        """
-        Initialize the class.
+        """Initialize the class.
 
         :param verify_ssl: Do SSL certificate verification
         :param timeout: Timeout for requests library. Can be specified either as
@@ -453,8 +444,7 @@ class KeyJar:
             self.issuer_keys[issuer][use] = keys
 
     def add(self, issuer, url, **kwargs):
-        """
-        Add keys for issuer.
+        """Add keys for issuer.
 
         :param issuer: Who issued the keys
         :param url: Where can the key/-s be found
@@ -504,8 +494,7 @@ class KeyJar:
         return self.issuer_keys.items()
 
     def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):
-        """
-        Return keys matching the args.
+        """Return keys matching the args.
 
         :param key_use: A key useful for this usage (enc, dec, sig, ver)
         :param key_type: Type of key (rsa, ec, symmetric, ..)
@@ -592,8 +581,7 @@ class KeyJar:
         return self.get("dec", key_type, owner, kid, **kwargs)
 
     def get_key_by_kid(self, kid, owner=""):
-        """
-        Return the key from a specific owner that has a specific kid.
+        """Return the key from a specific owner that has a specific kid.
 
         :param kid: The key identifier
         :param owner: The owner of the key
@@ -619,8 +607,7 @@ class KeyJar:
         return keys
 
     def verify_keys(self, part):
-        """
-        Keys for me and someone else.
+        """Keys for me and someone else.
 
         :param part: The other part
         :return: dictionary of keys
@@ -628,8 +615,7 @@ class KeyJar:
         return self.x_keys("verify", part)
 
     def decrypt_keys(self, part):
-        """
-        Keys for me and someone else.
+        """Keys for me and someone else.
 
         :param part: The other part
         :return: dictionary of keys
@@ -686,8 +672,7 @@ class KeyJar:
         return self.issuer_keys.keys()
 
     def load_keys(self, pcr, issuer, replace=False):
-        """
-        Fetch keys from another server.
+        """Fetch keys from another server.
 
         :param pcr: The provider information
         :param issuer: The provider URL
@@ -717,8 +702,7 @@ class KeyJar:
                 pass
 
     def find(self, source, issuer):
-        """
-        Find a key bundle.
+        """Find a key bundle.
 
         :param source: A url
         :param issuer: The issuer of keys
@@ -747,8 +731,7 @@ class KeyJar:
         return {"keys": keys}
 
     def import_jwks(self, jwks, issuer):
-        """
-        Import key from JWKS.
+        """Import key from JWKS.
 
         :param jwks: Dictionary representation of a JWKS
         :param issuer: Who 'owns' the JWKS
@@ -828,8 +811,7 @@ class KeyJar:
         return True
 
     def remove_outdated(self):
-        """
-        Goes through the complete list of issuers and for each of them removes outdated keys.
+        """Goes through the complete list of issuers and for each of them removes outdated keys.
 
         Outdated keys are keys that has been marked as inactive at a time that
         is longer ago then some set number of seconds.
@@ -869,8 +851,7 @@ class RedirectStdStreams:
 
 
 def key_setup(vault, **kwargs):
-    """
-    Create a KeyBundle from file.
+    """Create a KeyBundle from file.
 
     :param vault: Where the keys are kept
     :return: 2-tuple: result of urlsplit and a dictionary with parameter name as key and url and value
@@ -902,8 +883,7 @@ def key_setup(vault, **kwargs):
 
 
 def key_export(baseurl, local_path, vault, keyjar, **kwargs):
-    """
-    Export keys.
+    """Export keys.
 
     :param baseurl: The base URL to which the key file names are added
     :param local_path: Where on the machine the export files are kept
@@ -947,8 +927,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 
 
 def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
-    """
-    Create RSA keypair.
+    """Create RSA keypair.
 
     :param name: Name of the key file
     :param path: Path to where the key files are stored
@@ -971,8 +950,7 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
 
 
 def proper_path(path):
-    """
-    Clean up the path specification so it looks like something I could use.
+    """Clean up the path specification so it looks like something I could use.
 
     "./" <path> "/"
     """
@@ -995,8 +973,7 @@ def proper_path(path):
 
 
 def ec_init(spec):
-    """
-    Initialize EC encryption.
+    """Initialize EC encryption.
 
     :param spec: Key specifics of the form
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
@@ -1014,8 +991,7 @@ def ec_init(spec):
 
 
 def rsa_init(spec):
-    """
-    Initialize RSA encryption.
+    """Initialize RSA encryption.
 
     :param spec:
     :return: KeyBundle
@@ -1035,8 +1011,7 @@ def rsa_init(spec):
 
 
 def keyjar_init(instance, key_conf, kid_template=""):
-    """
-    Initialize KeyJar.
+    """Initialize KeyJar.
 
     Configuration of the type:
     keys = [
@@ -1069,8 +1044,7 @@ def _new_rsa_key(spec):
 
 
 def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
-    """
-    Create a KeyJar from keys.
+    """Create a KeyJar from keys.
 
     Configuration of the type:
     keys = [
@@ -1154,8 +1128,7 @@ def key_summary(keyjar, issuer):
 
 
 def check_key_availability(inst, jwt):
-    """
-    Try to refresh keys.
+    """Try to refresh keys.
 
     If the server is restarted it will NOT load keys from jwks_uris for
     all the clients that has been registered. So this function is there

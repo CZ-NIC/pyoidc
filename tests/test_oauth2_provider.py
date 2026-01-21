@@ -88,8 +88,7 @@ class NoCookieAuthn(DummyAuthn):
 
 
 def verify_outcome(msg, prefix, lista):
-    """
-    Compare message to list of claims: values.
+    """Compare message to list of claims: values.
 
     :param prefix: prefix string
     :param lista: list of claims=value

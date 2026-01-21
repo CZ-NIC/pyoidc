@@ -22,8 +22,7 @@ class PrivateKeyJWT(JasonWebToken):
 
 
 def verify_url(url):
-    """
-    Verify security of URL.
+    """Verify security of URL.
 
     Hosted on a website with Transport Layer Security (TLS) protection
     (a Hypertext Transfer Protocol – Secure (HTTPS) URI)

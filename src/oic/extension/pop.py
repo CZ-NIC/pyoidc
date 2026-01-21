@@ -56,8 +56,7 @@ class PoPClient:
         self.alg = sign_alg
 
     def update(self, msg, state, key_size=0):
-        """
-        Use to 'update' the AccessToken Request.
+        """Use to 'update' the AccessToken Request.
 
         :param msg:
         :param state: Used to map access token response to this request
@@ -73,8 +72,7 @@ class PoPClient:
         return msg
 
     def handle_access_token_response(self, resp):
-        """
-        Map access token to a keypair.
+        """Map access token to a keypair.
 
         :param resp: AccessTokenResponse instance
         """
@@ -117,8 +115,7 @@ class PoPRS:
         self.token2key: dict[str, RSAKey] = {}
 
     def store_key(self, access_token, tir):
-        """
-        Store key that was returned in response from token introspection.
+        """Store key that was returned in response from token introspection.
 
         :param access_token: The token that was introspected
         :param tir: TokenIntrospectionResponse instance

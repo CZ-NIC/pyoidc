@@ -17,8 +17,7 @@ class AuthnEvent:
         authn_time=None,
         valid_until=None,
     ):
-        """
-        Create a representation of an authentication event.
+        """Create a representation of an authentication event.
 
         :param uid: The local user identifier
         :param salt: Salt to be used in creating a sub
@@ -58,8 +57,7 @@ class SessionBackend(metaclass=ABCMeta):
 
     @abstractmethod
     def __getitem__(self, key: str) -> dict[str, Union[str, bool]]:
-        """
-        Retrieve the session information based os session_id.
+        """Retrieve the session information based os session_id.
 
         @raises KeyError when no key is found.
         """
@@ -109,8 +107,7 @@ class SessionBackend(metaclass=ABCMeta):
         return any([self[sid]["revoked"] for sid in self.get_by_uid(uid)])
 
     def update(self, key: str, attribute: str, value: Any):
-        """
-        Update information stored. If the key is not know a new entry will be constructed.
+        """Update information stored. If the key is not know a new entry will be constructed.
 
         :param key: Key to the database
         :param attribute: Attribute name
@@ -135,8 +132,7 @@ class SessionBackend(metaclass=ABCMeta):
 
 
 class DictSessionBackend(SessionBackend):
-    """
-    Simple implementation of `SessionBackend` based on dictionary.
+    """Simple implementation of `SessionBackend` based on dictionary.
 
     This should really not be used in production.
     """

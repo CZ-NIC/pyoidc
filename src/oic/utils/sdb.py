@@ -86,8 +86,7 @@ class Token:
         self.token_storage = token_storage
 
     def __call__(self, sid, *args, **kwargs):
-        """
-        Return a token.
+        """Return a token.
 
         :param sid: Session id
         :return:
@@ -99,8 +98,7 @@ class Token:
         return rndstr(32)
 
     def type_and_key(self, token):
-        """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
+        """Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
 
         :param token: A token
         :return: tuple of token type and session id
@@ -108,8 +106,7 @@ class Token:
         raise NotImplementedError
 
     def get_key(self, token):
-        """
-        Return session id.
+        """Return session id.
 
         :param token: A token
         :return: The session id
@@ -117,8 +114,7 @@ class Token:
         raise NotImplementedError
 
     def get_type(self, token):
-        """
-        Return token type.
+        """Return token type.
 
         :param token: A token
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)
@@ -126,8 +122,7 @@ class Token:
         raise NotImplementedError
 
     def expires_at(self, token):
-        """
-        Return the expiry timestamp of the token.
+        """Return the expiry timestamp of the token.
 
         :param token: A token
         :return: Timestamp of the token expiry in UTC
@@ -169,8 +164,7 @@ class DefaultToken(Token):
         self.crypt = Crypt(password)
 
     def __call__(self, sid="", ttype="", **kwargs):
-        """
-        Return a token.
+        """Return a token.
 
         :param ttype: Type of token
         :param prev: Previous token, if there is one to go from
@@ -195,8 +189,7 @@ class DefaultToken(Token):
         return base64.b64encode(self.crypt.encrypt(lv_pack(rnd, ttype, sid, issued_at).encode())).decode("utf-8")
 
     def key(self, user="", areq=None, **kwargs):
-        """
-        Return a key - the session id - that are based on some session connected data.
+        """Return a key - the session id - that are based on some session connected data.
 
         :param user: User id
         :param areq: The authorization request
@@ -207,8 +200,7 @@ class DefaultToken(Token):
         return csum.hexdigest()  # 56 bytes long, 224 bits
 
     def _split_token(self, token):
-        """
-        Decode the token.
+        """Decode the token.
 
         :param token: A token
         :return: Tuple of sid, type, iat, salt
@@ -219,8 +211,7 @@ class DefaultToken(Token):
         return p[1], p[2], int(p[3]), p[0]
 
     def type_and_key(self, token):
-        """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
+        """Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
 
         :param token: A token
         :return: tuple of token type and session id
@@ -229,8 +220,7 @@ class DefaultToken(Token):
         return a, b
 
     def get_key(self, token):
-        """
-        Return session id.
+        """Return session id.
 
         :param token: A token
         :return: The session id
@@ -238,8 +228,7 @@ class DefaultToken(Token):
         return self._split_token(token)[1]
 
     def get_type(self, token):
-        """
-        Return token type.
+        """Return token type.
 
         :param token: A token
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)
@@ -247,8 +236,7 @@ class DefaultToken(Token):
         return self._split_token(token)[0]
 
     def expires_at(self, token):
-        """
-        Return expiry time.
+        """Return expiry time.
 
         :param token: A token
         :return: expiry timestamp
@@ -267,8 +255,7 @@ class RefreshDB:
         )
 
     def get(self, refresh_token):
-        """
-        Retrieve info about the authentication proces from the refresh token.
+        """Retrieve info about the authentication proces from the refresh token.
 
         :return: Dictionary with info
         :raises: KeyError
@@ -276,8 +263,7 @@ class RefreshDB:
         raise NotImplementedError
 
     def store(self, token, info):
-        """
-        Store the information about the authentication process.
+        """Store the information about the authentication process.
 
         :param token: Token
         :param info: Information associated with token to be stored
@@ -285,16 +271,14 @@ class RefreshDB:
         raise NotImplementedError
 
     def remove(self, token):
-        """
-        Remove the token and related information from the internal storage.
+        """Remove the token and related information from the internal storage.
 
         :param token: Token to be removed
         """
         raise NotImplementedError
 
     def create_token(self, client_id, uid, scopes, sub, authzreq, sid):
-        """
-        Create refresh token for given combination of client_id and sub and store it in internal storage.
+        """Create refresh token for given combination of client_id and sub and store it in internal storage.
 
         :param client_id: Client_id of the consumer
         :param uid: User identification
@@ -367,8 +351,7 @@ def create_session_db(
     grant_expires_in=600,
     refresh_token_expires_in=86400,
 ):
-    """
-    Construct SessionDB instance.
+    """Construct SessionDB instance.
 
     Using this you can create a very basic non persistent
     session database that issues opaque DefaultTokens.
@@ -410,8 +393,7 @@ class SessionDB:
         refresh_token_factory=None,
         sm_salt="",
     ):
-        """
-        Object to store the session related information.
+        """Object to store the session related information.
 
         :param db: Database for storing the session information.
         """
@@ -502,8 +484,7 @@ class SessionDB:
         raise KeyError(item)
 
     def __getitem__(self, item):
-        """
-        Return Session item.
+        """Return Session item.
 
         :param item: authz grant code or refresh token
         """
@@ -514,16 +495,14 @@ class SessionDB:
             return self._db[sid]
 
     def __setitem__(self, key, value):
-        """
-        Assign Session item.
+        """Assign Session item.
 
         :param key: authz grant code or refresh token
         """
         self._db[key] = value
 
     def __delitem__(self, sid):
-        """
-        Actually delete the pointed session from this SessionDB instance.
+        """Actually delete the pointed session from this SessionDB instance.
 
         :param sid: session identifier
         """
@@ -549,8 +528,7 @@ class SessionDB:
         return self.update(key, attribute, value)
 
     def do_sub(self, sid, client_salt, sector_id="", subject_type="public"):
-        """
-        Construct a sub (subject identifier).
+        """Construct a sub (subject identifier).
 
         :param sid: Session identifier
         :param sector_id: Possible sector identifier
@@ -572,8 +550,7 @@ class SessionDB:
         return sub
 
     def create_authz_session(self, aevent, areq, id_token=None, oidreq=None, **kwargs):
-        """
-        Create session holding info about the Authorization event.
+        """Create session holding info about the Authorization event.
 
         :param aevent: An AuthnEvent instance
         :param areq: The AuthorizationRequest instance
@@ -642,8 +619,7 @@ class SessionDB:
         key=None,
         access_grant="",
     ):
-        """
-        Promote session to token.
+        """Promote session to token.
 
         :param token: The access grant
         :param issue_refresh: If a refresh token should be issued
@@ -705,8 +681,7 @@ class SessionDB:
         return dic
 
     def refresh_token(self, rtoken, client_id):
-        """
-        Issue a new access token using a valid refresh token.
+        """Issue a new access token using a valid refresh token.
 
         :param rtoken: Refresh token
         :param client_id: Client ID
@@ -775,8 +750,7 @@ class SessionDB:
         return dic
 
     def is_valid(self, token, client_id=None):
-        """
-        Check validity of the given token.
+        """Check validity of the given token.
 
         :param token: Access or refresh token
         :param client_id: Client ID, needed only for Refresh token
@@ -823,8 +797,7 @@ class SessionDB:
             return False
 
     def revoke_token(self, token):
-        """
-        Revoke access token.
+        """Revoke access token.
 
         :param token: access token
         """
@@ -834,8 +807,7 @@ class SessionDB:
         return True
 
     def revoke_refresh_token(self, rtoken):
-        """
-        Revoke refresh token.
+        """Revoke refresh token.
 
         :param rtoken: Refresh token
         """
@@ -847,8 +819,7 @@ class SessionDB:
         return True
 
     def revoke_all_tokens(self, token):
-        """
-        Mark session as revoked but also explicitly revoke refresh token.
+        """Mark session as revoked but also explicitly revoke refresh token.
 
         :param token: access token
         """
@@ -938,8 +909,7 @@ class SessionDB:
         return self._db.get_by_sub(sub)
 
     def make_smid(self, sid: str) -> str:
-        """
-        Create a session management ID.
+        """Create a session management ID.
 
         :param sid:
         :return: A session management ID

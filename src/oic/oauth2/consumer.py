@@ -32,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def stateID(url, seed):
-    """
-    Create hash of the time + server path + a seed makes an unique SID for each session.
+    """Create hash of the time + server path + a seed makes an unique SID for each session.
 
     :param url: The base URL for this site
     :return: The hex version of the digest
@@ -62,8 +61,7 @@ def stateID(url, seed):
 
 
 def factory(kaka, sdb, client_id, **kwargs):
-    """
-    Return the right Consumer instance dependent on what's in the cookie.
+    """Return the right Consumer instance dependent on what's in the cookie.
 
     :param kaka: The cookie
     :param sdb: The session database
@@ -111,25 +109,23 @@ class Consumer(Client):
         password=None,
         settings=None,
     ):
-        """
-        Initialize a Consumer instance.
+        """Initialize a Consumer instance.
 
         Keyword Args:
-            settings
+            settings:
                 Instance of :class:`OauthConsumerSettings` with configuration options.
                 Currently used settings are:
                  - verify_ssl
                  - client_cert
                  - timeout
-
-        :param session_db: Where info are kept about sessions acts like a
-            dictionary
-        :param client_config: Client configuration
-        :param server_info: Information about the server
-        :param authz_page:
-        :param response_type:
-        :param scope:
-        :param flow_type:
+            session_db: Where info are kept about sessions acts like a dictionary
+            client_config: DEPRECATED Client configuration
+            server_info: Information about the server
+            authz_page: Path to page after authorization - used in redirect_uri.
+            response_type: Requested response_type.
+            scope: Requested scope string.
+            flow_type: Used flow type.
+            password: Used client password (if used).
         """
         self.settings = settings or OauthConsumerSettings()
         if client_config is None:
@@ -182,8 +178,7 @@ class Consumer(Client):
         self._request = None
 
     def update(self, sid):
-        """
-        Update the instance variables from something stored in the session database.
+        """Update the instance variables from something stored in the session database.
 
         Will not overwrite something that's already there.
         Except for the grant dictionary !!
@@ -208,8 +203,7 @@ class Consumer(Client):
         return self
 
     def restore(self, sid):
-        """
-        Restore the instance variables from something stored in the session database.
+        """Restore the instance variables from something stored in the session database.
 
         :param sid: Session identifier
         """
@@ -217,8 +211,7 @@ class Consumer(Client):
             setattr(self, key, val)
 
     def _backup(self, sid):
-        """
-        Store dynamic instance variable values in the session store under a session identifier.
+        """Store dynamic instance variable values in the session store under a session identifier.
 
         :param sid: Session identifier
         """
@@ -234,8 +227,7 @@ class Consumer(Client):
         self.sdb[sid] = res
 
     def begin(self, baseurl, request, response_type="", **kwargs):
-        """
-        Begin the OAuth2 flow.
+        """Begin the OAuth2 flow.
 
         :param baseurl: The RPs base
         :param request: The Authorization query
@@ -272,8 +264,7 @@ class Consumer(Client):
         return sid, location
 
     def handle_authorization_response(self, query="", **kwargs):
-        """
-        We get redirect back to after authorization at the authorization server has happened.
+        """We get redirect back to after authorization at the authorization server has happened.
 
         :param query: The query part of the request
         :return: A AccessTokenResponse instance
@@ -318,8 +309,7 @@ class Consumer(Client):
             return atr
 
     def complete(self, query, state, **kwargs):
-        """
-        Finish the flow.
+        """Finish the flow.
 
         :param query: The query part of the request URL
         :param state:

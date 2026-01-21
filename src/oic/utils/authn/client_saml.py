@@ -16,8 +16,7 @@ else:
         """Authenticating clients using the SAML2 assertion profile."""
 
         def construct(self, cis, assertion=None, **kwargs):
-            """
-            Create the HTTP request.
+            """Create the HTTP request.
 
             :param cis: The request
             :param assertion: A SAML2 Assertion

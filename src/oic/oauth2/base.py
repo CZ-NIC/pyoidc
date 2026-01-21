@@ -29,28 +29,29 @@ class PBase:
         timeout=None,
         settings: Optional[PyoidcSettings] = None,
     ):
-        """
-        Initialize the instance.
+        """Initialize the instance.
 
         Keyword Args:
-            settings
+            settings:
                 Instance of :class:`PyoidcSettings` with configuration options.
-
-        Note that the following params are deprecated in favor of settings.
-        :param verify_ssl: Control TLS server certificate validation. If set to
-            True the certificate is validated against the global settings,
-            if set to False, no validation is performed. If set to a filename
-            this is used as a certificate bundle in openssl format. If set
-            to a directory name this is used as a CA directory in
-            the openssl format.
-        :param keyjar: A place to keep keys for signing/encrypting messages
-                       Creates a default keyjar if not set.
-        :param client_cert: local cert to use as client side certificate, as a
-            single file (containing the private key and the certificate) or as
-            a tuple of both file's path
-        :param timeout: Timeout for requests library. Can be specified either as
-            a single integer or as a tuple of integers. For more details, refer to
-            ``requests`` documentation.
+            verify_ssl:
+                DEPRECATED Control TLS server certificate validation. If set to
+                True the certificate is validated against the global settings,
+                if set to False, no validation is performed. If set to a filename
+                this is used as a certificate bundle in openssl format. If set
+                to a directory name this is used as a CA directory in
+                the openssl format.
+            keyjar:
+                DEPRECATED A place to keep keys for signing/encrypting messages
+                Creates a default keyjar if not set.
+            client_cert:
+                DEPRECATED local cert to use as client side certificate, as a
+                single file (containing the private key and the certificate) or as
+                a tuple of both file's path
+            timeout:
+                DEPRECATED Timeout for requests library. Can be specified either as
+                a single integer or as a tuple of integers. For more details, refer to
+                ``requests`` documentation.
 
         """
         self.settings = settings or PyoidcSettings()
@@ -104,8 +105,7 @@ class PBase:
         return cookie_dict
 
     def http_request(self, url: str, method="GET", **kwargs) -> requests.Response:
-        """
-        Run a HTTP request to fetch the given url.
+        """Run a HTTP request to fetch the given url.
 
         This wraps the requests library, so you can pass
         most requests kwargs to this method to override

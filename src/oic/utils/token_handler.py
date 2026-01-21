@@ -9,8 +9,7 @@ class NotAllowed(Exception):
 
 
 class TokenHandler:
-    """
-    Class for handling tokens.
+    """Class for handling tokens.
 
     Note! the token and refresh token factories both keep their own token databases.
     """
@@ -24,8 +23,7 @@ class TokenHandler:
         keyjar=None,
         sign_alg="RS256",
     ):
-        """
-        Initialize the class.
+        """Initialize the class.
 
         :param token_factory: A callable function that returns a token
         :param refresh_token_factory: A callable function that returns a
@@ -55,8 +53,7 @@ class TokenHandler:
             self.refresh_token_factory = refresh_token_factory
 
     def get_access_token(self, target_id, scope, grant_type):
-        """
-        Return access token for given inputs.
+        """Return access token for given inputs.
 
         :param target_id:
         :param scope:
@@ -79,8 +76,7 @@ class TokenHandler:
         )
 
     def refresh_access_token(self, target_id, token, grant_type, **kwargs):
-        """
-        Return refresh_access_token for given input.
+        """Return refresh_access_token for given input.
 
         :param target_id: Who gave me this token
         :param token: The refresh_token

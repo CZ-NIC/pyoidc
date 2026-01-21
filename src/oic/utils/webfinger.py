@@ -272,8 +272,7 @@ class WebFinger:
         }
 
     def discovery_query(self, resource, host=None):
-        """
-        Given a resource find a OpenID connect OP to use.
+        """Given a resource find a OpenID connect OP to use.
 
         :param host: Force the host. Disable host detection on resource
         :param resource: An identifier of an entity

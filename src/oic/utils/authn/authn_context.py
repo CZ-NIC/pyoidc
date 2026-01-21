@@ -38,8 +38,7 @@ class AuthnBroker:
         return b > a
 
     def add(self, acr, method, level=0, authn_authority=""):
-        """
-        Add a new authentication method.
+        """Add a new authentication method.
 
         Assumes not more than one authentication method per type.
 
@@ -138,8 +137,7 @@ class AuthnBroker:
         raise KeyError("No method by that name")
 
     def pick(self, acr=None, comparision_type="minimum"):
-        """
-        Given the authentication context find zero or more places where the user could be sent next.
+        """Given the authentication context find zero or more places where the user could be sent next.
 
         Ordered according to security level.
 
@@ -191,8 +189,7 @@ class AuthnBroker:
 
 
 def make_auth_verify(callback, next_module_instance=None):
-    """
-    Closure encapsulating the next module (if any exist) in a multi auth chain.
+    """Closure encapsulating the next module (if any exist) in a multi auth chain.
 
     :param callback: function to execute for the callback URL at the OP, see UserAuthnMethod.verify and its subclasses
     (e.g. SAMLAuthnMethod) for signature

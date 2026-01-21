@@ -211,8 +211,7 @@ def factory(code, message, **kwargs):
 
 
 def geturl(environ, query=True, path=True):
-    """
-    Rebuild a request URL (from PEP 333).
+    """Rebuild a request URL (from PEP 333).
 
     :param query: Is QUERY_STRING included in URI (default: True)
     :param path: Is path included in URI (default: True)
@@ -249,8 +248,7 @@ def _expiration(timeout, time_format=None):
 
 
 def cookie_signature(key, *parts):
-    """
-    Generate a cookie signature.
+    """Generate a cookie signature.
 
     :param key: The HMAC key to use.
     :type key: bytes
@@ -270,8 +268,7 @@ def cookie_signature(key, *parts):
 
 
 def verify_cookie_signature(sig, key, *parts):
-    """
-    Constant time verifier for signatures.
+    """Constant time verifier for signatures.
 
     :param sig: The signature hexdigest to check
     :type sig: str
@@ -286,8 +283,7 @@ def verify_cookie_signature(sig, key, *parts):
 
 
 def _make_hashed_key(parts, hashfunc="sha256"):
-    """
-    Construct a key via hashing the parts.
+    """Construct a key via hashing the parts.
 
     If the parts do not have enough entropy of their own, this doesn't help.
     The size of the hash digest determines the size.
@@ -314,8 +310,7 @@ def make_cookie(
     httponly=True,
     same_site="",
 ):
-    """
-    Create and return a cookie.
+    """Create and return a cookie.
 
     The cookie is secured against tampering.
 
@@ -409,8 +404,7 @@ def make_cookie(
 
 
 def parse_cookie(name, seed, kaka, enc_key=None):
-    """
-    Parse and verify a cookie value.
+    """Parse and verify a cookie value.
 
     Parses a cookie created by `make_cookie` and verifies it has not been tampered with.
 
@@ -630,8 +624,7 @@ class CookieDealer:
         return self.get_cookie_value(cookie, cookie_name)
 
     def get_cookie_value(self, cookie=None, cookie_name=None):
-        """
-        Return information stored in the Cookie.
+        """Return information stored in the Cookie.
 
         :param cookie:
         :param cookie_name: The name of the cookie I'm looking for

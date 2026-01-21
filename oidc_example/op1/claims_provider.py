@@ -148,8 +148,9 @@ for endp in ENDPOINTS:
 
 
 def application(environ, start_response):
-    """
-    The main WSGI application. Dispatch the current request to
+    """The main WSGI application.
+
+    Dispatch the current request to
     the functions from above and store the regular expression
     captures in the WSGI environment as  `oic.url_args` so that
     the functions from above can access the url placeholders.

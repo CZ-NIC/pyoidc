@@ -139,8 +139,7 @@ class Client(oic.Client):
         return _token, _id_token
 
     def callback(self, response, session, format="dict"):
-        """
-        Call when an AuthN response has been received from the OP.
+        """Call when an AuthN response has been received from the OP.
 
         :param response: The URL returned by the OP
         :return:
@@ -233,8 +232,7 @@ class Client(oic.Client):
 
 class OIDCClients:
     def __init__(self, config, base_url, seed="", jwks_info=None, verify_ssl=True):
-        """
-        Initialize the client.
+        """Initialize the client.
 
         :param config: Imported configuration module
         :return:
@@ -267,8 +265,7 @@ class OIDCClients:
             self.path[p.path[1:]] = issuer
 
     def create_client(self, userid="", **kwargs):
-        """
-        Do an instantiation of a client instance.
+        """Do an instantiation of a client instance.
 
         :param userid: An identifier of the user
         :param: Keyword arguments
@@ -411,8 +408,7 @@ class OIDCClients:
             return client
 
     def __getitem__(self, item):
-        """
-        Given a service or user identifier return a suitable client.
+        """Given a service or user identifier return a suitable client.
 
         :param item:
         :return:

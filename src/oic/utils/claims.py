@@ -6,8 +6,7 @@ class ClaimsMode:
         self.user2mode = user2mode
 
     def aggregate(self, uid, info=None):
-        """
-        Determine whether the claims for a user should be aggregated.
+        """Determine whether the claims for a user should be aggregated.
 
         :param uid: user id
         :param info: claims

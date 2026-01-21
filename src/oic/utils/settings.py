@@ -1,5 +1,4 @@
-"""
-Settings for oic objects.
+"""Settings for oic objects.
 
 .. CAUTION::
     This part is under development.

@@ -24,7 +24,7 @@ class MailTwoFactor(AuthnModule):
         template="mail_two_factor.jinja2",
         **kwargs,
     ):
-        """
+        """Initialize class.
 
         :param user_db:
         :param smtp_server:

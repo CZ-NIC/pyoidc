@@ -313,8 +313,7 @@ class Provider(AProvider):
                     self.jwx_def[_typ][item] = ""
 
     def set_mode(self, mode):
-        """
-        Prepare OP based on parameters that govern how this OP will behave.
+        """Prepare OP based on parameters that govern how this OP will behave.
 
         :param mode:
         :return:
@@ -431,8 +430,7 @@ class Provider(AProvider):
 
     @staticmethod
     def get_sector_id(redirect_uri, client_info):
-        """
-        Pick the sector id given a number of factors.
+        """Pick the sector id given a number of factors.
 
         :param redirect_uri: The redirect_uri used
         :param client_info: Information provided by the client in the client registration
@@ -494,8 +492,7 @@ class Provider(AProvider):
         return self.sdb.is_revoke_uid(identity["uid"])
 
     def verify_endpoint(self, request="", cookie=None, **kwargs):
-        """
-        Verify endpoint.
+        """Verify endpoint.
 
         :param request:
         :param cookie:
@@ -599,8 +596,7 @@ class Provider(AProvider):
             return error_response("invalid_request", "{}".format(err))
 
     def authorization_endpoint(self, request="", cookie=None, **kwargs):
-        """
-        Authorize the client.
+        """Authorize the client.
 
         :param request: The client request
         """
@@ -674,8 +670,7 @@ class Provider(AProvider):
         return SeeOther(str(location), headers=headers)
 
     def userinfo_in_id_token_claims(self, session):
-        """
-        Put userinfo claims in the id token.
+        """Put userinfo claims in the id token.
 
         :param session:
         :return:
@@ -708,8 +703,7 @@ class Provider(AProvider):
             logger.warning("No keys to recover.")
 
     def encrypt(self, payload, client_info, cid, val_type="id_token", cty=""):
-        """
-        Handle the encryption of a payload.
+        """Handle the encryption of a payload.
 
         Shouldn't get here unless there are encrypt parameters in client info
 
@@ -744,8 +738,7 @@ class Provider(AProvider):
         return _jwe.encrypt(keys, context="public")
 
     def sign_encrypt_id_token(self, sinfo, client_info, areq, code=None, access_token=None, user_info=None):
-        """
-        Sign and or encrypt a IDToken.
+        """Sign and or encrypt a IDToken.
 
         :param sinfo: Session information
         :param client_info: Client information
@@ -784,8 +777,7 @@ class Provider(AProvider):
         return id_token
 
     def code_grant_type(self, areq):
-        """
-        Token authorization using Code Grant.
+        """Token authorization using Code Grant.
 
         RFC6749 section 4.1
         """
@@ -852,8 +844,7 @@ class Provider(AProvider):
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def refresh_token_grant_type(self, areq):
-        """
-        Token refresh.
+        """Token refresh.
 
         RFC6749 section 6
         """
@@ -892,8 +883,7 @@ class Provider(AProvider):
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def client_credentials_grant_type(self, areq):
-        """
-        Token authorization using client credentials.
+        """Token authorization using client credentials.
 
         RFC6749 section 4.4
         """
@@ -901,8 +891,7 @@ class Provider(AProvider):
         return error_response("unsupported_grant_type", descr="Unsupported grant_type")
 
     def password_grant_type(self, areq):
-        """
-        Token authorization using Resource owner password credentials.
+        """Token authorization using Resource owner password credentials.
 
         RFC6749 section 4.3
         """
@@ -910,8 +899,7 @@ class Provider(AProvider):
         return error_response("unsupported_grant_type", descr="Unsupported grant_type")
 
     def _collect_user_info(self, session, userinfo_claims=None):
-        """
-        Collect information about a user.
+        """Collect information about a user.
 
         This can happen in two cases, either when constructing an IdToken or
         when returning user info through the UserInfo endpoint
@@ -959,8 +947,7 @@ class Provider(AProvider):
         return info
 
     def signed_userinfo(self, client_info, userinfo, session):
-        """
-        Create a JWS with the userinfo as payload.
+        """Create a JWS with the userinfo as payload.
 
         :param client_info: Client registration information
         :param userinfo: An OpenIDSchema instance
@@ -990,8 +977,7 @@ class Provider(AProvider):
         return jinfo
 
     def userinfo_endpoint(self, request="", **kwargs):
-        """
-        Endpoint for collecting the UserInfo.
+        """Endpoint for collecting the UserInfo.
 
         :param request: The request in a string format or as a dictionary
         """
@@ -1279,8 +1265,7 @@ class Provider(AProvider):
         return plruri
 
     def _verify_sector_identifier(self, request):
-        """
-        Verify `sector_identifier_uri` is reachable and that it contains `redirect_uri`s.
+        """Verify `sector_identifier_uri` is reachable and that it contains `redirect_uri`s.
 
         :param request: Provider registration request
         :return: si_redirects, sector_id
@@ -1350,8 +1335,7 @@ class Provider(AProvider):
 
     @staticmethod
     def client_secret_expiration_time():
-        """
-        Return client_secret expiration time.
+        """Return client_secret expiration time.
 
         Split for easy customization.
         """
@@ -1437,8 +1421,7 @@ class Provider(AProvider):
         return error_response("Unsupported method", descr="Unsupported HTTP method")
 
     def read_registration(self, authn, request, **kwargs):
-        """
-        Read all information this server has on a client.
+        """Read all information this server has on a client.
 
         Authorization is done by using the access token that was return as
         part of the client registration result.
@@ -1484,8 +1467,7 @@ class Provider(AProvider):
         )
 
     def alter_registration(self, authn, request, **kwargs):
-        """
-        Alter the client info on server side.
+        """Alter the client info on server side.
 
         :param authn: Authorization HTTP header
         :param request: Query part of the request
@@ -1498,8 +1480,7 @@ class Provider(AProvider):
         )
 
     def delete_registration(self, authn, request, **kwargs):
-        """
-        Delete the client info on server side.
+        """Delete the client info on server side.
 
         :param authn: Authorization HTTP header
         :param request: Query part of the request
@@ -1512,8 +1493,7 @@ class Provider(AProvider):
         )
 
     def provider_features(self, provider_config=None):
-        """
-        Specify what the server capabilities are.
+        """Specify what the server capabilities are.
 
         :return: ProviderConfigurationResponse instance
         """
@@ -1693,8 +1673,7 @@ class Provider(AProvider):
         return aresp, fragment_enc
 
     def key_setup(self, local_path, vault="keys", sig=None, enc=None):
-        """
-        Prepare keys for presentation.
+        """Prepare keys for presentation.
 
         :param local_path: The path to where the JWKs should be stored
         :param vault: Where the private key will be stored
@@ -1713,8 +1692,7 @@ class Provider(AProvider):
         )
 
     def endsession_endpoint(self, request="", **kwargs):
-        """
-        Endpoint for EndSession.
+        """Endpoint for EndSession.
 
         :param request:
         :param kwargs:
@@ -1723,8 +1701,7 @@ class Provider(AProvider):
         return self.end_session_endpoint(request, **kwargs)
 
     def do_key_rollover(self, jwks, kid_template):
-        """
-        Handle key roll-over.
+        """Handle key roll-over.
 
         Import new keys and inactivating the ones in the keyjar that are of the same type and usage.
 
@@ -1757,8 +1734,7 @@ class Provider(AProvider):
             dump_jwks(self.keyjar[""], self.jwks_name)
 
     def remove_inactive_keys(self, more_then: int = 3600):
-        """
-        Remove all keys that has been inactive 'more_then' seconds.
+        """Remove all keys that has been inactive 'more_then' seconds.
 
         :param more_then: An integer (default = 3600 seconds == 1 hour)
         """
@@ -1772,8 +1748,7 @@ class Provider(AProvider):
                 self.keyjar.issuer_keys[""].remove(kb)
 
     def get_by_sub_and_(self, sub: str, key: str, val: Any) -> Optional[str]:
-        """
-        Get a session ID based on subject ID and an attribute value pair.
+        """Get a session ID based on subject ID and an attribute value pair.
 
         Matches sessions based on a subject identifier (sub) and
         one other claim (key) having value (val).
@@ -1794,8 +1769,7 @@ class Provider(AProvider):
     # Below are LOGOUT related methods
 
     def verify_post_logout_redirect_uri(self, esreq: Message, client_id: str) -> Optional[str]:
-        """
-        Verify a post logout URI.
+        """Verify a post logout URI.
 
         :param esreq: End session request
         :param client_id: The Client ID
@@ -1824,8 +1798,7 @@ class Provider(AProvider):
         cookie: Optional[list[tuple[str, str]]],
         redirect_uri: Optional[str],
     ) -> Response:
-        """
-        Show a page to the user, that asks whether logout should be performed.
+        """Show a page to the user, that asks whether logout should be performed.
 
         :param uid: User ID
         :param esr: EndSessionRequest instance
@@ -1861,8 +1834,7 @@ class Provider(AProvider):
     def _get_uid_from_cookie(
         self, cookie: Optional[Union[str, SimpleCookie]]
     ) -> tuple[Optional[CookieDealer], Optional[str], Optional[str]]:
-        """
-        Get cookie_dealer, client_id and uid from cookie.
+        """Get cookie_dealer, client_id and uid from cookie.
 
         :param cookie: Received cookie
         :return: Tuple containing CookieDealer instance, client ID and User ID
@@ -1882,8 +1854,7 @@ class Provider(AProvider):
         return cookie_dealer, client_id, uid
 
     def do_back_channel_logout(self, cinfo: dict, sub: str, sid: str) -> Optional[tuple[str, str]]:
-        """
-        Prepare information to be used to do a back-channel logout.
+        """Prepare information to be used to do a back-channel logout.
 
         :param cinfo: Client information
         :param sub: Subject identifier
@@ -1916,8 +1887,7 @@ class Provider(AProvider):
         return back_channel_logout_uri, sjwt
 
     def clean_sessions(self, usids: list[str]):
-        """
-        Remove Session IDs from the session DB.
+        """Remove Session IDs from the session DB.
 
         :param usids: List of session IDs
         """
@@ -1927,8 +1897,7 @@ class Provider(AProvider):
             del _sdb[sid]
 
     def logout_info_for_all_clients(self, uid: Optional[str] = "", sid: Optional[str] = "") -> dict:
-        """
-        Collect information necessary to logout one user from all clients he/she has been using.
+        """Collect information necessary to logout one user from all clients he/she has been using.
 
         One of uid and sid MUST be provided. If uid is provided sid is ignored.
         NO changes are made to the session DB.
@@ -1966,8 +1935,7 @@ class Provider(AProvider):
         return {"back_channel": bc_logouts, "front_channel": fc_iframes}
 
     def logout_info_for_one_client(self, session_id: str, client_id: str) -> dict:
-        """
-        Collect information necessary to log out from client.
+        """Collect information necessary to log out from client.
 
         Note that if a client has both back channel and front channel logout registered both
         will be handled.
@@ -1998,8 +1966,7 @@ class Provider(AProvider):
         cookie: Optional[Union[str, SimpleCookie]] = None,
         **kwargs,
     ) -> Response:
-        """
-        Handle a RP initiated Logout request.
+        """Handle a RP initiated Logout request.
 
         :param request: The logout request
         :param cookie:
@@ -2131,8 +2098,7 @@ class Provider(AProvider):
     def do_verified_logout(
         self, sid: str, client_id: str, alla: bool = False, **kwargs
     ) -> Union[dict, dict[str, list]]:
-        """
-        Perform back channel logout and prepares the information needed for front channel logout.
+        """Perform back channel logout and prepares the information needed for front channel logout.
 
         :param sid: Session ID
         :param client_id: Client ID
@@ -2212,8 +2178,7 @@ class Provider(AProvider):
 
     @staticmethod
     def do_front_channel_logout_iframe(client_info: dict, issuer: str, session_id: str) -> Optional[str]:
-        """
-        Construct a front channel logout IFrame.
+        """Construct a front channel logout IFrame.
 
         :param client_info: Client info
         :param issuer: Issuer ID

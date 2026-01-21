@@ -42,8 +42,7 @@ class StateLess:
         self.revoked: list[Token] = []
 
     def __getitem__(self, token):
-        """
-        Get token.
+        """Get token.
 
         :param token: authz grant code or refresh token
         :return: information about the session
@@ -54,8 +53,7 @@ class StateLess:
         return cont.to_jwe(self.keys, self.enc, self.alg)
 
     def create_authz_session(self, sub, areq, **kwargs):
-        """
-        Create session for keeping the Authorization.
+        """Create session for keeping the Authorization.
 
         :param sub: Identifier for the user, this is the real identifier
         :param areq: The AuthorizationRequest instance

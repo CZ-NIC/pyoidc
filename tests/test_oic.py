@@ -697,7 +697,7 @@ class TestClient:
     def test_construct_EndSessionRequest_with_id_token_hint_and_post_logout_redirect_uri(
         self,
     ):
-        """Should construct end session request using id_token_hint and post_logout_redirect_uri"""
+        """Should construct end session request using id_token_hint and post_logout_redirect_uri."""
         self.client.keyjar.add_kb(IDTOKEN["iss"], KC_SYM_S)
         _sig_key = self.client.keyjar.get_signing_key("oct", IDTOKEN["iss"])
         _signed_jwt = IDTOKEN.to_jwt(_sig_key, algorithm="HS256")

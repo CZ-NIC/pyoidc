@@ -13,8 +13,7 @@ class PJWT(JasonWebToken):
 
 class PopJWT:
     def __init__(self, iss="", aud="", lifetime=3600, in_a_while=0, sub="", jwe=None, keys=None):
-        """
-        Initialize the class.
+        """Initialize the class.
 
         :param iss: issuer
         :param aud: audience
@@ -49,8 +48,7 @@ class PopJWT:
         return PJWT(**kwargs)
 
     def pack_jwk(self, jwk):
-        """
-        Pack JWK.
+        """Pack JWK.
 
         :param jwk:
         :return:
@@ -60,8 +58,7 @@ class PopJWT:
         return pjwt
 
     def pack_jwe(self, jwe=None, jwk=None, kid=""):
-        """
-        Pack JWE.
+        """Pack JWE.
 
         :param jwe: An encrypted JWT
         :param jwk: A dictionary representing a JWK
@@ -83,8 +80,7 @@ class PopJWT:
         return pjwt
 
     def unpack(self, jwt, jwe=None):
-        """
-        Unpack object.
+        """Unpack object.
 
         :param jwt: A json encoded POP JWT
         :param jwe: A jwkest.jwe.JWE instance to use when decrypting

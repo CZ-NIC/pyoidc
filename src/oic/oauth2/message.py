@@ -154,8 +154,7 @@ class Message(MutableMapping):
 
     @staticmethod
     def _extract_cparam(key, _spec):
-        """
-        Extract ParamDefinition for a given key.
+        """Extract ParamDefinition for a given key.
 
         The key can be direct attribute or lang typed attribute.
         If ParamDefinition is not found, tries to return "*" attribute, if it exists, otherwise returns None.
@@ -166,8 +165,7 @@ class Message(MutableMapping):
         return None
 
     def to_urlencoded(self, lev=0):
-        """
-        Create a string using the application/x-www-form-urlencoded format.
+        """Create a string using the application/x-www-form-urlencoded format.
 
         :return: A string of the application/x-www-form-urlencoded format
         """
@@ -236,8 +234,7 @@ class Message(MutableMapping):
             return func(info, **kwargs)
 
     def from_urlencoded(self, urlencoded, **kwargs):
-        """
-        Create a class instance from a string of the application/x-www-form-urlencoded format.
+        """Create a class instance from a string of the application/x-www-form-urlencoded format.
 
         :param urlencoded: The string
         :return: An instance of the cls class
@@ -284,8 +281,7 @@ class Message(MutableMapping):
         return self
 
     def to_dict(self, lev=0):
-        """
-        Return a dictionary representation of the class.
+        """Return a dictionary representation of the class.
 
         :return: A dict
         """
@@ -312,8 +308,7 @@ class Message(MutableMapping):
         return _res
 
     def from_dict(self, dictionary, **kwargs):
-        """
-        Direct translation so the value for one key might be a list or a single value.
+        """Direct translation so the value for one key might be a list or a single value.
 
         :param dictionary: The info
         :return: A class instance or raise an exception on error
@@ -376,8 +371,7 @@ class Message(MutableMapping):
                     self._dict[skey] = val
 
     def _add_value_list(self, skey, vtype, key, val, _deser, null_allowed):
-        """
-        Add value with internal type (``vtype``) of ``list`` to the message object.
+        """Add value with internal type (``vtype``) of ``list`` to the message object.
 
         :param skey: String representation of key
         :param vtype: Type of object in list
@@ -446,8 +440,7 @@ class Message(MutableMapping):
         return self.from_dict(unpacked)
 
     def to_jwt(self, key=None, algorithm="", lev=0):
-        """
-        Create a signed JWT representation of the class instance.
+        """Create a signed JWT representation of the class instance.
 
         :param key: The signing key
         :param algorithm: The signature algorithm to use
@@ -489,8 +482,7 @@ class Message(MutableMapping):
                             key.extend(kl)
 
     def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
-        """
-        Get keys from a keyjar that can be used to verify a signed JWT.
+        """Get keys from a keyjar that can be used to verify a signed JWT.
 
         :param keyjar: A KeyJar instance
         :param key: List of keys to start with
@@ -563,8 +555,7 @@ class Message(MutableMapping):
         return key
 
     def from_jwt(self, txt, key=None, verify=True, keyjar=None, **kwargs):
-        """
-        Given a signed and/or encrypted JWT, verify its correctness and then create a class instance from the content.
+        """Verify a signed and/or encrypted JWT and then create a class instance from the content.
 
         :param txt: The JWT
         :param key: keys that might be used to decrypt and/or verify the
@@ -710,8 +701,7 @@ class Message(MutableMapping):
         return True
 
     def keys(self):
-        """
-        Return a list of attribute/keys/parameters of this class that has values.
+        """Return a list of attribute/keys/parameters of this class that has values.
 
         :return: A list of attribute names
         """
@@ -797,8 +787,7 @@ class Message(MutableMapping):
             raise ValueError("Can't update message using: '{}'".format(item))
 
     def to_jwe(self, keys, enc, alg, lev=0):
-        """
-        Place the information in this instance in a JSON object.
+        """Place the information in this instance in a JSON object.
 
         Make that JSON object the body of a JWT. Then encrypt that JWT using the specified algorithms
         and the given keys. Return the encrypted JWT.
@@ -817,8 +806,7 @@ class Message(MutableMapping):
         return _jwe.encrypt(keys)
 
     def from_jwe(self, msg, keys):
-        """
-        Decrypt an encrypted JWT and load the JSON object that was the body of the JWT into this object.
+        """Decrypt an encrypted JWT and load the JSON object that was the body of the JWT into this object.
 
         :param msg: An encrypted JWT
         :param keys: Dictionary, keys are key type and key is the value or simple list.

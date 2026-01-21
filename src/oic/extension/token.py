@@ -37,8 +37,7 @@ class JWTToken(Token, JWT):
         self.extra_claims = extra_claims or {}
 
     def __call__(self, sid, *args, **kwargs):
-        """
-        Return a token.
+        """Return a token.
 
         :return:
         """
@@ -121,8 +120,7 @@ class JWTToken(Token, JWT):
         return utc_time_sans_frac() + lifetime
 
     def type_and_key(self, token):
-        """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
+        """Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
 
         :param token: A token
         :return: tuple of token type and session id
@@ -131,8 +129,7 @@ class JWTToken(Token, JWT):
         return self.type, self.db[msg["jti"]]
 
     def get_key(self, token):
-        """
-        Return session id.
+        """Return session id.
 
         :param token: A token
         :return: The session id
@@ -141,8 +138,7 @@ class JWTToken(Token, JWT):
         return self.db[msg["jti"]]
 
     def get_type(self, token):
-        """
-        Return token type.
+        """Return token type.
 
         :param token: A token
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)

@@ -88,8 +88,7 @@ class Grant:
             pass
 
     def add_token(self, resp):
-        """
-        Add token to store.
+        """Add token to store.
 
         :param resp: An Authorization Response instance
         """

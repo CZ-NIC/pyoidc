@@ -45,8 +45,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         userinfo=None,
         samlcache=None,
     ):
-        """
-        Construct the class.
+        """Construct the class.
 
         :param srv: Usually none, but otherwise the oic server.
         :param return_to: The URL to return to after a successful
@@ -91,8 +90,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         return response
 
     def verify(self, request, cookie, path, requrl, end_point_index=None, **kwargs):
-        """
-        Verify if the authentication was successful.
+        """Verify if the authentication was successful.
 
         :rtype : Response
         :param request: Contains the request parameters.

@@ -43,8 +43,7 @@ class ShelfWrapper:
 
 
 def open(filename):
-    """
-    Open a persistent dictionary for reading and writing.
+    """Open a persistent dictionary for reading and writing.
 
     The filename parameter is the base filename for the underlying
     database.  As a side-effect, an extension may be added to the

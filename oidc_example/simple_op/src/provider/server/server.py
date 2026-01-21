@@ -42,11 +42,12 @@ except ImportError:
 
 def VerifierMiddleware(verifier):
     """Common wrapper for the authentication modules.
+
         * Parses the request before passing it on to the authentication module.
         * Sets 'pyoidc' cookie if authentication succeeds.
         * Redirects the user to complete the authentication.
         * Allows the user to retry authentication if it fails.
-    :param verifier: authentication module
+    :param verifier: authentication module.
     """
 
     @wraps(verifier.verify)
@@ -74,9 +75,10 @@ def VerifierMiddleware(verifier):
 
 def pyoidcMiddleware(func):
     """Common wrapper for the underlying pyoidc library functions.
+
     Reads GET params and POST data before passing it on the library and
     converts the response from oic.utils.http_util to wsgi.
-    :param func: underlying library function
+    :param func: underlying library function.
     """
 
     def wrapper(environ, start_response):

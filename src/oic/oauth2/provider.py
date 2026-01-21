@@ -79,8 +79,7 @@ AUTH_METHODS_SUPPORTED = [
 
 
 class Endpoint:
-    """
-    Endpoint class.
+    """Endpoint class.
 
     @var etype: Endpoint type
     @url: Relative part of the url (will be joined with server.baseurl)
@@ -296,8 +295,7 @@ class Provider:
         return [endp.url for endp in self.endp]
 
     def _verify_redirect_uri(self, areq):
-        """
-        Verify that redirect_uri is valid.
+        """Verify that redirect_uri is valid.
 
         MUST NOT contain a fragment
         MAY contain query component
@@ -371,8 +369,7 @@ class Provider:
                 raise RedirectURIError("Faulty redirect_uri: {}".format(areq["redirect_uri"]))
 
     def verify_capabilities(self, capabilities) -> bool:
-        """
-        Verify that what the admin wants the server to do actually can be done by this implementation.
+        """Verify that what the admin wants the server to do actually can be done by this implementation.
 
         :param capabilities: The asked for capabilities as a dictionary
         or a ProviderConfigurationResponse instance. The later can be
@@ -400,8 +397,7 @@ class Provider:
         return True
 
     def provider_features(self, provider_config=None):
-        """
-        Present what the server capabilities are.
+        """Present what the server capabilities are.
 
         :return: ProviderConfigurationResponse instance
         """
@@ -426,8 +422,7 @@ class Provider:
         return _provider_info
 
     def create_providerinfo(self, setup=None):
-        """
-        Dynamically create the provider info response.
+        """Dynamically create the provider info response.
 
         :param setup:
         :return:
@@ -482,8 +477,7 @@ class Provider:
         return resp
 
     def get_redirect_uri(self, areq):
-        """
-        Verify that the redirect URI is reasonable.
+        """Verify that the redirect URI is reasonable.
 
         :param areq: The Authorization request
         :return: Tuple of (redirect_uri, Response instance)
@@ -498,8 +492,7 @@ class Provider:
         return uri
 
     def pick_auth(self, areq, comparision_type=""):
-        """
-        Select an authentication method suitable for request.
+        """Select an authentication method suitable for request.
 
         :param areq: AuthorizationRequest instance
         :param comparision_type: How to pick the authentication method
@@ -547,8 +540,7 @@ class Provider:
         return req
 
     def auth_init(self, request):
-        """
-        Start the authentication process.
+        """Start the authentication process.
 
         :param request: The AuthorizationRequest
         :return:
@@ -662,8 +654,7 @@ class Provider:
         return None
 
     def do_auth(self, areq, redirect_uri, cinfo, request, cookie, **kwargs):
-        """
-        Perform the authentication.
+        """Perform the authentication.
 
         :param areq:
         :param redirect_uri:
@@ -782,8 +773,7 @@ class Provider:
         return sid
 
     def authorization_endpoint(self, request="", cookie="", **kwargs):
-        """
-        Authorize client.
+        """Authorize client.
 
         :param request: The client request
         """
@@ -833,8 +823,7 @@ class Provider:
         return None
 
     def authz_part2(self, user, areq, sid, **kwargs):
-        """
-        After the authentication this is where you should end up.
+        """After the authentication this is where you should end up.
 
         :param user:
         :param areq: The Authorization Request
@@ -937,8 +926,7 @@ class Provider:
         return None
 
     def token_endpoint(self, request="", authn="", dtype="urlencoded", **kwargs):
-        """
-        Provide clients with access tokens.
+        """Provide clients with access tokens.
 
         :param authn: Auhentication info, comes from HTTP header.
         :param request: The request.
@@ -1003,8 +991,7 @@ class Provider:
             raise UnSupported("grant_type: {}".format(grant_type))
 
     def code_grant_type(self, areq):
-        """
-        Token authorization using Code Grant.
+        """Token authorization using Code Grant.
 
         RFC6749 section 4.1
         """
@@ -1023,8 +1010,7 @@ class Provider:
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
     def refresh_token_grant_type(self, areq):
-        """
-        Token refresh.
+        """Token refresh.
 
         RFC6749 section 6
         """
@@ -1032,8 +1018,7 @@ class Provider:
         return error_response("unsupported_grant_type", descr="Unsupported grant_type")
 
     def client_credentials_grant_type(self, areq):
-        """
-        Token authorization using client credentials.
+        """Token authorization using client credentials.
 
         RFC6749 section 4.4
         """
@@ -1041,8 +1026,7 @@ class Provider:
         return error_response("unsupported_grant_type", descr="Unsupported grant_type")
 
     def password_grant_type(self, areq):
-        """
-        Token authorization using Resource owner password credentials.
+        """Token authorization using Resource owner password credentials.
 
         RFC6749 section 4.3
         """

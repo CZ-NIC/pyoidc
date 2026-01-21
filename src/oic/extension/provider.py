@@ -268,8 +268,7 @@ class Provider(provider.Provider):
             self.token_policy[ttyp][cid] = pol
 
     def create_new_client(self, request, restrictions):
-        """
-        Create new client based on request and restrictions.
+        """Create new client based on request and restrictions.
 
         :param request: The Client registration request
         :param restrictions: Restrictions on the client
@@ -383,8 +382,7 @@ class Provider(provider.Provider):
         self.cdb[client_id] = _cinfo
 
     def verify_client(self, environ, areq, authn_method, client_id=""):
-        """
-        Verify the client based on credentials.
+        """Verify the client based on credentials.
 
         :param environ: WSGI environ
         :param areq: The request
@@ -404,8 +402,7 @@ class Provider(provider.Provider):
         return {}
 
     def registration_endpoint(self, **kwargs):
-        """
-        Perform dynamic client registration.
+        """Perform dynamic client registration.
 
         :param request: The request
         :param authn: Client authentication information
@@ -450,8 +447,7 @@ class Provider(provider.Provider):
         return self.client_info(client_id)
 
     def client_info_endpoint(self, method="GET", **kwargs):
-        """
-        Operations on this endpoint are switched through the use of different HTTP methods.
+        """Operations on this endpoint are switched through the use of different HTTP methods.
 
         :param method: HTTP method used for the request
         :param kwargs: keyword arguments
@@ -506,8 +502,7 @@ class Provider(provider.Provider):
 
     @staticmethod
     def verify_code_challenge(code_verifier, code_challenge, code_challenge_method="S256"):
-        """
-        Verify a PKCE (RFC7636) code challenge.
+        """Verify a PKCE (RFC7636) code challenge.
 
         :param code_verifier: The origin
         :param code_challenge: The transformed verifier used as challenge
@@ -610,8 +605,7 @@ class Provider(provider.Provider):
         return Response(atr.to_json(), content="application/json")
 
     def password_grant_type(self, areq):
-        """
-        Token authorization using Resource owner password credentials.
+        """Token authorization using Resource owner password credentials.
 
         RFC6749 section 4.3
         """
@@ -665,8 +659,7 @@ class Provider(provider.Provider):
         return allow
 
     def get_token_info(self, authn, req, endpoint):
-        """
-        Parse token for information.
+        """Parse token for information.
 
         :param authn:
         :param req:
@@ -711,8 +704,7 @@ class Provider(provider.Provider):
         return Response(ir.to_json(), content="application/json")
 
     def revocation_endpoint(self, authn="", request=None, **kwargs):
-        """
-        Implement RFC7009 allows a client to invalidate an access or refresh token.
+        """Implement RFC7009 allows a client to invalidate an access or refresh token.
 
         :param authn: Client Authentication information
         :param request: The revocation request
@@ -738,8 +730,7 @@ class Provider(provider.Provider):
             return Response("OK")
 
     def introspection_endpoint(self, authn="", request=None, **kwargs):
-        """
-        Implement RFC7662.
+        """Implement RFC7662.
 
         :param authn: Client Authentication information
         :param request: The introspection request

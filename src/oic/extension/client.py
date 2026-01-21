@@ -369,8 +369,7 @@ class Client(oauth2.Client):
         return resp
 
     def register(self, url, **kwargs):
-        """
-        Register the client at an OP.
+        """Register the client at an OP.
 
         :param url: The OPs registration endpoint
         :param kwargs: parameters to the registration request

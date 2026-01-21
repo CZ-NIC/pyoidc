@@ -150,8 +150,7 @@ def make_openid_request(
     request_object_signing_alg=None,
     **kwargs,
 ):
-    """
-    Construct the specification of what I want returned.
+    """Construct the specification of what I want returned.
 
     The request will be signed.
 
@@ -270,8 +269,7 @@ def response_types_to_grant_types(resp_types, **kwargs):
 
 
 def claims_match(value, claimspec):
-    """
-    Implement matching according to section 5.5.1 of http://openid.net/specs/openid-connect-core-1_0.html.
+    """Implement matching according to section 5.5.1 of http://openid.net/specs/openid-connect-core-1_0.html.
 
     The lack of value is not checked here.
     Also the text doesn't prohibit having both 'value' and 'values'.
@@ -322,16 +320,33 @@ class Client(oauth2.Client):
         message_factory: type[MessageFactory] = OIDCMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
-        """
-        Initialize the instance.
+        """Initialize the instance.
 
         Keyword Args:
-            settings
+            settings:
                 Instance of :class:`OauthClientSettings` with configuration options.
                 Currently used settings are:
                  - verify_ssl
                  - client_cert
                  - timeout
+            client_id:
+                Client_id
+            client_prefs:
+                Dict with some client settings.
+            client_authn_method:
+                Used client authentication method.
+            keyjar:
+                Insance od :class:`KeyJar` with client keys.
+            verify_ssl:
+                DEPRECATED
+            config:
+                Client configuration.
+            client_cert:
+                DEPRECATED
+            requests_dir:
+                No idea...
+            message_factory:
+                Class inheriting from :class:`MessageFactory` used to specify message classes for response/request.
         """
         self.settings = settings or OicClientSettings()
         if verify_ssl is not None:
@@ -1056,8 +1071,7 @@ class Client(oauth2.Client):
         return userinfo
 
     def verify_alg_support(self, alg, usage, other):
-        """
-        Verify that the algorithm to be used are supported by the other side.
+        """Verify that the algorithm to be used are supported by the other side.
 
         :param alg: The algorithm specification
         :param usage: In which context the 'alg' will be used.
@@ -1087,8 +1101,7 @@ class Client(oauth2.Client):
                 return False
 
     def match_preferences(self, pcr=None, issuer=None):
-        """
-        Match the clients preferences against what the provider can do.
+        """Match the clients preferences against what the provider can do.
 
         :param pcr: Provider configuration response if available
         :param issuer: The issuer identifier
@@ -1216,8 +1229,7 @@ class Client(oauth2.Client):
         return resp
 
     def registration_read(self, url="", registration_access_token=None):
-        """
-        Read the client registration info from the given url.
+        """Read the client registration info from the given url.
 
         :raises RegistrationError: If an error happend
         :return: RegistrationResponse
@@ -1234,8 +1246,7 @@ class Client(oauth2.Client):
         return self.handle_registration_info(rsp)
 
     def generate_request_uris(self, request_dir):
-        """
-        Need to generate a path that is unique for the OP combo.
+        """Need to generate a path that is unique for the OP combo.
 
         :return: A list of uris
         """
@@ -1245,8 +1256,7 @@ class Client(oauth2.Client):
         return "{}{}/{}".format(self.base_url, request_dir, m.hexdigest())
 
     def create_registration_request(self, **kwargs):
-        """
-        Create a registration request.
+        """Create a registration request.
 
         :param kwargs: parameters to the registration request
         :return:
@@ -1286,8 +1296,7 @@ class Client(oauth2.Client):
         return req
 
     def register(self, url, registration_token=None, **kwargs):
-        """
-        Register the client at an OP.
+        """Register the client at an OP.
 
         :param url: The OPs registration endpoint
         :param registration_token: Initial Access Token for registration endpoint
@@ -1352,8 +1361,7 @@ class Client(oauth2.Client):
         max_age=0,
         response_type="",
     ):
-        """
-        Verify IdToken.
+        """Verify IdToken.
 
         If the JWT alg Header Parameter uses a MAC based algorithm such as
         HS256, HS384, or HS512, the octets of the UTF-8 representation of the
@@ -1469,8 +1477,7 @@ class Server(oauth2.Server):
         return parse_qs(query)
 
     def handle_request_uri(self, request_uri, verify=True, sender=""):
-        """
-        Handle request URI.
+        """Handle request URI.
 
         :param request_uri: URL pointing to where the signed request should be fetched from.
         :param verify: Whether the signature on the request should be verified.
@@ -1661,8 +1668,7 @@ class Server(oauth2.Server):
 
     @staticmethod
     def update_claims(session, where, about, old_claims=None):
-        """
-        Update claims dictionary.
+        """Update claims dictionary.
 
         :param session:
         :param where: Which request
@@ -1701,8 +1707,7 @@ class Server(oauth2.Server):
         return old_claims
 
     def id_token_claims(self, session):
-        """
-        Pick the IdToken claims from the request.
+        """Pick the IdToken claims from the request.
 
         :param session: Session information
         :return: The IdToken claims
@@ -1725,8 +1730,7 @@ class Server(oauth2.Server):
         exp=None,
         extra_claims=None,
     ):
-        """
-        Create ID Token.
+        """Create ID Token.
 
         :param session: Session information
         :param loa: Level of Assurance/Authentication context

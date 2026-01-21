@@ -163,8 +163,7 @@ def add_duration(tid, duration):
 
 
 def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
-    """
-    Return time in a future.
+    """Return time in a future.
 
     format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
@@ -177,8 +176,7 @@ def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0
 
 
 def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
-    """
-    Return time in past.
+    """Return time in past.
 
     format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
@@ -207,8 +205,7 @@ def in_a_while(
     weeks=0,
     time_format=TIME_FORMAT,
 ):
-    """
-    Return time in a future.
+    """Return time in a future.
 
     :param days:
     :param seconds:
@@ -236,8 +233,7 @@ def a_while_ago(
     weeks=0,
     time_format=TIME_FORMAT,
 ):
-    """
-    Return time in past.
+    """Return time in past.
 
     :param days:
     :param seconds:
@@ -256,8 +252,7 @@ def a_while_ago(
 
 
 def shift_time(dtime, shift):
-    """
-    Add/delete an integer amount of seconds from a datetime specification.
+    """Add/delete an integer amount of seconds from a datetime specification.
 
     :param dtime: The datatime specification
     :param shift: The wanted time shift (+/-)
@@ -270,8 +265,7 @@ def shift_time(dtime, shift):
 
 
 def str_to_time(timestr, time_format=TIME_FORMAT):
-    """
-    Convert string to time according to TIME_FORMAT.
+    """Convert string to time according to TIME_FORMAT.
 
     :param timestr:
     :param time_format:
@@ -356,8 +350,7 @@ def time_sans_frac():
 
 
 def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
-    """
-    Return the number of seconds since epoch a while from now.
+    """Return the number of seconds since epoch a while from now.
 
     :param days:
     :param seconds:

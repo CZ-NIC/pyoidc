@@ -30,8 +30,7 @@ class LDAPAuthn(UsernamePasswordMako):
         ldap_pwd="",
         verification_endpoints=["verify"],
     ):
-        """
-        Authenticate user against LDAP.
+        """Authenticate user against LDAP.
 
         :param srv: The server instance
         :param ldapsrv: Which LDAP server to us
@@ -64,8 +63,7 @@ class LDAPAuthn(UsernamePasswordMako):
         self.ldap_pwd = ldap_pwd
 
     def _verify(self, pwd, user):
-        """
-        Verify the username and password against a LDAP server.
+        """Verify the username and password against a LDAP server.
 
         :param pwd: The password
         :param user: The username

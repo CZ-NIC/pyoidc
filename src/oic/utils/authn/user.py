@@ -96,8 +96,7 @@ class UserAuthnMethod(CookieDealer):
             return {"uid": uid}, _ts
 
     def generate_return_url(self, return_to, uid, path=""):
-        """
-        Create an URL for returning.
+        """Create an URL for returning.
 
         :param return_to: If it starts with '/' it's an absolute path otherwise
         a relative path.
@@ -145,8 +144,7 @@ def url_encode_params(params=None):
 
 
 def create_return_url(base, query, **kwargs):
-    """
-    Add a query string plus extra parameters to a base URL which may contain a query part already.
+    """Add a query string plus extra parameters to a base URL which may contain a query part already.
 
     :param base: redirect_uri may contain a query part, no fragment allowed.
     :param query: Old query part as a string
@@ -186,8 +184,7 @@ def create_return_url(base, query, **kwargs):
 
 
 class UsernamePasswordMako(UserAuthnMethod):
-    """
-    Do user authentication using the normal username password form.
+    """Do user authentication using the normal username password form.
 
     Works in a WSGI environment using Mako as template system.
     """
@@ -211,8 +208,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         templ_arg_func=None,
         verification_endpoints=None,
     ):
-        """
-        Initialize the class.
+        """Initialize the class.
 
         :param srv: The server instance
         :param mako_template: Which Mako template to use
@@ -232,8 +228,7 @@ class UsernamePasswordMako(UserAuthnMethod):
             self.templ_arg_func = self.template_args
 
     def template_args(self, end_point_index=0, **kwargs):
-        """
-        Build the context for authn page.
+        """Build the context for authn page.
 
         Method to override if necessary, dependent on the page layout and context.
 
@@ -290,8 +285,7 @@ class UsernamePasswordMako(UserAuthnMethod):
             raise AssertionError("Passwords don't match.")
 
     def verify(self, request, **kwargs):
-        """
-        Verify that the given username and password was correct.
+        """Verify that the given username and password was correct.
 
         :param request: Either the query part of a URL a urlencoded body of a HTTP message or a parse such.
         :param kwargs: Catch whatever else is sent.
@@ -365,8 +359,7 @@ class BasicAuthn(UserAuthnMethod):
             raise FailedAuthentication("Wrong user/password combination")
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
-        """
-        Return authenticated user and time of login.
+        """Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
@@ -395,8 +388,7 @@ class SymKeyAuthn(UserAuthnMethod):
         self.symkey = symkey
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
-        """
-        Return authenticated user and time of login.
+        """Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
@@ -421,8 +413,7 @@ class NoAuthn(UserAuthnMethod):
         self.user = user
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
-        """
-        Return authenticated user and time of login.
+        """Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header

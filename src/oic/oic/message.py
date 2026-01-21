@@ -434,8 +434,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
     )
 
     def verify(self, **kwargs):
-        """
-        Check that the request is valid.
+        """Check that the request is valid.
 
         Authorization Request parameters that are OPTIONAL in the OAuth 2.0
         specification MAY be included in the OpenID Request Object without also
@@ -661,8 +660,7 @@ class RegistrationResponse(Message):
     c_param.update(RegistrationRequest.c_param)
 
     def verify(self, **kwargs):
-        """
-        Verify that the response is valid.
+        """Verify that the response is valid.
 
         Implementations MUST either return both a Client Configuration Endpoint
         and a Registration Access Token or neither of them.

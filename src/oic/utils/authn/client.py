@@ -50,24 +50,21 @@ def assertion_jwt(cli, keys, audience, algorithm, lifetime=600):
 
 class ClientAuthnMethod:
     def __init__(self, cli=None):
-        """
-        Initialize class.
+        """Initialize class.
 
         :param cli: Client instance
         """
         self.cli = cli
 
     def construct(self, *args, **kwargs):
-        """
-        Add authentication information to a request.
+        """Add authentication information to a request.
 
         :return:
         """
         raise NotImplementedError
 
     def verify(self, *args, **kwargs):
-        """
-        Verify authentication information in a request.
+        """Verify authentication information in a request.
 
         :param kwargs:
         :return:
@@ -76,8 +73,7 @@ class ClientAuthnMethod:
 
 
 class ClientSecretBasic(ClientAuthnMethod):
-    """
-    Use HTTP Basic authentication.
+    """Use HTTP Basic authentication.
 
     Clients that have received a client_secret value from the Authorization
     Server, authenticate with the Authorization Server in accordance with
@@ -85,8 +81,7 @@ class ClientSecretBasic(ClientAuthnMethod):
     """
 
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
-        """
-        Create the request.
+        """Create the request.
 
         :param cis: Request class instance
         :param request_args: Request arguments
@@ -140,8 +135,7 @@ class ClientSecretBasic(ClientAuthnMethod):
 
 
 class ClientSecretPost(ClientSecretBasic):
-    """
-    Authenticate using client_secret in POST body.
+    """Authenticate using client_secret in POST body.
 
     Clients that have received a client_secret value from the Authorization
     Server, authenticate with the Authorization Server in accordance with
@@ -166,8 +160,7 @@ class ClientSecretPost(ClientSecretBasic):
 
 class BearerHeader(ClientAuthnMethod):
     def construct(self, cis=None, request_args=None, http_args=None, **kwargs):
-        """
-        More complicated logic then I would have liked it to be.
+        """More complicated logic then I would have liked it to be.
 
         :param cli: Client instance
         :param cis: Request class instance
@@ -271,8 +264,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             raise NoMatchingKey("No key with kid:{}".format(kid))
 
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
-        """
-        Construct a client assertion and signs it with a key.
+        """Construct a client assertion and signs it with a key.
 
         The request is modified as a side effect.
         :param cis: The request
@@ -389,8 +381,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
 
 class ClientSecretJWT(JWSAuthnMethod):
-    """
-    Authentication using JWT.
+    """Authentication using JWT.
 
     Clients that have received a client_secret value from the Authorization Server create a JWT using
     an HMAC SHA algorithm, such as HMAC SHA-256.
@@ -435,8 +426,7 @@ def valid_client_info(cinfo):
 
 
 def get_client_id(cdb, req, authn):
-    """
-    Verify the client and return the client id.
+    """Verify the client and return the client id.
 
     :param req: The request
     :param authn: Authentication information from the HTTP header
@@ -482,8 +472,7 @@ def get_client_id(cdb, req, authn):
 
 
 def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
-    """
-    Guess authentication method and get client from that.
+    """Guess authentication method and get client from that.
 
     :param inst: Entity instance
     :param areq: The request

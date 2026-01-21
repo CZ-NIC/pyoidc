@@ -27,8 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def factory(kaka, sdb, config):
-    """
-    Return the right Consumer instance dependent on what's in the cookie.
+    """Return the right Consumer instance dependent on what's in the cookie.
 
     :param kaka: The cookie
     :param sdb: The session database
@@ -46,8 +45,7 @@ def factory(kaka, sdb, config):
 
 
 def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
-    """
-    Create userinfo request based on claims.
+    """Create userinfo request based on claims.
 
     config example::
 
@@ -63,8 +61,7 @@ def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
 
 
 def clean_response(aresp):
-    """
-    Create a new instance with only the standard attributes.
+    """Create a new instance with only the standard attributes.
 
     :param aresp: The original AccessTokenResponse
     :return: An AccessTokenResponse instance
@@ -124,8 +121,7 @@ class Consumer(Client):
         client_prefs=None,
         sso_db=None,
     ):
-        """
-        Initialize a Consumer instance.
+        """Initialize a Consumer instance.
 
         :param session_db: Where info are kept about sessions
         :param config: Configuration of the consumer
@@ -180,8 +176,7 @@ class Consumer(Client):
         self.secret_type = "Bearer"  # nosec
 
     def update(self, sid):
-        """
-        Update the instance variables from something stored in the session database.
+        """Update the instance variables from something stored in the session database.
 
         Will not overwrite something that's already there.
         Except for the grant dictionary !!
@@ -202,8 +197,7 @@ class Consumer(Client):
                 setattr(self, key, val)
 
     def restore(self, sid):
-        """
-        Restore the instance variables from something stored in the session database.
+        """Restore the instance variables from something stored in the session database.
 
         :param sid: Session identifier
         """
@@ -214,16 +208,14 @@ class Consumer(Client):
         return dict([(k, v) for k, v in self.__dict__.items() if k not in IGNORE])
 
     def _backup(self, sid):
-        """
-        Store instance variable values in the session store under a session identifier.
+        """Store instance variable values in the session store under a session identifier.
 
         :param sid: Session identifier
         """
         self.sdb[sid] = self.dictionary()
 
     def begin(self, scope="", response_type="", use_nonce=False, path="", prompt=None, **kwargs):
-        """
-        Begin the OIDC flow.
+        """Begin the OIDC flow.
 
         :param scope: Defines which user info claims is wanted
         :param response_type: Controls the parameters returned in the response from the Authorization Endpoint
@@ -360,8 +352,7 @@ class Consumer(Client):
             Optional[IdToken],
         ],
     ]:
-        """
-        Parse authorization response from server.
+        """Parse authorization response from server.
 
         Couple of cases
         ["code"]
@@ -450,8 +441,7 @@ class Consumer(Client):
         authn_method: str = "client_secret_basic",
         session_state: Optional[str] = None,
     ):
-        """
-        Do the access token request, the last step in a code flow.
+        """Do the access token request, the last step in a code flow.
 
         'session_state' is an optional parameter that can be provided if the Authorization Server support OIDC Session
         Management.
@@ -515,8 +505,7 @@ class Consumer(Client):
         pass
 
     def check_session(self):
-        """
-        Check session endpoint.
+        """Check session endpoint.
 
         With python you could use PyQuery to get the onclick attribute of each
         anchor tag, parse that with a regular expression to get the placeId,
@@ -540,8 +529,7 @@ class Consumer(Client):
     # LOGOUT related
 
     def backchannel_logout(self, request: Optional[str] = None, request_args: Optional[dict] = None) -> str:
-        """
-        Receives a back channel logout request.
+        """Receives a back channel logout request.
 
         :param request: A urlencoded request
         :param request_args: The request as a dictionary

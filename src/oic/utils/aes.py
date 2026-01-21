@@ -28,8 +28,7 @@ class AESError(Exception):
 
 
 def build_cipher(key, iv, alg="aes_128_cbc"):
-    """
-    Create cipher.
+    """Create cipher.
 
     :param key: encryption key
     :param iv: init vector
@@ -64,8 +63,7 @@ def encrypt(
     b64enc=True,
     block_size=BLOCK_SIZE,
 ):
-    """
-    Encrypt message.
+    """Encrypt message.
 
     :param key: The encryption key
     :param iv: init vector
@@ -96,8 +94,7 @@ def encrypt(
 
 
 def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
-    """
-    Decrypt the message.
+    """Decrypt the message.
 
     :param key: The encryption key
     :param iv: init vector
@@ -117,8 +114,7 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
 
 
 class AEAD:
-    """
-    Authenticated Encryption with Associated Data Wrapper.
+    """Authenticated Encryption with Associated Data Wrapper.
 
     This does encryption and integrity check in one
     operation, so you do not need to combine HMAC + encryption
@@ -162,8 +158,7 @@ class AEAD:
         )
 
     def add_associated_data(self, data):
-        """
-        Add data to include in the MAC.
+        """Add data to include in the MAC.
 
         This data is protected by the MAC but not encrypted.
 
@@ -175,8 +170,7 @@ class AEAD:
         self.kernel.update(data)
 
     def encrypt_and_tag(self, cleardata):
-        """
-        Encrypt the given data.
+        """Encrypt the given data.
 
         Encrypts the given data and returns the encrypted
         data and the MAC to later verify and decrypt the data.
@@ -190,8 +184,7 @@ class AEAD:
         return self.kernel.encrypt_and_digest(cleardata)
 
     def decrypt_and_verify(self, cipherdata, tag):
-        """
-        Decrypt and verify.
+        """Decrypt and verify.
 
         Checks the integrity against the tag and decrypts the
         data. Any associated data used during encryption

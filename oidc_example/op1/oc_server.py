@@ -245,14 +245,14 @@ def endsession(environ, start_response, logger):
 
 # noinspection PyUnusedLocal
 def meta_info(environ, start_response, logger):
-    """
-    Returns something like this
-     {"links":[
-        {
-            "rel":"http://openid.net/specs/connect/1.0/issuer",
-            "href":"https://openidconnect.info/"
-        }
-     ]}
+    """Returns something like this!
+
+    {"links":[
+       {
+           "rel":"http://openid.net/specs/connect/1.0/issuer",
+           "href":"https://openidconnect.info/"
+       }
+    ]}.
     """
     pass
 
@@ -355,8 +355,9 @@ LOOKUP = TemplateLookup(
 
 
 def application(environ, start_response):
-    """
-    The main WSGI application. Dispatch the current request to
+    """The main WSGI application.
+
+    Dispatch the current request to
     the functions from above and store the regular expression
     captures in the WSGI environment as  `oic.url_args` so that
     the functions from above can access the url placeholders.
@@ -368,7 +369,6 @@ def application(environ, start_response):
         request is done
     :return: The response as a list of lines
     """
-
     global OAS
 
     # user = environ.get("REMOTE_USER", "")

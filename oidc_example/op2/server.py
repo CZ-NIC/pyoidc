@@ -269,15 +269,14 @@ class Application:
 
     # noinspection PyUnusedLocal
     def meta_info(self, environ, start_response):
-        """
-        Returns something like this::
+        """Returns something like this!
 
-             {"links":[
-                 {
-                    "rel":"http://openid.net/specs/connect/1.0/issuer",
-                    "href":"https://openidconnect.info/"
-                 }
-             ]}
+        {"links":[
+            {
+               "rel":"http://openid.net/specs/connect/1.0/issuer",
+               "href":"https://openidconnect.info/"
+            }
+        ]}
 
         """
         pass
@@ -298,8 +297,9 @@ class Application:
         return resp(environ, start_response)
 
     def application(self, environ, start_response):
-        """
-        The main WSGI application. Dispatch the current request to
+        """The main WSGI application.
+
+        Dispatch the current request to
         the functions from above and store the regular expression
         captures in the WSGI environment as  `oic.url_args` so that
         the functions from above can access the url placeholders.
