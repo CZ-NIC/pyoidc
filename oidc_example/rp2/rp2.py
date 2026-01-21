@@ -133,7 +133,7 @@ def id_token_as_signed_jwt(client, alg="RS256"):
     return _signed_jwt
 
 
-def application(environ, start_response):
+def application(environ, start_response):  # noqa: C901
     session = Session(environ["beaker.session"])
 
     path = environ.get("PATH_INFO", "").lstrip("/")

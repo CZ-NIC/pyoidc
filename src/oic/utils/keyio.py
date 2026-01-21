@@ -493,7 +493,7 @@ class KeyJar:
     def items(self):
         return self.issuer_keys.items()
 
-    def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):
+    def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):  # noqa: C901  # Was 24
         """Return keys matching the args.
 
         :param key_use: A key useful for this usage (enc, dec, sig, ver)

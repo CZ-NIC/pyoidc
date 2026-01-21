@@ -493,7 +493,7 @@ class Client(oauth2.Client):
         else:
             raise ValueError("Invalid webname, must start with base_url")
 
-    def construct_AuthorizationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
+    def construct_AuthorizationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):  # noqa: C901 # was 18
         if request_args is not None:
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
@@ -820,7 +820,7 @@ class Client(oauth2.Client):
 
         return self.request_and_return(url, response_cls, method, body, body_type, state=state, http_args=http_args)
 
-    def user_info_request(self, method="GET", state="", scope="", **kwargs):
+    def user_info_request(self, method="GET", state="", scope="", **kwargs):  # noqa: C901 # was 20
         uir = self.message_factory.get_request_type("userinfo_endpoint")()
         logger.debug("[user_info_request]: kwargs:%s", sanitize(kwargs))
         token: Optional[Token] = None
@@ -901,7 +901,7 @@ class Client(oauth2.Client):
 
         return path, body, method, h_args
 
-    def do_user_info_request(self, method="POST", state="", scope="openid", request="openid", **kwargs):
+    def do_user_info_request(self, method="POST", state="", scope="openid", request="openid", **kwargs):  # noqa: C901 # was 17
         kwargs["request"] = request
         path, body, method, h_args = self.user_info_request(method, state, scope, **kwargs)
 
@@ -1100,7 +1100,7 @@ class Client(oauth2.Client):
             else:
                 return False
 
-    def match_preferences(self, pcr=None, issuer=None):
+    def match_preferences(self, pcr=None, issuer=None):  # noqa: C901 # was 21
         """Match the clients preferences against what the provider can do.
 
         :param pcr: Provider configuration response if available
@@ -1511,7 +1511,7 @@ class Server(oauth2.Server):
         logger.debug("Fetched request: %s", req)
         return req
 
-    def parse_authorization_request(self, url=None, query=None, keys=None):
+    def parse_authorization_request(self, url=None, query=None, keys=None):  # noqa: C901 # was 22
         request = self.message_factory.get_request_type("authorization_endpoint")
         if url:
             parts = urlparse(url)
@@ -1717,7 +1717,7 @@ class Server(oauth2.Server):
         itc = self.update_claims(session, "oidreq", "id_token", itc)
         return itc
 
-    def make_id_token(
+    def make_id_token(  # noqa: C901 # was 18
         self,
         session,
         loa="2",

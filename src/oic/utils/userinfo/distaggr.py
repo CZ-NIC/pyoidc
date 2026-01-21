@@ -73,7 +73,7 @@ class DistributedAggregatedUserInfo(UserInfo):
 
         return result
 
-    def __call__(self, userid, client_id, user_info_claims=None, **kwargs):
+    def __call__(self, userid, client_id, user_info_claims=None, **kwargs):  # noqa: C901 # was 16
         """Collect the claims.
 
         :param userid: The local user id

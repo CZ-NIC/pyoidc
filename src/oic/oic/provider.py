@@ -545,7 +545,7 @@ class Provider(AProvider):
             return False
         return True
 
-    def filter_request(self, req):
+    def filter_request(self, req):  # noqa:C901 # was 18
         _cap = self.capabilities
 
         before = req.to_dict()
@@ -1106,7 +1106,7 @@ class Provider(AProvider):
                         if not set(request[_pref]).issubset(set(self.capabilities[_prov])):
                             raise CapabilitiesMisMatch(_pref)
 
-    def do_client_registration(self, request, client_id, ignore=None):
+    def do_client_registration(self, request, client_id, ignore=None):  # noqa: C901 # was 24
         if ignore is None:
             ignore = []
 
@@ -1589,7 +1589,7 @@ class Provider(AProvider):
             return Response(self.template_renderer("form_post", context), headers=kwargs["headers"])
         return None
 
-    def create_authn_response(self, areq, sid):
+    def create_authn_response(self, areq, sid):  # noqa: C901 # was 18
         # create the response
         aresp = self.server.message_factory.get_response_type("authorization_endpoint")()
         try:
@@ -1960,7 +1960,7 @@ class Provider(AProvider):
 
         return logout_spec
 
-    def end_session_endpoint(
+    def end_session_endpoint(  # noqa: C901 # was 25
         self,
         request: str = "",
         cookie: Optional[Union[str, SimpleCookie]] = None,

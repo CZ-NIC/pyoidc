@@ -138,7 +138,7 @@ class Client(oic.Client):
         _id_token = atresp.get("id_token")
         return _token, _id_token
 
-    def callback(self, response, session, format="dict"):
+    def callback(self, response, session, format="dict"):  # noqa: C901 # was 21
         """Call when an AuthN response has been received from the OP.
 
         :param response: The URL returned by the OP

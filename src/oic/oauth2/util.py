@@ -93,7 +93,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept
     return path, body, kwargs
 
 
-def set_cookie(cookiejar, kaka):
+def set_cookie(cookiejar, kaka):  # noqa: C901 # was 17
     """Place a cookie (a http_cookielib.Cookie based on a set-cookie header line) in the cookie jar.
 
     Always chose the shortest expires time.

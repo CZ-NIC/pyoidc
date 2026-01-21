@@ -264,7 +264,7 @@ def check_char_set(string, allowed):
 TOKEN_VERIFY_ARGS = ["key", "keyjar", "algs", "sender"]
 
 
-def verify_id_token(instance, check_hash=False, **kwargs):
+def verify_id_token(instance, check_hash=False, **kwargs):  # noqa: C901 # was 18
     # Try to decode the JWT, checks the signature
     args = {}
     for arg in TOKEN_VERIFY_ARGS:
@@ -433,7 +433,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
         }
     )
 
-    def verify(self, **kwargs):
+    def verify(self, **kwargs):  # noqa: C901 # was 18
         """Check that the request is valid.
 
         Authorization Request parameters that are OPTIONAL in the OAuth 2.0
@@ -710,7 +710,7 @@ class IdToken(OpenIDSchema):
         }
     )
 
-    def verify(self, **kwargs):
+    def verify(self, **kwargs):  # noqa: C901 # was 22
         super().verify(**kwargs)
 
         try:

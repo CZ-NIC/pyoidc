@@ -89,7 +89,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             return resp
         return response
 
-    def verify(self, request, cookie, path, requrl, end_point_index=None, **kwargs):
+    def verify(self, request, cookie, path, requrl, end_point_index=None, **kwargs):  # noqa: C901  # Was 25
         """Verify if the authentication was successful.
 
         :rtype : Response
@@ -222,7 +222,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                     userdb[oic] = attributes[saml]
         self.userdb[uid] = userdb
 
-    def _pick_idp(self, query, end_point_index):
+    def _pick_idp(self, query, end_point_index):  # noqa: C901 # Was 16
         """If more than one idp and if none is selected, I have to do wayf or disco."""
         query_dict: dict[str, list[str]] = {}
         if isinstance(query, str):

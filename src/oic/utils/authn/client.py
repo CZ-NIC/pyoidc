@@ -263,7 +263,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         else:
             raise NoMatchingKey("No key with kid:{}".format(kid))
 
-    def construct(self, cis, request_args=None, http_args=None, **kwargs):
+    def construct(self, cis, request_args=None, http_args=None, **kwargs):  # noqa: C901 # was 16
         """Construct a client assertion and signs it with a key.
 
         The request is modified as a side effect.

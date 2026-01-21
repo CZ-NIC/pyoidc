@@ -595,7 +595,7 @@ class Client(PBase):
                 info = fragment
         return info
 
-    def parse_response(
+    def parse_response(  # noqa: C901 # was 23
         self,
         response: type[Message],
         info: Union[str, dict] = "",

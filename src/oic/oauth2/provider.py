@@ -295,7 +295,7 @@ class Provider:
     def endpoints(self):
         return [endp.url for endp in self.endp]
 
-    def _verify_redirect_uri(self, areq):
+    def _verify_redirect_uri(self, areq):  # noqa: C901 # was 18
         """Verify that redirect_uri is valid.
 
         MUST NOT contain a fragment
@@ -540,7 +540,7 @@ class Provider:
     def filter_request(self, req):
         return req
 
-    def auth_init(self, request):
+    def auth_init(self, request):  # noqa: C901 # was 19
         """Start the authentication process.
 
         :param request: The AuthorizationRequest
@@ -654,7 +654,7 @@ class Provider:
 
         return None
 
-    def do_auth(self, areq, redirect_uri, cinfo, request, cookie, **kwargs):
+    def do_auth(self, areq, redirect_uri, cinfo, request, cookie, **kwargs):  # noqa: C901 # was 25
         """Perform the authentication.
 
         :param areq:

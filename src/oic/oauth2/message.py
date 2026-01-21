@@ -164,7 +164,7 @@ class Message(MutableMapping):
                 return _spec[_key]
         return None
 
-    def to_urlencoded(self, lev=0):
+    def to_urlencoded(self, lev=0):  # noqa: C901 # was 18
         """Create a string using the application/x-www-form-urlencoded format.
 
         :return: A string of the application/x-www-form-urlencoded format
@@ -325,7 +325,7 @@ class Message(MutableMapping):
                 self._dict[key] = val
         return self
 
-    def _add_value(self, skey, vtyp, key, val, _deser, null_allowed):
+    def _add_value(self, skey, vtyp, key, val, _deser, null_allowed):  # noqa: C901 # 18
         if isinstance(val, list):
             if (len(val) == 0 or val[0] is None) and null_allowed is False:
                 return
@@ -370,7 +370,7 @@ class Message(MutableMapping):
                 else:
                     self._dict[skey] = val
 
-    def _add_value_list(self, skey, vtype, key, val, _deser, null_allowed):
+    def _add_value_list(self, skey, vtype, key, val, _deser, null_allowed):  # noqa: C901 # was 16
         """Add value with internal type (``vtype``) of ``list`` to the message object.
 
         :param skey: String representation of key
@@ -481,7 +481,7 @@ class Message(MutableMapping):
                         else:
                             key.extend(kl)
 
-    def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):
+    def get_verify_keys(self, keyjar, key, jso, header, jwt, **kwargs):  # noqa: C901 # was 19
         """Get keys from a keyjar that can be used to verify a signed JWT.
 
         :param keyjar: A KeyJar instance
@@ -554,7 +554,7 @@ class Message(MutableMapping):
                 self._add_key(keyjar, jso[ent], key, _key_type, _kid, nki)
         return key
 
-    def from_jwt(self, txt, key=None, verify=True, keyjar=None, **kwargs):
+    def from_jwt(self, txt, key=None, verify=True, keyjar=None, **kwargs):  # noqa: C901 # was 25
         """Verify a signed and/or encrypted JWT and then create a class instance from the content.
 
         :param txt: The JWT

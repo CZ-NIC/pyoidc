@@ -195,7 +195,7 @@ class Application:
         else:
             return resp(environ, start_response)
 
-    def application(self, environ, start_response):
+    def application(self, environ, start_response):  # noqa: C901
         b_session = environ["beaker.session"]
 
         jlog = JLog(LOGGER, b_session.id)

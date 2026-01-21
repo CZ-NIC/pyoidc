@@ -216,7 +216,7 @@ class Consumer(Client):
         """
         self.sdb[sid] = self.dictionary()
 
-    def begin(self, scope="", response_type="", use_nonce=False, path="", prompt=None, **kwargs):
+    def begin(self, scope="", response_type="", use_nonce=False, path="", prompt=None, **kwargs):  # noqa: C901 # was 20
         """Begin the OIDC flow.
 
         :param scope: Defines which user info claims is wanted

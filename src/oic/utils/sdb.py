@@ -682,7 +682,7 @@ class SessionDB:
         self._db[key] = dic
         return dic
 
-    def refresh_token(self, rtoken, client_id):
+    def refresh_token(self, rtoken, client_id):  # noqa: C901 # was 16
         """Issue a new access token using a valid refresh token.
 
         :param rtoken: Refresh token

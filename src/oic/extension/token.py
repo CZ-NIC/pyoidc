@@ -36,7 +36,7 @@ class JWTToken(Token, JWT):
         self.exp_args = ["sinfo"]
         self.extra_claims = extra_claims or {}
 
-    def __call__(self, sid, *args, **kwargs):
+    def __call__(self, sid, *args, **kwargs):  # noqa: C901 # was 18
         """Return a token.
 
         :return:
