@@ -1,29 +1,26 @@
 from urllib.parse import parse_qs
 
-from oic.utils.authn.user import UsernamePasswordMako
-from oic.utils.authn.user import logger
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.authn.user import UsernamePasswordMako, logger
+from oic.utils.http_util import SeeOther, Unauthorized
+from oic.utils.sanitize import sanitize
 
 __author__ = "danielevertsson"
 
 
 class JavascriptFormMako(UsernamePasswordMako):
-    """
-    Do user authentication.
+    """Do user authentication.
 
     This is using the normal username password form in a WSGI environment using Mako as template system.
     """
 
     def verify(self, request, **kwargs):
-        """
-        Verify that the given username and password was correct.
+        """Verify that the given username and password was correct.
 
         :param request: Either the query part of a URL a urlencoded body of a HTTP message or a parse such.
         :param kwargs: Catch whatever else is sent.
         :return: redirect back to where ever the base applications wants the user after authentication.
         """
-        logger.debug("verify(%s)" % request)
+        logger.debug("verify({})".format(request))
         if isinstance(request, str):
             _dict = parse_qs(request)
         elif isinstance(request, dict):
@@ -31,12 +28,12 @@ class JavascriptFormMako(UsernamePasswordMako):
         else:
             raise ValueError("Wrong type of input")
 
-        logger.debug("dict: %s" % _dict)
-        logger.debug("passwd: %s" % self.passwd)
+        logger.debug("dict: {}".format(sanitize(_dict)))
+        logger.debug("passwd received: {}".format(bool(self.passwd)))
         # verify username and password
         try:
             if _dict["login_parameter"][0] != "logged_in":
-                raise KeyError()
+                raise KeyError
         except KeyError:
             return (
                 Unauthorized("You are not authorized. Javascript not executed"),

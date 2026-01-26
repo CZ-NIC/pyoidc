@@ -1,7 +1,6 @@
 import json
 import os
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -9,27 +8,21 @@ from freezegun import freeze_time
 from jwkest import BadSignature
 from jwkest.jwk import SYMKey
 
-from oic.oauth2.message import MissingSigningKey
-from oic.oauth2.message import WrongSigningAlgorithm
-from oic.oic import DEF_SIGN_ALG
-from oic.oic import Server
-from oic.oic import response_types_to_grant_types
-from oic.oic.consumer import IGNORE
-from oic.oic.consumer import Consumer
-from oic.oic.consumer import clean_response
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import IdToken
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import RegistrationResponse
+from oic.oauth2.message import MissingSigningKey, WrongSigningAlgorithm
+from oic.oic import DEF_SIGN_ALG, Server, response_types_to_grant_types
+from oic.oic.consumer import IGNORE, Consumer, clean_response
+from oic.oic.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationResponse,
+    IdToken,
+    OpenIDSchema,
+    ProviderConfigurationResponse,
+    RegistrationResponse,
+)
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import keybundle_from_local_file
-from oic.utils.sdb import DictSessionBackend
-from oic.utils.sdb import session_get
+from oic.utils.keyio import KeyBundle, KeyJar, keybundle_from_local_file
+from oic.utils.sdb import DictSessionBackend, session_get
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
@@ -154,17 +147,17 @@ class TestOICConsumer:
     def test_backup_restore(self):
         authz_org_url = "http://example.org/authorization"
 
-        _dict = sorted(list(self.consumer.__dict__.items()))
+        _dict = sorted(self.consumer.__dict__.items())
 
         self.consumer._backup("sid")
         self.consumer.restore("sid")
-        assert sorted(_dict) == sorted(list(self.consumer.__dict__.items()))
+        assert sorted(_dict) == sorted(self.consumer.__dict__.items())
 
         self.consumer.authorization_endpoint = authz_org_url
-        assert _dict != sorted(list(self.consumer.__dict__.items()))
+        assert _dict != sorted(self.consumer.__dict__.items())
 
         self.consumer.restore("sid")
-        assert _dict == sorted(list(self.consumer.__dict__.items()))
+        assert _dict == sorted(self.consumer.__dict__.items())
 
     def test_backup_restore_update(self):
         authz_org_url = "http://example.org/authorization"

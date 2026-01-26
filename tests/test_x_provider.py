@@ -1,33 +1,28 @@
 import json
 import time
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
 from oic import rndstr
 from oic.extension.client import Client
-from oic.extension.message import TokenIntrospectionRequest
-from oic.extension.message import TokenIntrospectionResponse
-from oic.extension.message import TokenRevocationRequest
+from oic.extension.message import TokenIntrospectionRequest, TokenIntrospectionResponse, TokenRevocationRequest
 from oic.extension.provider import Provider
 from oic.extension.token import JWTToken
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import ROPCAccessTokenRequest
-from oic.oauth2.message import TokenErrorResponse
+from oic.oauth2.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    ROPCAccessTokenRequest,
+    TokenErrorResponse,
+)
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.sdb import DefaultToken
-from oic.utils.sdb import SessionDB
-from oic.utils.sdb import lv_pack
-from oic.utils.sdb import lv_unpack
+from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.sdb import DefaultToken, SessionDB, lv_pack, lv_unpack
 from oic.utils.session_backend import DictSessionBackend
 
 CLIENT_CONFIG = {"client_id": "client1", "config": {"issuer": "https://example.com/as"}}
@@ -138,7 +133,7 @@ AUTHN_BROKER2.add("UNDEFINED", DummyAuthn(None, "username", "password"))
 AUTHZ = Implicit()
 
 
-class TestProvider(object):
+class TestProvider:
     @pytest.fixture(autouse=True)
     def create_provider(self):
         kb = KeyBundle(JWKS["keys"])

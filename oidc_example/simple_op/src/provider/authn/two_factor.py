@@ -4,13 +4,10 @@ import smtplib
 import time
 from email.mime.text import MIMEText
 
-
-from provider.authn import AuthnModule
-from provider.authn import make_cls_from_name
-from provider.authn.user_pass import UserPass
-
 from oic import rndstr
 from oic.utils.http_util import Response
+from provider.authn import AuthnModule, make_cls_from_name
+from provider.authn.user_pass import UserPass
 
 
 class MailTwoFactor(AuthnModule):
@@ -27,7 +24,7 @@ class MailTwoFactor(AuthnModule):
         template="mail_two_factor.jinja2",
         **kwargs,
     ):
-        """
+        """Initialize class.
 
         :param user_db:
         :param smtp_server:
@@ -36,7 +33,7 @@ class MailTwoFactor(AuthnModule):
         :param kwargs:
         :return:
         """
-        super(MailTwoFactor, self).__init__(None)
+        super().__init__(None)
         self.template_env = template_env
         self.template = template
 
@@ -84,11 +81,11 @@ class MailTwoFactor(AuthnModule):
                 receiver = self.user_db[username]["email"]
             except KeyError:
                 # Missing user or no mail address
-                self.FAILED_AUTHN
+                return self.FAILED_AUTHN
 
             # Generate code and send it
             now = time.time()
-            secret = "%d%s" % (now, rndstr(16))
+            secret = f"{int(now)}{rndstr(16)}"
             code = hashlib.sha256(secret.encode("utf-8")).hexdigest()
             self.codes[code] = {"username": username, "time": now}
             self._send_mail(code, receiver)

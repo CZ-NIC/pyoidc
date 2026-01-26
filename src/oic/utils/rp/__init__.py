@@ -1,19 +1,13 @@
 import copy
 import hashlib
 import logging
-from typing import Dict
 from urllib.parse import urlsplit
 
-from oic import oic
-from oic import rndstr
+from oic import oic, rndstr
 from oic.exception import MissingAttribute
-from oic.oauth2 import ErrorResponse
-from oic.oauth2 import ResponseError
-from oic.oauth2 import TokenError
+from oic.oauth2 import ErrorResponse, ResponseError, TokenError
 from oic.oauth2.message import ASConfigurationResponse
-from oic.oic import AuthorizationRequest
-from oic.oic import AuthorizationResponse
-from oic.oic import RegistrationResponse
+from oic.oic import AuthorizationRequest, AuthorizationResponse, RegistrationResponse
 from oic.oic.message import OpenIDSchema
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Redirect
@@ -79,19 +73,19 @@ class Client(oic.Client):
 
         request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
-        logger.debug("request: %s" % sanitize(cis))
+        logger.debug("request: %s", sanitize(cis))
 
         url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis, method="GET", request_args=request_args)
 
         self.authz_req[request_args["state"]] = cis
-        logger.debug("body: %s" % sanitize(body))
-        logger.info("URL: %s" % sanitize(url))
-        logger.debug("ht_args: %s" % sanitize(ht_args))
+        logger.debug("body: %s", sanitize(body))
+        logger.info("URL: %s", sanitize(url))
+        logger.debug("ht_args: %s", sanitize(ht_args))
 
         resp = Redirect(str(url))
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        logger.debug("resp_headers: %s" % sanitize(resp.headers))
+        logger.debug("resp_headers: %s", sanitize(resp.headers))
         return resp
 
     def has_access_token(self, **kwargs):
@@ -144,21 +138,20 @@ class Client(oic.Client):
         _id_token = atresp.get("id_token")
         return _token, _id_token
 
-    def callback(self, response, session, format="dict"):
-        """
-        Call when an AuthN response has been received from the OP.
+    def callback(self, response, session, format="dict"):  # noqa: C901 # was 21
+        """Call when an AuthN response has been received from the OP.
 
         :param response: The URL returned by the OP
         :return:
         """
         try:
             authresp = self.parse_response(AuthorizationResponse, response, sformat=format, keyjar=self.keyjar)
-        except ResponseError:
+        except ResponseError as err:
             msg = "Could not parse response: '{}'"
             logger.error(msg.format(sanitize(response)))
-            raise OIDCError("Problem parsing response")
+            raise OIDCError("Problem parsing response") from err
 
-        logger.info("AuthorizationReponse: {}".format(sanitize(authresp)))
+        logger.info("AuthorizationReponse: %s", sanitize(authresp))
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
                 return self.create_authn_request(session)
@@ -206,14 +199,14 @@ class Client(oic.Client):
                 inforesp = self.do_user_info_request(state=authresp["state"], **kwargs)
 
                 if isinstance(inforesp, ErrorResponse):
-                    self._err("Invalid response %s." % inforesp["error"])
+                    self._err("Invalid response {}.".format(inforesp["error"]))
 
                 userinfo = inforesp.to_dict()
 
                 if _id_token["sub"] != userinfo["sub"]:
                     self._err("Invalid response: userid mismatch")
 
-                logger.debug("UserInfo: %s" % sanitize(inforesp))
+                logger.debug("UserInfo: %s", sanitize(inforesp))
 
                 try:
                     self.id_token[user_id] = _id_token
@@ -237,20 +230,19 @@ class Client(oic.Client):
             return {"user_id": user_id, "id_token": _id_token, "access_token": _token}
 
 
-class OIDCClients(object):
+class OIDCClients:
     def __init__(self, config, base_url, seed="", jwks_info=None, verify_ssl=True):
-        """
-        Initialize the client.
+        """Initialize the client.
 
         :param config: Imported configuration module
         :return:
         """
-        self.client: Dict[str, Client] = {}
+        self.client: dict[str, Client] = {}
         self.client_cls = Client
         self.config = config
         self.seed = seed or rndstr(16)
         self.seed = self.seed.encode("utf8")
-        self.path: Dict[str, str] = {}
+        self.path: dict[str, str] = {}
         self.base_url = base_url
         self.jwks_info = jwks_info
         self.verify_ssl = verify_ssl
@@ -273,8 +265,7 @@ class OIDCClients(object):
             self.path[p.path[1:]] = issuer
 
     def create_client(self, userid="", **kwargs):
-        """
-        Do an instantiation of a client instance.
+        """Do an instantiation of a client instance.
 
         :param userid: An identifier of the user
         :param: Keyword arguments
@@ -282,7 +273,7 @@ class OIDCClients(object):
             "provider_info"]
         :return: client instance
         """
-        _key_set = set(list(kwargs.keys()))
+        _key_set = set(kwargs.keys())
         try:
             _verify_ssl = kwargs["verify_ssl"]
         except KeyError:
@@ -325,14 +316,14 @@ class OIDCClients(object):
             # register the client
             client.register(client.provider_info["registration_endpoint"], **kwargs["client_info"])
             self.get_path(kwargs["client_info"]["redirect_uris"], issuer)
-        elif _key_set == set(["client_info", "srv_discovery_url"]):
+        elif _key_set == {"client_info", "srv_discovery_url"}:
             # Ship the webfinger part
             # Gather OP information
             client.provider_config(kwargs["srv_discovery_url"])
             # register the client
             client.register(client.provider_info["registration_endpoint"], **kwargs["client_info"])
             self.get_path(kwargs["client_info"]["redirect_uris"], kwargs["srv_discovery_url"])
-        elif _key_set == set(["provider_info", "client_info"]):
+        elif _key_set == {"provider_info", "client_info"}:
             client.handle_provider_config(
                 ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
@@ -343,7 +334,7 @@ class OIDCClients(object):
                 kwargs["client_info"]["redirect_uris"],
                 kwargs["provider_info"]["issuer"],
             )
-        elif _key_set == set(["provider_info", "client_registration"]):
+        elif _key_set == {"provider_info", "client_registration"}:
             client.handle_provider_config(
                 ASConfigurationResponse(**kwargs["provider_info"]),
                 kwargs["provider_info"]["issuer"],
@@ -353,7 +344,7 @@ class OIDCClients(object):
                 kwargs["client_info"]["redirect_uris"],
                 kwargs["provider_info"]["issuer"],
             )
-        elif _key_set == set(["srv_discovery_url", "client_registration"]):
+        elif _key_set == {"srv_discovery_url", "client_registration"}:
             client.provider_config(kwargs["srv_discovery_url"])
             client.store_registration_info(RegistrationResponse(**kwargs["client_registration"]))
             self.get_path(
@@ -378,13 +369,13 @@ class OIDCClients(object):
         if not issuer:
             raise OIDCError("Missing issuer")
 
-        logger.info("issuer: {}".format(issuer))
+        logger.info("issuer: %s", issuer)
         if issuer in self.client:
             return self.client[issuer]
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
-            logger.info("Provider info: {}".format(sanitize(_pcr.to_dict())))
+            logger.info("Provider info: %s", sanitize(_pcr.to_dict()))
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
             reg_args = copy.copy(_cinfo)
@@ -417,8 +408,7 @@ class OIDCClients(object):
             return client
 
     def __getitem__(self, item):
-        """
-        Given a service or user identifier return a suitable client.
+        """Given a service or user identifier return a suitable client.
 
         :param item:
         :return:

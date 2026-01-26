@@ -47,9 +47,9 @@ def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
         for key, restr in claims.items():
             try:
                 result[key] = identity[key]
-            except KeyError:
+            except KeyError as err:
                 if restr == {"essential": True}:
-                    raise Exception("Missing property '%s'" % key)
+                    raise Exception("Missing property '{}'".format(key)) from err
     else:
         result = identity
 
@@ -144,12 +144,13 @@ ENDPOINTS = [
 URLS = [(r"^.well-known/openid-configuration", op_info)]
 
 for endp in ENDPOINTS:
-    URLS.append(("^%s$" % endp.etype, endp))
+    URLS.append(("^{}$".format(endp.etype), endp))
 
 
 def application(environ, start_response):
-    """
-    The main WSGI application. Dispatch the current request to
+    """The main WSGI application.
+
+    Dispatch the current request to
     the functions from above and store the regular expression
     captures in the WSGI environment as  `oic.url_args` so that
     the functions from above can access the url placeholders.
@@ -169,13 +170,13 @@ def application(environ, start_response):
 
     if kaka:
         handle = parse_cookie(OAS.name, OAS.seed, kaka)
-        LOGGER.debug("Cookie: %s" % (kaka,))
+        LOGGER.debug("Cookie: %s", kaka)
     else:
         handle = ""
 
     environ["oic.oas"] = OAS
 
-    LOGGER.info("path: %s" % path)
+    LOGGER.info("path: %s", path)
     if path in OAS.jwk:
         return static(environ, start_response, path)
     else:
@@ -237,7 +238,7 @@ if __name__ == "__main__":
     OAS = ClaimsServer(config["issuer"], sdb, cdb, userinfo, verify_client)
 
     if "keys" in config:
-        for typ, info in config["keys"].items():
+        for _typ, info in config["keys"].items():
             OAS.keyjar.add_kb("", keybundle_from_local_file(info["key"], "rsa", ["ver", "sig"]))
             try:
                 OAS.jwks_uri.append(info["jwk"])
@@ -254,12 +255,12 @@ if __name__ == "__main__":
     else:
         if config["baseurl"].endswith("/"):
             config["baseurl"] = config["baseurl"][:-1]
-        OAS.baseurl = "%s:%d" % (config["baseurl"], args.port)
+        OAS.baseurl = f"{config['baseurl']}:{args.port}"
 
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
 
-    OAS.claims_userinfo_endpoint = "%s%s" % (OAS.baseurl, UserClaimsInfoEndpoint.etype)
+    OAS.claims_userinfo_endpoint = "{}{}".format(OAS.baseurl, UserClaimsInfoEndpoint.etype)
 
     SRV = wsgiserver.CherryPyWSGIServer(("0.0.0.0", args.port), application)  # nosec
     SRV.ssl_adapter = ssl_builtin.BuiltinSSLAdapter("certs/server.crt", "certs/server.key")

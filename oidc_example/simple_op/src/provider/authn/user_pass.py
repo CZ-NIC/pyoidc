@@ -1,16 +1,14 @@
 import json
 
-from provider.authn import AuthnModule
-from provider.authn import make_cls_from_name
-
 from oic.utils.http_util import Response
+from provider.authn import AuthnModule, make_cls_from_name
 
 
 class UserPass(AuthnModule):
     url_endpoint = "/user_pass/verify"
 
     def __init__(self, db, template_env, template="user_pass.jinja2", **kwargs):
-        super(UserPass, self).__init__(None)
+        super().__init__(None)
         self.template_env = template_env
         self.template = template
 

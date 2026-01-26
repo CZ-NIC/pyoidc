@@ -2,23 +2,14 @@ import base64
 import hmac
 import logging
 import time
-from urllib.parse import parse_qs
-from urllib.parse import unquote_plus
-from urllib.parse import urlencode
-from urllib.parse import urlsplit
-from urllib.parse import urlunsplit
+from urllib.parse import parse_qs, unquote_plus, urlencode, urlsplit, urlunsplit
 
 from jwkest import as_unicode
 
-from oic.exception import ImproperlyConfigured
-from oic.exception import PyoidcError
+from oic.exception import ImproperlyConfigured, PyoidcError
 from oic.oauth2 import compact
 from oic.utils import aes
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import InvalidCookieSign
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import CookieDealer, InvalidCookieSign, Response, SeeOther, Unauthorized
 from oic.utils.sanitize import sanitize
 
 __author__ = "rolandh"
@@ -72,13 +63,13 @@ class UserAuthnMethod(CookieDealer):
         self.query_param = "upm_answer"
 
     def __call__(self, *args, **kwargs):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def authenticated_as(self, cookie=None, **kwargs):
         if cookie is None:
             return None, 0
         else:
-            logger.debug("kwargs: %s" % sanitize(kwargs))
+            logger.debug("kwargs: %s", sanitize(kwargs))
 
             try:
                 val = self.getCookieValue(cookie, self.srv.cookie_name)
@@ -94,19 +85,18 @@ class UserAuthnMethod(CookieDealer):
                 _now = int(time.time())
                 if _now > (int(_ts) + int(self.cookie_ttl * 60)):
                     logger.debug("Authentication timed out")
-                    raise ToOld("%d > (%d + %d)" % (_now, int(_ts), int(self.cookie_ttl * 60)))
+                    raise ToOld(f"{_now} > {int(_ts)} + {int(self.cookie_ttl * 60)}")
             else:
                 if "max_age" in kwargs and kwargs["max_age"]:
                     _now = int(time.time())
                     if _now > (int(_ts) + int(kwargs["max_age"])):
                         logger.debug("Authentication too old")
-                        raise ToOld("%d > (%d + %d)" % (_now, int(_ts), int(kwargs["max_age"])))
+                        raise ToOld(f"{_now} > ({int(_ts)} + {int(kwargs['max_age'])})")
 
             return {"uid": uid}, _ts
 
     def generate_return_url(self, return_to, uid, path=""):
-        """
-        Create an URL for returning.
+        """Create an URL for returning.
 
         :param return_to: If it starts with '/' it's an absolute path otherwise
         a relative path.
@@ -154,8 +144,7 @@ def url_encode_params(params=None):
 
 
 def create_return_url(base, query, **kwargs):
-    """
-    Add a query string plus extra parameters to a base URL which may contain a query part already.
+    """Add a query string plus extra parameters to a base URL which may contain a query part already.
 
     :param base: redirect_uri may contain a query part, no fragment allowed.
     :param query: Old query part as a string
@@ -187,16 +176,15 @@ def create_return_url(base, query, **kwargs):
     else:
         _pre = base
 
-    logger.debug("kwargs: %s" % sanitize(kwargs))
+    logger.debug("kwargs: %s", sanitize(kwargs))
     if kwargs:
-        return "%s?%s" % (_pre, url_encode_params(kwargs))
+        return "{}?{}".format(_pre, url_encode_params(kwargs))
     else:
         return _pre
 
 
 class UsernamePasswordMako(UserAuthnMethod):
-    """
-    Do user authentication using the normal username password form.
+    """Do user authentication using the normal username password form.
 
     Works in a WSGI environment using Mako as template system.
     """
@@ -220,8 +208,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         templ_arg_func=None,
         verification_endpoints=None,
     ):
-        """
-        Initialize the class.
+        """Initialize the class.
 
         :param srv: The server instance
         :param mako_template: Which Mako template to use
@@ -241,8 +228,7 @@ class UsernamePasswordMako(UserAuthnMethod):
             self.templ_arg_func = self.template_args
 
     def template_args(self, end_point_index=0, **kwargs):
-        """
-        Build the context for authn page.
+        """Build the context for authn page.
 
         Method to override if necessary, dependent on the page layout and context.
 
@@ -289,7 +275,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         resp = Response()
 
         argv = self.templ_arg_func(end_point_index, **kwargs)
-        logger.info("do_authentication argv: %s" % sanitize(argv))
+        logger.info("do_authentication argv: %s", sanitize(argv))
         mte = self.template_lookup.get_template(self.mako_template)
         resp.message = mte.render(**argv).decode("utf-8")
         return resp
@@ -299,14 +285,13 @@ class UsernamePasswordMako(UserAuthnMethod):
             raise AssertionError("Passwords don't match.")
 
     def verify(self, request, **kwargs):
-        """
-        Verify that the given username and password was correct.
+        """Verify that the given username and password was correct.
 
         :param request: Either the query part of a URL a urlencoded body of a HTTP message or a parse such.
         :param kwargs: Catch whatever else is sent.
         :return: redirect back to where ever the base applications wants the user after authentication.
         """
-        logger.debug("verify(%s)" % sanitize(request))
+        logger.debug("verify(%s)", sanitize(request))
         if isinstance(request, str):
             _dict = compact(parse_qs(request))
         elif isinstance(request, dict):
@@ -314,7 +299,7 @@ class UsernamePasswordMako(UserAuthnMethod):
         else:
             raise ValueError("Wrong type of input")
 
-        logger.debug("dict: %s" % sanitize(_dict))
+        logger.debug("dict: %s", sanitize(_dict))
         # verify username and password
         try:
             self._verify(_dict["password"], _dict["login"])  # dict origin
@@ -322,7 +307,7 @@ class UsernamePasswordMako(UserAuthnMethod):
             try:
                 self._verify(_dict["password"][0], _dict["login"][0])
             except (AssertionError, KeyError) as err:
-                logger.debug("Password verification failed: {}".format(err))
+                logger.debug("Password verification failed: %s", err)
                 resp = Unauthorized("Unknown user or wrong password")
                 return resp, False
             else:
@@ -331,7 +316,7 @@ class UsernamePasswordMako(UserAuthnMethod):
                 except KeyError:
                     _qp = self.get_multi_auth_cookie(kwargs["cookie"])
         except (AssertionError, KeyError) as err:
-            logger.debug("Password verification failed: {}".format(err))
+            logger.debug("Password verification failed: %s", err)
             resp = Unauthorized("Unknown user or wrong password")
             return resp, False
         else:
@@ -374,8 +359,7 @@ class BasicAuthn(UserAuthnMethod):
             raise FailedAuthentication("Wrong user/password combination")
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
-        """
-        Return authenticated user and time of login.
+        """Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
@@ -404,8 +388,7 @@ class SymKeyAuthn(UserAuthnMethod):
         self.symkey = symkey
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
-        """
-        Return authenticated user and time of login.
+        """Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header
@@ -417,7 +400,7 @@ class SymKeyAuthn(UserAuthnMethod):
         try:
             user = aes.decrypt(self.symkey, encmsg, iv)
         except (AssertionError, KeyError):
-            raise FailedAuthentication("Decryption failed")
+            raise FailedAuthentication("Decryption failed") from None
 
         return {"uid": user}, time.time()
 
@@ -430,8 +413,7 @@ class NoAuthn(UserAuthnMethod):
         self.user = user
 
     def authenticated_as(self, cookie=None, authorization="", **kwargs):
-        """
-        Return authenticated user and time of login.
+        """Return authenticated user and time of login.
 
         :param cookie: A HTTP Cookie
         :param authorization: The HTTP Authorization header

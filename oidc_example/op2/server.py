@@ -86,7 +86,7 @@ def static_file(path):
 
 
 def static(self, environ, start_response, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -103,7 +103,7 @@ def static(self, environ, start_response, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -120,7 +120,7 @@ def key_rollover(self, environ, start_response, _):
     _txt = get_post(environ)
     _jwks = json.loads(_txt)
     logger.info("Key rollover to")
-    OAS.do_key_rollover(_jwks, "key_%d_%%d" % int(time.time()))
+    OAS.do_key_rollover(_jwks, f"key_{int(time.time())}_%d")
     # Dump to file
     f = open(JWKS_FILE_NAME, "w")
     f.write(json.dumps(OAS.keyjar.export_jwks()))
@@ -156,7 +156,7 @@ def mako_renderer(template_name, context):
 # ----------------------------------------------------------------------------
 
 
-class Application(object):
+class Application:
     def __init__(self, oas, urls):
         self.oas = oas
 
@@ -190,7 +190,7 @@ class Application(object):
 
     def add_endpoints(self, extra):
         for endp in extra:
-            self.urls.append(("^%s" % endp.etype, endp.func))
+            self.urls.append(("^{}".format(endp.etype), endp.func))
 
     # noinspection PyUnusedLocal
     def safe(self, environ, start_response):
@@ -218,7 +218,7 @@ class Application(object):
             resp = Unauthorized("Not authorized")
             return resp(environ, start_response)
 
-        info = "'%s' secrets" % _sinfo["sub"]
+        info = "'{}' secrets".format(_sinfo["sub"])
         resp = Response(info)
         return resp(environ, start_response)
 
@@ -227,7 +227,7 @@ class Application(object):
         try:
             info = open(environ["PATH_INFO"]).read()
             resp = Response(info)
-        except (OSError, IOError):
+        except OSError:
             resp = NotFound(environ["PATH_INFO"])
 
         return resp(environ, start_response)
@@ -269,15 +269,14 @@ class Application(object):
 
     # noinspection PyUnusedLocal
     def meta_info(self, environ, start_response):
-        """
-        Returns something like this::
+        """Returns something like this!
 
-             {"links":[
-                 {
-                    "rel":"http://openid.net/specs/connect/1.0/issuer",
-                    "href":"https://openidconnect.info/"
-                 }
-             ]}
+        {"links":[
+            {
+               "rel":"http://openid.net/specs/connect/1.0/issuer",
+               "href":"https://openidconnect.info/"
+            }
+        ]}
 
         """
         pass
@@ -298,8 +297,9 @@ class Application(object):
         return resp(environ, start_response)
 
     def application(self, environ, start_response):
-        """
-        The main WSGI application. Dispatch the current request to
+        """The main WSGI application.
+
+        Dispatch the current request to
         the functions from above and store the regular expression
         captures in the WSGI environment as  `oic.url_args` so that
         the functions from above can access the url placeholders.
@@ -319,7 +319,7 @@ class Application(object):
 
         environ["oic.oas"] = self.oas
 
-        logger.info('PATH: "{}"'.format(path))
+        logger.info('PATH: "%s"', path)
 
         if path.startswith("static/"):
             return static(self, environ, start_response, path)
@@ -332,18 +332,18 @@ class Application(object):
                 except IndexError:
                     environ["oic.url_args"] = path
 
-                logger.info("callback: %s" % callback)
+                logger.info("callback: %s", callback)
                 try:
                     return callback(environ, start_response)
                 except Exception as err:
-                    print("%s" % err)
+                    print("{}".format(err))
                     message = traceback.format_exception(*sys.exc_info())
                     print(message)
-                    logger.exception("%s" % err)
-                    resp = ServiceError("%s" % err)
+                    logger.exception("%s", err)
+                    resp = ServiceError("{}".format(err))
                     return resp(environ, start_response)
 
-        LOGGER.debug("unknown side: %s" % path)
+        LOGGER.debug("unknown side: %s", path)
         resp = NotFound("Couldn't find the side you asked for!")
         return resp(environ, start_response)
 
@@ -390,7 +390,7 @@ if __name__ == "__main__":
     # Client data base
     cdb = shelve_wrapper.open("client_db")
 
-    logger.info("Known client_ids: {}".format([k for k in cdb.keys()]))
+    logger.info("Known client_ids: %s", list(cdb.keys()))
     sys.path.insert(0, ".")
 
     config = _import_config(args.config)
@@ -413,13 +413,13 @@ if __name__ == "__main__":
     saml_authn = None
 
     end_points = config.AUTHENTICATION["UserPassword"]["END_POINTS"]
-    full_end_point_paths = ["%s%s" % (_issuer, ep) for ep in end_points]
+    full_end_point_paths = ["{}{}".format(_issuer, ep) for ep in end_points]
     username_password_authn = UsernamePasswordMako(
-        None, "login.mako", LOOKUP, PASSWD, "%sauthorization" % _issuer, None, full_end_point_paths
+        None, "login.mako", LOOKUP, PASSWD, "{}authorization".format(_issuer), None, full_end_point_paths
     )
 
     _urls = []
-    for authkey, value in config.AUTHENTICATION.items():
+    for authkey, _value in config.AUTHENTICATION.items():
         authn = None
 
         if "UserPassword" == authkey:
@@ -430,7 +430,7 @@ if __name__ == "__main__":
 
         # Ensure javascript_login_authn to be defined
         try:
-            javascript_login_authn
+            javascript_login_authn  # noqa: B018
         except NameError:
             javascript_login_authn = None
 
@@ -592,7 +592,7 @@ if __name__ == "__main__":
     try:
         jwks = keyjar_init(OAS, config.keys, kid_template="op%d")
     except Exception as err:
-        LOGGER.error("Key setup failed: %s" % err)
+        LOGGER.error("Key setup failed: %s", err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
         jwks_file_name = JWKS_FILE_NAME
@@ -604,10 +604,10 @@ if __name__ == "__main__":
 
         f.write(json.dumps(jwks))
         f.close()
-        OAS.jwks_uri = "%s%s" % (OAS.baseurl, jwks_file_name)
+        OAS.jwks_uri = "{}{}".format(OAS.baseurl, jwks_file_name)
 
     for b in OAS.keyjar[""]:
-        LOGGER.info("OC3 server keys: %s" % b)
+        LOGGER.info("OC3 server keys: %s", b)
 
     _app = Application(OAS, _urls)
 
@@ -624,7 +624,7 @@ if __name__ == "__main__":
         #     config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
         SRV.ssl_adapter = BuiltinSSLAdapter(config.SERVER_CERT, config.SERVER_KEY)
 
-    LOGGER.info("OC server started (iss={}, port={})".format(_issuer, args.port))
+    LOGGER.info("OC server started (iss=%s, port=%s)", _issuer, args.port)
     print("OC server started (iss={}, port={}) {}".format(_issuer, args.port, https))
     try:
         SRV.start()

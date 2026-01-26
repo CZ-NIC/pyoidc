@@ -1,5 +1,4 @@
-from oic.utils.keyio import build_keyjar
-from oic.utils.keyio import dump_jwks
+from oic.utils.keyio import build_keyjar, dump_jwks
 
 __author__ = "roland"
 

@@ -1,7 +1,6 @@
 import base64
 
-from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.utils.authn.client import ClientAuthnMethod
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD, ClientAuthnMethod
 
 __author__ = "rolandh"
 
@@ -17,8 +16,7 @@ else:
         """Authenticating clients using the SAML2 assertion profile."""
 
         def construct(self, cis, assertion=None, **kwargs):
-            """
-            Create the HTTP request.
+            """Create the HTTP request.
 
             :param cis: The request
             :param assertion: A SAML2 Assertion

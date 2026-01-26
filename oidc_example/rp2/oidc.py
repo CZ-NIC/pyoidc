@@ -4,13 +4,10 @@ import traceback
 
 import requests
 
-from oic import oic
-from oic import rndstr
+from oic import oic, rndstr
 from oic.oauth2 import PBase
 from oic.oauth2.message import ErrorResponse
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
+from oic.oic.message import AccessTokenResponse, AuthorizationRequest, AuthorizationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Response
 from oic.utils.webfinger import WebFinger
@@ -21,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def token_secret_key(sid):
-    return "token_secret_%s" % sid
+    return "token_secret_{}".format(sid)
 
 
 SERVICE_NAME = "OIC"
@@ -30,7 +27,7 @@ FLOW_TYPE = "code"
 CLIENT_CONFIG = {}
 
 
-class OpenIDConnect(object):
+class OpenIDConnect:
     def __init__(self, attribute_map=None, authenticating_authority=None, name="", registration_info=None, **kwargs):
         self.attribute_map = attribute_map
         self.authenticating_authority = authenticating_authority
@@ -93,7 +90,7 @@ class OpenIDConnect(object):
             client.redirect_uris = [callback]
             client.post_logout_redirect_uris = [logout_callback]
             for typ in ["authorization", "token", "userinfo"]:
-                endpoint = "%s_endpoint" % typ
+                endpoint = "{}_endpoint".format(typ)
                 setattr(client, endpoint, self.extra[endpoint])
 
             client.client_id = self.client_id
@@ -149,7 +146,7 @@ class OpenIDConnect(object):
                 acr_values = None
 
             if acr_value is None and acr_values is not None and len(acr_values) > 1:
-                resp_headers = [("Location", str("/rpAcr"))]
+                resp_headers = [("Location", "/rpAcr")]
                 start_response("302 Found", resp_headers)
                 return []
             elif acr_values is not None and len(acr_values) == 1:
@@ -251,10 +248,12 @@ class OpenIDConnect(object):
 
     # noinspection PyUnusedLocal
     def phaseN(self, environ, query, server_env, session):
-        """Step 2: Once the consumer has redirected the user back to the
-        callback URL you can request the access token the user has
-        approved."""
+        """Step 2.
 
+        Once the consumer has redirected the user back to the
+        callback URL you can request the access token the user has
+        approved.
+        """
         client = session["client"]
         logger.debug("info: %s", query)
         logger.debug("keyjar: %s", client.keyjar)
@@ -280,7 +279,7 @@ class OpenIDConnect(object):
                 raise
 
             if isinstance(tokenresp, ErrorResponse):
-                return (False, "Invalid response %s." % tokenresp["error"])
+                return (False, "Invalid response {}.".format(tokenresp["error"]))
 
             access_token = tokenresp["access_token"]
         else:
@@ -291,7 +290,7 @@ class OpenIDConnect(object):
         inforesp = self.get_userinfo(client, authresp, access_token)
 
         if isinstance(inforesp, ErrorResponse):
-            return False, "Invalid response %s." % inforesp["error"], session
+            return False, "Invalid response {}.".format(inforesp["error"]), session
 
         userinfo.update(inforesp.to_dict())
 
@@ -301,9 +300,7 @@ class OpenIDConnect(object):
 
     # noinspection PyUnusedLocal
     def callback(self, environ, server_env, start_response, query, session):
-        """
-        This is where we come back after the OP has done the
-        Authorization Request.
+        """This is where we come back after the OP has done the Authorization Request.
 
         :param environ:
         :param server_env:
@@ -334,8 +331,9 @@ class OpenIDConnect(object):
         return resp(environ, start_response, **argv)
 
     def find_srv_discovery_url(self, resource):
-        """
-        Use Webfinger to find the OP, The input is a unique identifier
+        """Use Webfinger to find the OP.
+
+        The input is a unique identifier
         of the user. Allowed forms are the acct, mail, http and https
         urls. If no protocol specification is given like if only an
         email like identifier is given. It will be translated if possible to
@@ -344,6 +342,5 @@ class OpenIDConnect(object):
         :param resource: unique identifier of the user.
         :return:
         """
-
         wf = WebFinger(httpd=PBase(verify_ssl=self.extra["ca_bundle"]))
         return wf.discovery_query(resource)

@@ -2,10 +2,8 @@ import copy
 import logging
 import warnings
 from http import cookiejar as cookielib
-from http.cookies import CookieError
-from http.cookies import SimpleCookie
-from typing import Optional
-from typing import cast
+from http.cookies import CookieError, SimpleCookie
+from typing import Optional, cast
 
 import requests
 
@@ -20,7 +18,7 @@ __author__ = "roland"
 logger = logging.getLogger(__name__)
 
 
-class PBase(object):
+class PBase:
     """Class for OAuth2 clients and servers."""
 
     def __init__(
@@ -31,28 +29,29 @@ class PBase(object):
         timeout=None,
         settings: Optional[PyoidcSettings] = None,
     ):
-        """
-        Initialize the instance.
+        """Initialize the instance.
 
         Keyword Args:
-            settings
+            settings:
                 Instance of :class:`PyoidcSettings` with configuration options.
-
-        Note that the following params are deprecated in favor of settings.
-        :param verify_ssl: Control TLS server certificate validation. If set to
-            True the certificate is validated against the global settings,
-            if set to False, no validation is performed. If set to a filename
-            this is used as a certificate bundle in openssl format. If set
-            to a directory name this is used as a CA directory in
-            the openssl format.
-        :param keyjar: A place to keep keys for signing/encrypting messages
-                       Creates a default keyjar if not set.
-        :param client_cert: local cert to use as client side certificate, as a
-            single file (containing the private key and the certificate) or as
-            a tuple of both file's path
-        :param timeout: Timeout for requests library. Can be specified either as
-            a single integer or as a tuple of integers. For more details, refer to
-            ``requests`` documentation.
+            verify_ssl:
+                DEPRECATED Control TLS server certificate validation. If set to
+                True the certificate is validated against the global settings,
+                if set to False, no validation is performed. If set to a filename
+                this is used as a certificate bundle in openssl format. If set
+                to a directory name this is used as a CA directory in
+                the openssl format.
+            keyjar:
+                DEPRECATED A place to keep keys for signing/encrypting messages
+                Creates a default keyjar if not set.
+            client_cert:
+                DEPRECATED local cert to use as client side certificate, as a
+                single file (containing the private key and the certificate) or as
+                a tuple of both file's path
+            timeout:
+                DEPRECATED Timeout for requests library. Can be specified either as
+                a single integer or as a tuple of integers. For more details, refer to
+                ``requests`` documentation.
 
         """
         self.settings = settings or PyoidcSettings()
@@ -106,8 +105,7 @@ class PBase(object):
         return cookie_dict
 
     def http_request(self, url: str, method="GET", **kwargs) -> requests.Response:
-        """
-        Run a HTTP request to fetch the given url.
+        """Run a HTTP request to fetch the given url.
 
         This wraps the requests library, so you can pass
         most requests kwargs to this method to override
@@ -136,7 +134,11 @@ class PBase(object):
             )
         except Exception as err:
             logger.error(
-                "http_request failed: %s, url: %s, htargs: %s, method: %s" % (err, url, sanitize(_kwargs), method)
+                "http_request failed: %s, url: %s, htargs: %s, method: %s",
+                err,
+                sanitize(url),
+                sanitize(_kwargs),
+                method,
             )
             raise
 
@@ -150,7 +152,7 @@ class PBase(object):
                 set_cookie(self.cookiejar, SimpleCookie(_cookie))
             except CookieError as err:
                 logger.error("%s", err)
-                raise NonFatalException(r, "{}".format(err))
+                raise NonFatalException(r, "{}".format(err)) from err
         except (AttributeError, KeyError):
             pass
 

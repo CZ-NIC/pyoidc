@@ -4,20 +4,22 @@ from http.cookies import SimpleCookie
 import pytest
 
 from oic.exception import ImproperlyConfigured
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import InvalidCookieSign
-from oic.utils.http_util import Response
-from oic.utils.http_util import cookie_parts
-from oic.utils.http_util import cookie_signature
-from oic.utils.http_util import getpath
-from oic.utils.http_util import geturl
-from oic.utils.http_util import parse_cookie
-from oic.utils.http_util import verify_cookie_signature
+from oic.utils.http_util import (
+    CookieDealer,
+    InvalidCookieSign,
+    Response,
+    cookie_parts,
+    cookie_signature,
+    getpath,
+    geturl,
+    parse_cookie,
+    verify_cookie_signature,
+)
 
 __author__ = "roland"
 
 
-class TestResponse(object):
+class TestResponse:
     def test_response(self):
         response_header = ("X-Test", "foobar")
         message = "foo bar"
@@ -40,7 +42,7 @@ class TestResponse(object):
             assert response_header in headers
 
         resp = Response(message=message, headers=[response_header], template=template)
-        assert resp({}, start_response) == ['&lt;script&gt;alert("hi");&lt;/script&gt;'.encode("utf8")]
+        assert resp({}, start_response) == [b'&lt;script&gt;alert("hi");&lt;/script&gt;']
 
 
 @pytest.fixture
@@ -52,7 +54,7 @@ def cookie_dealer():
     return CookieDealer(DummyServer())
 
 
-class TestCookieDealer(object):
+class TestCookieDealer:
     def test_create_cookie_value(self, cookie_dealer):
         cookie_value = "Something to pass along"
         cookie_typ = "sso"

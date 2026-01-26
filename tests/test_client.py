@@ -1,34 +1,30 @@
 import base64
 import os
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
 import pytest
-from jwkest import as_bytes
-from jwkest import b64e
-from jwkest.jwk import SYMKey
-from jwkest.jwk import rsa_load
+from jwkest import as_bytes, b64e
+from jwkest.jwk import SYMKey, rsa_load
 from jwkest.jws import JWS
 from jwkest.jwt import JWT
 
 from oic.extension.provider import Provider
 from oic.oauth2 import Client
 from oic.oauth2.grant import Grant
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import ResourceRequest
+from oic.oauth2.message import AccessTokenRequest, AccessTokenResponse, AuthorizationResponse, ResourceRequest
 from oic.oic import JWT_BEARER
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import BearerBody
-from oic.utils.authn.client import BearerHeader
-from oic.utils.authn.client import ClientSecretBasic
-from oic.utils.authn.client import ClientSecretJWT
-from oic.utils.authn.client import ClientSecretPost
-from oic.utils.authn.client import PrivateKeyJWT
-from oic.utils.authn.client import valid_client_info
-from oic.utils.authn.client import verify_client
+from oic.utils.authn.client import (
+    BearerBody,
+    BearerHeader,
+    ClientSecretBasic,
+    ClientSecretJWT,
+    ClientSecretPost,
+    PrivateKeyJWT,
+    valid_client_info,
+    verify_client,
+)
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.http_util import Response
@@ -57,7 +53,7 @@ def client():
     return cli
 
 
-class TestClientSecretBasic(object):
+class TestClientSecretBasic:
     def test_construct(self, client):
         cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
 
@@ -77,7 +73,7 @@ class TestClientSecretBasic(object):
         assert http_args["headers"]["Authorization"].endswith("==")
 
 
-class TestBearerHeader(object):
+class TestBearerHeader:
     def test_construct(self, client):
         request_args = {"access_token": "Sesame"}
         bh = BearerHeader(client)
@@ -122,7 +118,7 @@ class TestBearerHeader(object):
         assert http_args == {"headers": {"Authorization": "Bearer token1"}}
 
 
-class TestBearerBody(object):
+class TestBearerBody:
     def test_construct_with_request_args(self, client):
         request_args = {"access_token": "Sesame"}
         cis = ResourceRequest()
@@ -163,7 +159,7 @@ class TestBearerBody(object):
         assert cis["access_token"] == "token1"
 
 
-class TestClientSecretPost(object):
+class TestClientSecretPost:
     def test_construct(self, client):
         cis = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
         csp = ClientSecretPost(client)
@@ -180,7 +176,7 @@ class TestClientSecretPost(object):
         assert http_args == {}
 
 
-class TestPrivateKeyJWT(object):
+class TestPrivateKeyJWT:
     def test_construct(self, client):
         _key = rsa_load(os.path.join(BASE_PATH, "data/keys/rsa.key"))
         kc_rsa = KeyBundle(
@@ -207,7 +203,7 @@ class TestPrivateKeyJWT(object):
         assert jso["aud"] == [client.provider_info["token_endpoint"]]
 
 
-class TestClientSecretJWT_TE(object):
+class TestClientSecretJWT_TE:
     def test_client_secret_jwt(self, client):
         client.token_endpoint = "https://example.com/token"
         client.provider_info = {
@@ -234,7 +230,7 @@ class TestClientSecretJWT_TE(object):
         assert info["aud"] == [client.provider_info["token_endpoint"]]
 
 
-class TestClientSecretJWT_UI(object):
+class TestClientSecretJWT_UI:
     def test_client_secret_jwt(self, client):
         client.token_endpoint = "https://example.com/token"
         client.provider_info = {
@@ -261,7 +257,7 @@ class TestClientSecretJWT_UI(object):
         assert info["aud"] == [client.provider_info["issuer"]]
 
 
-class TestValidClientInfo(object):
+class TestValidClientInfo:
     @patch("oic.utils.authn.client.utc_time_sans_frac", Mock(return_value=123456))
     def test_valid_client_info(self):
         # Expiration time missing or 0, client_secret never expires
@@ -276,7 +272,7 @@ class TestValidClientInfo(object):
         assert valid_client_info({"client_id": "test", "client_secret_expires_at": 123457})
 
 
-class TestPKCE(object):
+class TestPKCE:
     def test_pkce_create(self):
         _cli = Client(config={"code_challenge": {"method": "S256", "length": 64}})
         args, cv = _cli.add_code_challenge()

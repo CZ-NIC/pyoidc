@@ -1,17 +1,15 @@
 import time
-from typing import List
 from typing import Optional
 
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationResponse
+from oic.oauth2.message import AccessTokenResponse, AuthorizationResponse
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "roland"
 
 
-class Token(object):
+class Token:
     def __init__(self, resp=None):
-        self.scope: List[str] = []
+        self.scope: list[str] = []
         self.token_expiration_time = 0
         self.access_token = None
         self.refresh_token = None
@@ -42,7 +40,7 @@ class Token(object):
         return True
 
     def __str__(self):
-        return "%s" % self.__dict__
+        return "{}".format(self.__dict__)
 
     def keys(self):
         return self.__dict__.keys()
@@ -60,7 +58,7 @@ class Token(object):
         return True
 
 
-class Grant(object):
+class Grant:
     _authz_resp = AuthorizationResponse
     _acc_resp = AccessTokenResponse
     _token_class = Token
@@ -69,7 +67,7 @@ class Grant(object):
         self.grant_expiration_time = 0
         self.exp_in = exp_in
         self.seed = seed
-        self.tokens: List[Token] = []
+        self.tokens: list[Token] = []
         self.id_token = None
         self.code: Optional[str] = None
         if resp:
@@ -90,8 +88,7 @@ class Grant(object):
             pass
 
     def add_token(self, resp):
-        """
-        Add token to store.
+        """Add token to store.
 
         :param resp: An Authorization Response instance
         """
@@ -106,7 +103,7 @@ class Grant(object):
             return True
 
     def __str__(self):
-        return "%s" % self.__dict__
+        return "{}".format(self.__dict__)
 
     def keys(self):
         return self.__dict__.keys()

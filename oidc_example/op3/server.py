@@ -1,48 +1,42 @@
 #!/usr/bin/env python
 __author__ = "Vahid Jalili"
 
-from urllib.parse import parse_qs
-
+import argparse
+import importlib
 import json
+import logging
 import os
 import re
 import sys
-import traceback
-import argparse
-import importlib
 import time
-import logging
+import traceback
+from urllib.parse import parse_qs
 
+from cherrypy import wsgiserver
+from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
+from jwkest import as_unicode
 from mako.lookup import TemplateLookup
 
 from oic import rndstr
-
-from oic.oic.provider import AuthorizationEndpoint
-from oic.oic.provider import EndSessionEndpoint
-from oic.oic.provider import Provider
-from oic.oic.provider import RegistrationEndpoint
-from oic.oic.provider import TokenEndpoint
-from oic.oic.provider import UserinfoEndpoint
+from oic.oic.provider import (
+    AuthorizationEndpoint,
+    EndSessionEndpoint,
+    Provider,
+    RegistrationEndpoint,
+    TokenEndpoint,
+    UserinfoEndpoint,
+)
 from oic.utils import shelve_wrapper
-from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.authn_context import make_auth_verify
+from oic.utils.authn.authn_context import AuthnBroker, make_auth_verify
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.multi_auth import AuthnIndexedEndpointWrapper
 from oic.utils.authn.user import UsernamePasswordMako
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import NotFound, ServiceError, Response, BadRequest, wsgi_wrapper, get_post, Unauthorized
-from jwkest import as_unicode
+from oic.utils.http_util import BadRequest, NotFound, Response, ServiceError, Unauthorized, get_post, wsgi_wrapper
 from oic.utils.keyio import keyjar_init
-from oic.utils.userinfo import UserInfo
-from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.webfinger import WebFinger
-
-
-from cherrypy import wsgiserver
-from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
-
 from oic.utils.sdb import create_session_db
-
+from oic.utils.userinfo import UserInfo
+from oic.utils.webfinger import OIC_ISSUER, WebFinger
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = "oc.log"
@@ -69,7 +63,7 @@ def static_file(path):
 
 # noinspection PyUnresolvedReferences
 def static(self, environ, start_response, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -86,7 +80,7 @@ def static(self, environ, start_response, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -100,7 +94,7 @@ def key_rollover(self, environ, start_response, _):
     _txt = get_post(environ)
     _jwks = json.loads(_txt)
     # logger.info("Key rollover to")
-    provider.do_key_rollover(_jwks, "key_%d_%%d" % int(time.time()))
+    provider.do_key_rollover(_jwks, f"key_{int(time.time())}_%d")
     # Dump to file
     f = open(jwksFileName, "w")
     f.write(json.dumps(provider.keyjar.export_jwks()))
@@ -115,7 +109,7 @@ def clear_keys(self, environ, start_response, _):
     return resp(environ, start_response)
 
 
-class Application(object):
+class Application:
     def __init__(self, provider, urls):
         self.provider = provider
 
@@ -144,7 +138,7 @@ class Application(object):
         )
 
         for endp in self.endpoints:
-            self.urls.append(("^%s" % endp.etype, endp.func))
+            self.urls.append(("^{}".format(endp.etype), endp.func))
 
     # noinspection PyUnusedLocal
     def safe(self, environ, start_response):
@@ -169,7 +163,7 @@ class Application(object):
             resp = Unauthorized("Not authorized")
             return resp(environ, start_response)
 
-        info = "'%s' secrets" % _sinfo["sub"]
+        info = "'{}' secrets".format(_sinfo["sub"])
         resp = Response(info)
         return resp(environ, start_response)
 
@@ -178,7 +172,7 @@ class Application(object):
         try:
             info = open(environ["PATH_INFO"]).read()
             resp = Response(info)
-        except (OSError, IOError):
+        except OSError:
             resp = NotFound(environ["PATH_INFO"])
 
         return resp(environ, start_response)
@@ -229,15 +223,14 @@ class Application(object):
 
     # noinspection PyUnusedLocal
     def meta_info(self, environ, start_response):
-        """
-        Returns something like this::
+        """Returns something like this!
 
-             {"links":[
-                 {
-                    "rel":"http://openid.net/specs/connect/1.0/issuer",
-                    "href":"https://openidconnect.info/"
-                 }
-             ]}
+        {"links":[
+            {
+               "rel":"http://openid.net/specs/connect/1.0/issuer",
+               "href":"https://openidconnect.info/"
+            }
+        ]}
 
         """
         print("\n in meta-info")
@@ -259,8 +252,9 @@ class Application(object):
         return resp(environ, start_response)
 
     def application(self, environ, start_response):
-        """
-        The main WSGI application. Dispatch the current request to
+        """The main WSGI application.
+
+        Dispatch the current request to
         the functions from above and store the regular expression
         captures in the WSGI environment as  `oic.url_args` so that
         the functions from above can access the url placeholders.
@@ -293,14 +287,14 @@ class Application(object):
                 try:
                     return callback(environ, start_response)
                 except Exception as err:
-                    print("%s" % err)
+                    print("{}".format(err))
                     message = traceback.format_exception(*sys.exc_info())
                     print(message)
-                    logger.exception("%s" % err)
-                    resp = ServiceError("%s" % err)
+                    logger.exception("%s", err)
+                    resp = ServiceError("{}".format(err))
                     return resp(environ, start_response)
 
-        LOGGER.debug("unknown side: %s" % path)
+        LOGGER.debug("unknown side: %s", path)
         resp = NotFound("Couldn't find the side you asked for!")
         return resp(environ, start_response)
 
@@ -336,7 +330,7 @@ if __name__ == "__main__":
     config.ISSUER = config.ISSUER + ":{}/".format(config.PORT)
     config.SERVICEURL = config.SERVICEURL.format(issuer=config.ISSUER)
     endPoints = config.AUTHENTICATION["UserPassword"]["EndPoints"]
-    fullEndPointsPath = ["%s%s" % (config.ISSUER, ep) for ep in endPoints]
+    fullEndPointsPath = ["{}{}".format(config.ISSUER, ep) for ep in endPoints]
 
     # TODO: why this instantiation happens so early? can I move it later?
     # An OIDC Authorization/Authentication server is designed to
@@ -356,7 +350,7 @@ if __name__ == "__main__":
         "login.mako",  # a mako template
         lookup,  # lookup template
         usernamePasswords,  # username/password dictionary-like database
-        "%sauthorization" % config.ISSUER,  # where to send the user after authentication
+        "{}authorization".format(config.ISSUER),  # where to send the user after authentication
         None,  # templ_arg_func ??!!
         fullEndPointsPath,
     )  # verification endpoints
@@ -449,7 +443,7 @@ if __name__ == "__main__":
         f = open(jwksFileName, "w")
         f.write(json.dumps(jwks))
         f.close()
-        provider.jwks_uri = "%s%s" % (provider.baseurl, jwksFileName)
+        provider.jwks_uri = "{}{}".format(provider.baseurl, jwksFileName)
 
     # for b in OAS.keyjar[""]:
     #    LOGGER.info("OC3 server keys: %s" % b)

@@ -1,22 +1,12 @@
 import logging
-import sys
 from http import cookiejar as http_cookiejar
 from http.cookiejar import http2time  # type: ignore
-from typing import Any
-from typing import Dict
-from typing import Optional
-from urllib.parse import parse_qs
-from urllib.parse import urlsplit
-from urllib.parse import urlunsplit
+from typing import Any, Literal, Optional
+from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from oic.exception import UnSupported
 from oic.oauth2.exception import TimeFormatError
 from oic.utils.sanitize import sanitize
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +23,7 @@ PAIRS = {
     "path": "path_specified",
 }
 
-ATTRS: Dict[str, Any] = {
+ATTRS: dict[str, Any] = {
     "version": None,
     "name": "",
     "value": None,
@@ -58,8 +48,7 @@ ENCODINGS = Literal["json", "urlencoded", "dict", "jwt", "jwe"]
 
 
 def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept=None, **kwargs):
-    """
-    Construct HTTP request.
+    """Construct HTTP request.
 
     :param uri:
     :param method:
@@ -88,7 +77,7 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept
         elif content_type == JSON_ENCODED:
             body = req.to_json()
         else:
-            raise UnSupported("Unsupported content type: '%s'" % content_type)
+            raise UnSupported("Unsupported content type: '{}'".format(content_type))
 
         header_ext = {"Content-Type": content_type}
         if accept:
@@ -99,14 +88,13 @@ def get_or_post(uri, method, req, content_type=DEFAULT_POST_CONTENT_TYPE, accept
         else:
             kwargs["headers"] = header_ext
     else:
-        raise UnSupported("Unsupported HTTP method: '%s'" % method)
+        raise UnSupported("Unsupported HTTP method: '{}'".format(method))
 
     return path, body, kwargs
 
 
-def set_cookie(cookiejar, kaka):
-    """
-    Place a cookie (a http_cookielib.Cookie based on a set-cookie header line) in the cookie jar.
+def set_cookie(cookiejar, kaka):  # noqa: C901 # was 17
+    """Place a cookie (a http_cookielib.Cookie based on a set-cookie header line) in the cookie jar.
 
     Always chose the shortest expires time.
 
@@ -140,7 +128,7 @@ def set_cookie(cookiejar, kaka):
                         std_attr["expires"] = http2time(morsel[attr])
         except TimeFormatError:
             # Ignore cookie
-            logger.info("Time format error on %s parameter in received cookie" % (sanitize(attr),))
+            logger.info("Time format error on %s parameter in received cookie", sanitize(attr))
             continue
 
         for att, spec in PAIRS.items():
@@ -205,8 +193,8 @@ def guess_body_type(reqresp):
 
 
 def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS]:
-    logger.debug("resp.headers: %s" % (sanitize(reqresp.headers),))
-    logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
+    logger.debug("resp.headers: %s", sanitize(reqresp.headers))
+    logger.debug("resp.txt: %s", sanitize(reqresp.text))
 
     if body_type is None:
         return guess_body_type(reqresp)
@@ -216,7 +204,7 @@ def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS
             if match_to_("application/jwt", reqresp.headers["content-type"]):
                 body_type = "jwt"
             else:
-                raise ValueError("content-type: %s" % (reqresp.headers["content-type"],))
+                raise ValueError("content-type: {}".format(reqresp.headers["content-type"]))
     elif body_type == "jwt":
         if not match_to_("application/jwt", reqresp.headers["content-type"]):
             raise ValueError(
@@ -229,6 +217,6 @@ def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS
             if not match_to_("text/plain", reqresp.headers["content-type"]):
                 raise ValueError("Wrong content-type")
     else:
-        raise ValueError("Unknown return format: %s" % body_type)
+        raise ValueError("Unknown return format: {}".format(body_type))
 
     return body_type

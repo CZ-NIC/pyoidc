@@ -4,77 +4,59 @@ import os
 import warnings
 from base64 import b64encode
 from json import JSONDecodeError
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Type
-from typing import Union
-from typing import cast
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from typing import Any, Optional, Union, cast
+from urllib.parse import parse_qs, urlparse
 
-from jwkest import BadSyntax
-from jwkest import as_bytes
-from jwkest import jwe
-from jwkest import jws
-from jwkest import jwt
+from jwkest import BadSyntax, as_bytes, jwe, jws, jwt
 from jwkest.jwe import JWE
 from requests import ConnectionError
 
-from oic import oauth2
-from oic import rndstr
-from oic.exception import AccessDenied
-from oic.exception import AuthnToOld
-from oic.exception import AuthzError
-from oic.exception import CommunicationError
-from oic.exception import MissingParameter
-from oic.exception import ParameterError
-from oic.exception import PyoidcError
-from oic.exception import RegistrationError
-from oic.exception import RequestError
-from oic.exception import SubMismatch
-from oic.oauth2 import HTTP_ARGS
-from oic.oauth2 import authz_error
+from oic import oauth2, rndstr
+from oic.exception import (
+    AccessDenied,
+    AuthnToOld,
+    AuthzError,
+    CommunicationError,
+    MissingParameter,
+    ParameterError,
+    PyoidcError,
+    RegistrationError,
+    RequestError,
+    SubMismatch,
+)
+from oic.oauth2 import HTTP_ARGS, authz_error
 from oic.oauth2.consumer import ConfigurationError
-from oic.oauth2.exception import MissingRequiredAttribute
-from oic.oauth2.exception import OtherError
-from oic.oauth2.exception import ParseError
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import Message
-from oic.oauth2.message import MessageFactory
-from oic.oauth2.message import WrongSigningAlgorithm
+from oic.oauth2.exception import MissingRequiredAttribute, OtherError, ParseError
+from oic.oauth2.message import ErrorResponse, Message, MessageFactory, WrongSigningAlgorithm
 from oic.oauth2.util import get_or_post
-from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationErrorResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import Claims
-from oic.oic.message import ClaimsRequest
-from oic.oic.message import ClientRegistrationErrorResponse
-from oic.oic.message import EndSessionRequest
-from oic.oic.message import IdToken
-from oic.oic.message import JasonWebToken
-from oic.oic.message import OIDCMessageFactory
-from oic.oic.message import OpenIDRequest
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import RefreshSessionRequest
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import TokenErrorResponse
-from oic.oic.message import UserInfoErrorResponse
-from oic.oic.message import UserInfoRequest
+from oic.oic.message import (
+    SCOPE2CLAIMS,
+    AccessTokenResponse,
+    AuthorizationErrorResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    Claims,
+    ClaimsRequest,
+    ClientRegistrationErrorResponse,
+    EndSessionRequest,
+    IdToken,
+    JasonWebToken,
+    OIDCMessageFactory,
+    OpenIDRequest,
+    OpenIDSchema,
+    RefreshSessionRequest,
+    RegistrationRequest,
+    RegistrationResponse,
+    TokenErrorResponse,
+    UserInfoErrorResponse,
+    UserInfoRequest,
+)
 from oic.utils import time_util
 from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
-from oic.utils.settings import OicClientSettings
-from oic.utils.settings import OicServerSettings
-from oic.utils.settings import PyoidcSettings
-from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.webfinger import WebFinger
+from oic.utils.settings import OicClientSettings, OicServerSettings, PyoidcSettings
+from oic.utils.webfinger import OIC_ISSUER, WebFinger
 
 __author__ = "rohe0002"
 
@@ -90,7 +72,7 @@ ENDPOINTS = [
     "check_id_endpoint",
 ]
 
-RESPONSE2ERROR: Dict[str, List] = {
+RESPONSE2ERROR: dict[str, list] = {
     "AuthorizationResponse": [AuthorizationErrorResponse, TokenErrorResponse],
     "AccessTokenResponse": [TokenErrorResponse],
     "IdToken": [ErrorResponse],
@@ -168,8 +150,7 @@ def make_openid_request(
     request_object_signing_alg=None,
     **kwargs,
 ):
-    """
-    Construct the specification of what I want returned.
+    """Construct the specification of what I want returned.
 
     The request will be signed.
 
@@ -245,7 +226,7 @@ PREFERENCE2PROVIDER = {
     "grant_types": "grant_types_supported",
 }
 
-PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
+PROVIDER2PREFERENCE = {v: k for k, v in PREFERENCE2PROVIDER.items()}
 
 PROVIDER_DEFAULT = {
     "token_endpoint_auth_method": "client_secret_basic",
@@ -280,7 +261,7 @@ def response_types_to_grant_types(resp_types, **kwargs):
         try:
             _gt = rt2gt[" ".join(_rt)]
         except KeyError:
-            raise ValueError("No such response type combination: {}".format(resp_types))
+            raise ValueError("No such response type combination: {}".format(resp_types)) from None
         else:
             _res.update(set(_gt))
 
@@ -288,8 +269,7 @@ def response_types_to_grant_types(resp_types, **kwargs):
 
 
 def claims_match(value, claimspec):
-    """
-    Implement matching according to section 5.5.1 of http://openid.net/specs/openid-connect-core-1_0.html.
+    """Implement matching according to section 5.5.1 of http://openid.net/specs/openid-connect-core-1_0.html.
 
     The lack of value is not checked here.
     Also the text doesn't prohibit having both 'value' and 'values'.
@@ -337,19 +317,36 @@ class Client(oauth2.Client):
         config=None,
         client_cert=None,
         requests_dir="requests",
-        message_factory: Type[MessageFactory] = OIDCMessageFactory,
+        message_factory: type[MessageFactory] = OIDCMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
-        """
-        Initialize the instance.
+        """Initialize the instance.
 
         Keyword Args:
-            settings
+            settings:
                 Instance of :class:`OauthClientSettings` with configuration options.
                 Currently used settings are:
                  - verify_ssl
                  - client_cert
                  - timeout
+            client_id:
+                Client_id
+            client_prefs:
+                Dict with some client settings.
+            client_authn_method:
+                Used client authentication method.
+            keyjar:
+                Insance od :class:`KeyJar` with client keys.
+            verify_ssl:
+                DEPRECATED
+            config:
+                Client configuration.
+            client_cert:
+                DEPRECATED
+            requests_dir:
+                No idea...
+            message_factory:
+                Class inheriting from :class:`MessageFactory` used to specify message classes for response/request.
         """
         self.settings = settings or OicClientSettings()
         if verify_ssl is not None:
@@ -384,7 +381,7 @@ class Client(oauth2.Client):
         for endpoint in ENDPOINTS:
             setattr(self, endpoint, "")
 
-        self.id_token: Dict[str, Token] = {}
+        self.id_token: dict[str, Token] = {}
         self.log = None
 
         self.request2endpoint = REQUEST2ENDPOINT
@@ -394,13 +391,13 @@ class Client(oauth2.Client):
         self.registration_response: RegistrationResponse = RegistrationResponse()
         self.client_prefs = client_prefs or {}
 
-        self.behaviour: Dict[str, Any] = {}
+        self.behaviour: dict[str, Any] = {}
         self.scope = ["openid"]
 
         self.wf = WebFinger(OIC_ISSUER)
         self.wf.httpd = self
         self.allow = {}
-        self.post_logout_redirect_uris: List[str] = []
+        self.post_logout_redirect_uris: list[str] = []
         self.registration_expires = 0
         self.registration_access_token = None
         self.id_token_max_age = 0
@@ -451,7 +448,7 @@ class Client(oauth2.Client):
             try:
                 encenc = self.behaviour["request_object_encryption_enc"]
             except KeyError:
-                raise MissingRequiredAttribute("No request_object_encryption_enc specified")
+                raise MissingRequiredAttribute("No request_object_encryption_enc specified") from None
 
         _jwe = JWE(msg, alg=encalg, enc=encenc)
         _kty = jwe.alg2keytype(encalg)
@@ -483,7 +480,7 @@ class Client(oauth2.Client):
         while os.path.exists(filename):
             _name = rndstr(10)
             filename = os.path.join(_filedir, _name)
-        _webname = "%s%s" % (_webpath, _name)
+        _webname = "{}{}".format(_webpath, _name)
         return filename, _webname
 
     def filename_from_webname(self, webname):
@@ -496,7 +493,7 @@ class Client(oauth2.Client):
         else:
             raise ValueError("Invalid webname, must start with base_url")
 
-    def construct_AuthorizationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):
+    def construct_AuthorizationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):  # noqa: C901 # was 18
         if request_args is not None:
             if "nonce" not in request_args:
                 _rt = request_args["response_type"]
@@ -823,9 +820,9 @@ class Client(oauth2.Client):
 
         return self.request_and_return(url, response_cls, method, body, body_type, state=state, http_args=http_args)
 
-    def user_info_request(self, method="GET", state="", scope="", **kwargs):
+    def user_info_request(self, method="GET", state="", scope="", **kwargs):  # noqa: C901 # was 20
         uir = self.message_factory.get_request_type("userinfo_endpoint")()
-        logger.debug("[user_info_request]: kwargs:%s" % (sanitize(kwargs),))
+        logger.debug("[user_info_request]: kwargs:%s", sanitize(kwargs))
         token: Optional[Token] = None
         if "token" in kwargs:
             if kwargs["token"]:
@@ -881,7 +878,7 @@ class Client(oauth2.Client):
                     try:
                         _ttype = cast(str, token.token_type)
                     except AttributeError:
-                        raise MissingParameter("Unspecified token type")
+                        raise MissingParameter("Unspecified token type") from None
 
             if "as_query_parameter" == _behav:
                 method = "GET"
@@ -900,16 +897,16 @@ class Client(oauth2.Client):
 
         path, body, kwargs = get_or_post(uri, method, uir, **kwargs)
 
-        h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])
+        h_args = {k: v for k, v in kwargs.items() if k in HTTP_ARGS}
 
         return path, body, method, h_args
 
-    def do_user_info_request(self, method="POST", state="", scope="openid", request="openid", **kwargs):
+    def do_user_info_request(self, method="POST", state="", scope="openid", request="openid", **kwargs):  # noqa: C901 # was 17
         kwargs["request"] = request
         path, body, method, h_args = self.user_info_request(method, state, scope, **kwargs)
 
         logger.debug(
-            "[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s" % (sanitize(path), sanitize(body), sanitize(h_args))
+            "[do_user_info_request] PATH:%s BODY:%s H_ARGS: %s", sanitize(path), sanitize(body), sanitize(h_args)
         )
 
         if self.events:
@@ -928,9 +925,9 @@ class Client(oauth2.Client):
             elif "application/jwt" in resp.headers["content-type"]:
                 sformat = "jwt"
             else:
-                raise PyoidcError("ERROR: Unexpected content-type: %s" % resp.headers["content-type"])
+                raise PyoidcError("ERROR: Unexpected content-type: {}".format(resp.headers["content-type"]))
         elif resp.status_code == 500:
-            raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
+            raise PyoidcError("ERROR: Something went wrong: {}".format(resp.text))
         elif resp.status_code == 405:
             # Method not allowed error
             allowed_methods = [x.strip() for x in resp.headers["allow"].split(",")]
@@ -940,19 +937,19 @@ class Client(oauth2.Client):
             try:
                 res = ErrorResponse().from_json(resp.text)
             except Exception:
-                raise RequestError(resp.text)
+                raise RequestError(resp.text) from None
             else:
                 self.store_response(res, resp.text)
                 return res
         else:
-            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text))
+            raise PyoidcError("ERROR: Something went wrong [{}]: {}".format(resp.status_code, resp.text))
 
         try:
             _schema = kwargs["user_info_schema"]
         except KeyError:
             _schema = OpenIDSchema
 
-        logger.debug("Reponse text: '%s'" % sanitize(resp.text))
+        logger.debug("Reponse text: '%s'", sanitize(resp.text))
 
         _txt = resp.text
         if sformat == "json":
@@ -983,7 +980,7 @@ class Client(oauth2.Client):
     def get_userinfo_claims(self, access_token, endpoint, method="POST", schema_class=OpenIDSchema, **kwargs):
         uir = UserInfoRequest(access_token=access_token)
 
-        h_args = dict([(k, v) for k, v in kwargs.items() if k in HTTP_ARGS])
+        h_args = {k: v for k, v in kwargs.items() if k in HTTP_ARGS}
 
         if "authn_method" in kwargs:
             http_args = self.init_authentication_method(**kwargs)
@@ -1003,11 +1000,11 @@ class Client(oauth2.Client):
             # FIXME: Could this also encounter application/jwt for encrypted userinfo
             #        the do_userinfo_request method already handles it
             if "application/json" not in resp.headers["content-type"]:
-                raise PyoidcError("ERROR: content-type in response unexpected: %s" % resp.headers["content-type"])
+                raise PyoidcError("ERROR: content-type in response unexpected: {}".format(resp.headers["content-type"]))
         elif resp.status_code == 500:
-            raise PyoidcError("ERROR: Something went wrong: %s" % resp.text)
+            raise PyoidcError("ERROR: Something went wrong: {}".format(resp.text))
         else:
-            raise PyoidcError("ERROR: Something went wrong [%s]: %s" % (resp.status_code, resp.text))
+            raise PyoidcError("ERROR: Something went wrong [{}]: {}".format(resp.status_code, resp.text))
 
         res = schema_class().from_json(txt=resp.text)
         self.store_response(res, resp.text)
@@ -1020,7 +1017,7 @@ class Client(oauth2.Client):
                     aggregated_claims = Message().from_jwt(spec["JWT"].encode("utf-8"), keyjar=self.keyjar, sender=csrc)
                     claims = [value for value, src in userinfo["_claim_names"].items() if src == csrc]
 
-                    if set(claims) != set(list(aggregated_claims.keys())):
+                    if set(claims) != set(aggregated_claims.keys()):
                         logger.warning("Claims from claim source doesn't match what's in the userinfo")
 
                     for key, vals in aggregated_claims.items():
@@ -1060,7 +1057,7 @@ class Client(oauth2.Client):
 
                 claims = [value for value, src in userinfo["_claim_names"].items() if src == csrc]
 
-                if set(claims) != set(list(_uinfo.keys())):
+                if set(claims) != set(_uinfo.keys()):
                     logger.warning("Claims from claim source doesn't match what's in the userinfo")
 
                 for key, vals in _uinfo.items():
@@ -1074,8 +1071,7 @@ class Client(oauth2.Client):
         return userinfo
 
     def verify_alg_support(self, alg, usage, other):
-        """
-        Verify that the algorithm to be used are supported by the other side.
+        """Verify that the algorithm to be used are supported by the other side.
 
         :param alg: The algorithm specification
         :param usage: In which context the 'alg' will be used.
@@ -1089,10 +1085,10 @@ class Client(oauth2.Client):
         """
         try:
             _pcr = self.provider_info
-            supported = _pcr["%s_algs_supported" % usage]
+            supported = _pcr["{}_algs_supported".format(usage)]
         except KeyError:
             try:
-                supported = getattr(self, "%s_algs_supported" % usage)
+                supported = getattr(self, "{}_algs_supported".format(usage))
             except AttributeError:
                 supported = None
 
@@ -1104,9 +1100,8 @@ class Client(oauth2.Client):
             else:
                 return False
 
-    def match_preferences(self, pcr=None, issuer=None):
-        """
-        Match the clients preferences against what the provider can do.
+    def match_preferences(self, pcr=None, issuer=None):  # noqa: C901 # was 21
+        """Match the clients preferences against what the provider can do.
 
         :param pcr: Provider configuration response if available
         :param issuer: The issuer identifier
@@ -1152,7 +1147,7 @@ class Client(oauth2.Client):
                             break
 
             if _pref not in self.behaviour:
-                raise ConfigurationError("OP couldn't match preference:%s" % _pref, pcr)
+                raise ConfigurationError("OP couldn't match preference:{}".format(_pref), pcr)
 
         for key, val in self.client_prefs.items():
             if key in self.behaviour:
@@ -1198,17 +1193,17 @@ class Client(oauth2.Client):
                 resp.verify()
             except oauth2.message.MissingRequiredAttribute as err:
                 logger.error("%s", err)
-                raise RegistrationError(err)
-            except Exception:
+                raise RegistrationError(err) from err
+            except Exception as err:
                 resp = ErrorResponse().deserialize(response.text, "json")
                 if resp.verify():
                     logger.error(err_msg.format(sanitize(resp.to_json())))
                     if self.events:
                         self.events.store("protocol response", resp)
-                    raise RegistrationError(resp.to_dict())
+                    raise RegistrationError(resp.to_dict()) from err
                 else:  # Something else
                     logger.error(unk_msg.format(sanitize(response.text)))
-                    raise RegistrationError(response.text)
+                    raise RegistrationError(response.text) from err
             else:
                 # got a proper registration response
                 self.store_response(resp, response.text)
@@ -1216,9 +1211,9 @@ class Client(oauth2.Client):
         elif 400 <= response.status_code <= 499:
             try:
                 resp = ErrorResponse().deserialize(response.text, "json")
-            except JSONDecodeError:
+            except JSONDecodeError as err:
                 logger.error(unk_msg.format(sanitize(response.text)))
-                raise RegistrationError(response.text)
+                raise RegistrationError(response.text) from err
 
             if resp.verify():
                 logger.error(err_msg.format(sanitize(resp.to_json())))
@@ -1234,8 +1229,7 @@ class Client(oauth2.Client):
         return resp
 
     def registration_read(self, url="", registration_access_token=None):
-        """
-        Read the client registration info from the given url.
+        """Read the client registration info from the given url.
 
         :raises RegistrationError: If an error happend
         :return: RegistrationResponse
@@ -1246,14 +1240,13 @@ class Client(oauth2.Client):
         if not registration_access_token:
             registration_access_token = self.registration_access_token
 
-        headers = {"Authorization": "Bearer %s" % registration_access_token}
+        headers = {"Authorization": "Bearer {}".format(registration_access_token)}
         rsp = self.http_request(url, "GET", headers=headers)
 
         return self.handle_registration_info(rsp)
 
     def generate_request_uris(self, request_dir):
-        """
-        Need to generate a path that is unique for the OP combo.
+        """Need to generate a path that is unique for the OP combo.
 
         :return: A list of uris
         """
@@ -1263,8 +1256,7 @@ class Client(oauth2.Client):
         return "{}{}/{}".format(self.base_url, request_dir, m.hexdigest())
 
     def create_registration_request(self, **kwargs):
-        """
-        Create a registration request.
+        """Create a registration request.
 
         :param kwargs: parameters to the registration request
         :return:
@@ -1289,8 +1281,8 @@ class Client(oauth2.Client):
         if "redirect_uris" not in req:
             try:
                 req["redirect_uris"] = self.redirect_uris
-            except AttributeError:
-                raise MissingRequiredAttribute("redirect_uris", req)
+            except AttributeError as err:
+                raise MissingRequiredAttribute("redirect_uris", req) from err
 
         try:
             if self.provider_info["require_request_uri_registration"] is True:
@@ -1304,8 +1296,7 @@ class Client(oauth2.Client):
         return req
 
     def register(self, url, registration_token=None, **kwargs):
-        """
-        Register the client at an OP.
+        """Register the client at an OP.
 
         :param url: The OPs registration endpoint
         :param registration_token: Initial Access Token for registration endpoint
@@ -1314,7 +1305,7 @@ class Client(oauth2.Client):
         """
         req = self.create_registration_request(**kwargs)
 
-        logger.debug("[registration_request]: kwargs:%s" % (sanitize(kwargs),))
+        logger.debug("[registration_request]: kwargs:%s", sanitize(kwargs))
 
         if self.events:
             self.events.store("Protocol request", req)
@@ -1337,7 +1328,7 @@ class Client(oauth2.Client):
     def normalization(self, principal, idtype="mail"):
         if idtype == "mail":
             (_, domain) = principal.split("@")
-            subject = "acct:%s" % principal
+            subject = "acct:{}".format(principal)
         elif idtype == "url":
             p = urlparse(principal)
             domain = p.netloc
@@ -1370,8 +1361,7 @@ class Client(oauth2.Client):
         max_age=0,
         response_type="",
     ):
-        """
-        Verify IdToken.
+        """Verify IdToken.
 
         If the JWT alg Header Parameter uses a MAC based algorithm such as
         HS256, HS384, or HS512, the octets of the UTF-8 representation of the
@@ -1443,9 +1433,9 @@ class Server(oauth2.Server):
         self,
         verify_ssl: Optional[bool] = None,
         keyjar: Optional[KeyJar] = None,
-        client_cert: Optional[Union[str, Tuple[str, str]]] = None,
+        client_cert: Optional[Union[str, tuple[str, str]]] = None,
         timeout: Optional[float] = None,
-        message_factory: Type[MessageFactory] = OIDCMessageFactory,
+        message_factory: type[MessageFactory] = OIDCMessageFactory,
         settings: Optional[PyoidcSettings] = None,
     ):
         """Initialize the server."""
@@ -1487,8 +1477,7 @@ class Server(oauth2.Server):
         return parse_qs(query)
 
     def handle_request_uri(self, request_uri, verify=True, sender=""):
-        """
-        Handle request URI.
+        """Handle request URI.
 
         :param request_uri: URL pointing to where the signed request should be fetched from.
         :param verify: Whether the signature on the request should be verified.
@@ -1497,7 +1486,7 @@ class Server(oauth2.Server):
         :return:
         """
         # Do a HTTP get
-        logger.debug("Get request from request_uri: {}".format(request_uri))
+        logger.debug("Get request from request_uri: %s", request_uri)
         try:
             http_req = self.http_request(request_uri)
         except ConnectionError:
@@ -1508,21 +1497,21 @@ class Server(oauth2.Server):
             logger.error("Nothing returned")
             return authz_error("invalid_request_uri")
         elif http_req.status_code >= 400:
-            logger.error("HTTP error {}:{}".format(http_req.status_code, http_req.text))
+            logger.error("HTTP error %s:%s", http_req.status_code, http_req.text)
             raise AuthzError("invalid_request")
 
         # http_req.text is a signed JWT
         try:
-            logger.debug("request txt: {}".format(http_req.text))
+            logger.debug("request txt: %s", http_req.text)
             req = self.parse_jwt_request(txt=http_req.text, verify=verify, sender=sender)
         except Exception as err:
-            logger.error("{}:{} encountered while parsing fetched request".format(err.__class__, err))
-            raise AuthzError("invalid_openid_request_object")
+            logger.error("%s:%s encountered while parsing fetched request", err.__class__, err)
+            raise AuthzError("invalid_openid_request_object") from err
 
-        logger.debug("Fetched request: {}".format(req))
+        logger.debug("Fetched request: %s", req)
         return req
 
-    def parse_authorization_request(self, url=None, query=None, keys=None):
+    def parse_authorization_request(self, url=None, query=None, keys=None):  # noqa: C901 # was 22
         request = self.message_factory.get_request_type("authorization_endpoint")
         if url:
             parts = urlparse(url)
@@ -1538,7 +1527,7 @@ class Server(oauth2.Server):
         if self.events:
             self.events.store("Request", _req)
 
-        _req_req: Union[Message, Dict[str, Any]] = {}
+        _req_req: Union[Message, dict[str, Any]] = {}
         try:
             _request = _req["request"]
         except KeyError:
@@ -1648,7 +1637,7 @@ class Server(oauth2.Server):
                 keys = None
                 sender = ""
 
-        logger.debug("Found {} verify keys".format(len(keys or "")))
+        logger.debug("Found %s verify keys", len(keys or ""))
         if verify:
             request.verify(key=keys, keyjar=self.keyjar, sender=sender)
         return request
@@ -1679,8 +1668,7 @@ class Server(oauth2.Server):
 
     @staticmethod
     def update_claims(session, where, about, old_claims=None):
-        """
-        Update claims dictionary.
+        """Update claims dictionary.
 
         :param session:
         :param where: Which request
@@ -1704,7 +1692,7 @@ class Server(oauth2.Server):
                 pass
 
         if req:
-            logger.debug("%s: %s" % (where, sanitize(req.to_dict())))
+            logger.debug("%s: %s", where, sanitize(req.to_dict()))
             try:
                 _claims = req["claims"][about]
                 if _claims:
@@ -1719,18 +1707,17 @@ class Server(oauth2.Server):
         return old_claims
 
     def id_token_claims(self, session):
-        """
-        Pick the IdToken claims from the request.
+        """Pick the IdToken claims from the request.
 
         :param session: Session information
         :return: The IdToken claims
         """
-        itc: Dict[str, str] = {}
+        itc: dict[str, str] = {}
         itc = self.update_claims(session, "authzreq", "id_token", itc)
         itc = self.update_claims(session, "oidreq", "id_token", itc)
         return itc
 
-    def make_id_token(
+    def make_id_token(  # noqa: C901 # was 18
         self,
         session,
         loa="2",
@@ -1743,8 +1730,7 @@ class Server(oauth2.Server):
         exp=None,
         extra_claims=None,
     ):
-        """
-        Create ID Token.
+        """Create ID Token.
 
         :param session: Session information
         :param loa: Level of Assurance/Authentication context
@@ -1780,7 +1766,7 @@ class Server(oauth2.Server):
                 extra["acr"] = loa
 
         if not user_info:
-            _args: Dict[str, str] = {}
+            _args: dict[str, str] = {}
         else:
             try:
                 _args = user_info.to_dict()
@@ -1794,7 +1780,7 @@ class Server(oauth2.Server):
             except KeyError:
                 pass
 
-        halg = "HS%s" % alg[-3:]
+        halg = "HS{}".format(alg[-3:])
 
         if extra_claims is not None:
             _args.update(extra_claims)
@@ -1823,14 +1809,14 @@ class Server(oauth2.Server):
 
 
 def scope2claims(scopes, extra_scope_dict=None):
-    res: Dict[str, None] = {}
+    res: dict[str, None] = {}
     # Construct the scope translation map
-    trans_map: Dict[str, Any] = SCOPE2CLAIMS.copy()
+    trans_map: dict[str, Any] = SCOPE2CLAIMS.copy()
     if extra_scope_dict is not None:
         trans_map.update(extra_scope_dict)
     for scope in scopes:
         try:
-            claims = dict([(name, None) for name in trans_map[scope]])
+            claims = dict.fromkeys(trans_map[scope])
             res.update(claims)
         except KeyError:
             continue

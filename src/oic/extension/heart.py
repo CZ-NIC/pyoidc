@@ -1,9 +1,7 @@
 from urllib.parse import urlparse
 
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oic.message import SINGLE_REQUIRED_INT
-from oic.oic.message import JasonWebToken
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS, SINGLE_REQUIRED_STRING
+from oic.oic.message import SINGLE_REQUIRED_INT, JasonWebToken
 from oic.utils.keyio import KeyBundle
 
 __author__ = "roland"
@@ -24,8 +22,7 @@ class PrivateKeyJWT(JasonWebToken):
 
 
 def verify_url(url):
-    """
-    Verify security of URL.
+    """Verify security of URL.
 
     Hosted on a website with Transport Layer Security (TLS) protection
     (a Hypertext Transfer Protocol – Secure (HTTPS) URI)
@@ -63,8 +60,8 @@ class HeartSoftwareStatement(JasonWebToken):
         if "jwks" in self:
             try:
                 _keys = self["jwks"]["keys"]
-            except KeyError:
-                raise SyntaxError('"keys" parameter missing')
+            except KeyError as err:
+                raise SyntaxError('"keys" parameter missing') from err
             else:
                 # will raise an exception if syntax error
                 KeyBundle(_keys)

@@ -4,8 +4,7 @@ from urllib.parse import quote_plus
 import pytest
 
 from oic.exception import ImproperlyConfigured
-from oic.utils.authn.user import BasicAuthn
-from oic.utils.authn.user import SymKeyAuthn
+from oic.utils.authn.user import BasicAuthn, SymKeyAuthn
 
 
 def test_symkeyauthn_improperly_configured(provider):

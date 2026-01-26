@@ -1,27 +1,17 @@
 import logging
 import warnings
-from typing import Any
-from typing import Dict
-from typing import Optional
+from typing import Any, Optional
 
 from oic import rndstr
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import Message
-from oic.oic import REQUEST2ENDPOINT
-from oic.oic import RESPONSE2ERROR
-from oic.oic import Client
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS, SINGLE_OPTIONAL_STRING, SINGLE_REQUIRED_STRING, Message
+from oic.oic import REQUEST2ENDPOINT, RESPONSE2ERROR, Client
 from oic.oic import Server as OicServer
-from oic.oic.message import Claims
-from oic.oic.message import OpenIDSchema
-from oic.oic.provider import Endpoint
-from oic.oic.provider import Provider
+from oic.oic.message import Claims, OpenIDSchema
+from oic.oic.provider import Endpoint, Provider
 from oic.utils.http_util import Response
 from oic.utils.keyio import KeyJar
 from oic.utils.sanitize import sanitize
-from oic.utils.settings import OicClientSettings
-from oic.utils.settings import OicProviderSettings
+from oic.utils.settings import OicClientSettings, OicProviderSettings
 
 __author__ = "rohe0002"
 
@@ -108,7 +98,7 @@ class ClaimsServer(Provider):
 
         self.srvmethod = OICCServer(keyjar=keyjar)
         self.dist_claims_mode = dist_claims_mode
-        self.info_store: Dict[str, Any] = {}
+        self.info_store: dict[str, Any] = {}
         self.claims_userinfo_endpoint = ""
 
     def _aggregation(self, info):
@@ -118,7 +108,7 @@ class ClaimsServer(Provider):
             claims_names=list(info.keys()),
         )
 
-        logger.info("RESPONSE: %s" % (sanitize(cresp.to_dict()),))
+        logger.info("RESPONSE: %s", sanitize(cresp.to_dict()))
         return cresp
 
     def _distributed(self, info):
@@ -139,25 +129,25 @@ class ClaimsServer(Provider):
 
         ucreq = self.srvmethod.parse_user_claims_request(request)
 
-        _log_info("request: %s" % sanitize(ucreq))
+        _log_info("request: {}".format(sanitize(ucreq)))
 
         try:
             self.client_authn(self, ucreq, http_authz)
         except Exception as err:
-            _log_info("Failed to verify client due to: %s" % err)
+            _log_info("Failed to verify client due to: {}".format(err))
 
         if "claims_names" in ucreq:
-            claim_args = dict([(n, {"optional": True}) for n in ucreq["claims_names"]])
+            claim_args = {n: {"optional": True} for n in ucreq["claims_names"]}
             uic: Optional[Claims] = Claims(**claim_args)
         else:
             uic = None
 
-        _log_info("User info claims: %s" % sanitize(uic))
+        _log_info("User info claims: {}".format(sanitize(uic)))
 
         # oicsrv, userdb, subject, client_id="", user_info_claims=None
         info = self.userinfo(ucreq["sub"], user_info_claims=uic, client_id=ucreq["client_id"])
 
-        _log_info("User info: %s" % sanitize(info))
+        _log_info("User info: {}".format(sanitize(info)))
 
         # Convert to message format
         info = OpenIDSchema(**info)
@@ -167,20 +157,20 @@ class ClaimsServer(Provider):
         else:
             cresp = self._distributed(info)
 
-        _log_info("response: %s" % sanitize(cresp.to_dict()))
+        _log_info("response: {}".format(sanitize(cresp.to_dict())))
 
         return Response(cresp.to_json(), content="application/json")
 
     def claims_info_endpoint(self, request, authn):
         _log_info = logger.info
 
-        _log_info("Claims_info_endpoint query: '%s'" % sanitize(request))
+        _log_info("Claims_info_endpoint query: '{}'".format(sanitize(request)))
 
         ucreq = self.srvmethod.parse_userinfo_claims_request(request)
         # Access_token is mandatory in UserInfoClaimsRequest
         uiresp = OpenIDSchema(**self.info_store[ucreq["access_token"]])
 
-        _log_info("returning: %s" % sanitize(uiresp.to_dict()))
+        _log_info("returning: {}".format(sanitize(uiresp.to_dict())))
         return Response(uiresp.to_json(), content="application/json")
 
 

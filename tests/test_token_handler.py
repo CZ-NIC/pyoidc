@@ -1,9 +1,7 @@
 import pytest
 
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.token_handler import NotAllowed
-from oic.utils.token_handler import TokenHandler
+from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.token_handler import NotAllowed, TokenHandler
 
 
 def _eq(l1, l2):
@@ -59,7 +57,7 @@ KEYJAR = KeyJar()
 KEYJAR.issuer_keys[""] = [kb]
 
 
-class TestTokenHandler(object):
+class TestTokenHandler:
     @pytest.fixture(autouse=True)
     def create_handler(self):
         self.th = TokenHandler(

@@ -1,14 +1,11 @@
 try:
     import ldap
 except ImportError:
-    raise ImportError("This module can be used only with pyldap installed.")
+    raise ImportError("This module can be used only with pyldap installed.") from None
 
 import logging
-from typing import Dict
-from typing import List
 
-from ldap import LDAPError
-from ldap import LDAPObject
+from ldap import LDAPError, LDAPObject
 
 from oic.utils.sanitize import sanitize
 from oic.utils.userinfo import UserInfo
@@ -55,7 +52,7 @@ class UserInfoLDAP(UserInfo):
         attrsonly=False,
         attrmap=OPENID2LDAP,
     ):
-        super(UserInfoLDAP, self).__init__(None)
+        super().__init__(None)
         self.ldapuri = uri
         self.base = base
         self.filter_pattern = filter_pattern
@@ -68,7 +65,7 @@ class UserInfoLDAP(UserInfo):
         self.bind()
         self.ld: LDAPObject = None
         self.openid2ldap = attrmap
-        self.ldap2openid = dict([(v, k) for k, v in self.openid2ldap.items()])
+        self.ldap2openid = {v: k for k, v in self.openid2ldap.items()}
 
     def bind(self):
         self.ld = ldap.initialize(self.ldapuri)
@@ -79,7 +76,7 @@ class UserInfoLDAP(UserInfo):
 
     def __call__(self, userid, client_id, user_info_claims=None, first_only=True, **kwargs):
         _filter = self.filter_pattern % userid
-        logger.debug("CLAIMS: %s" % sanitize(user_info_claims))
+        logger.debug("CLAIMS: %s", sanitize(user_info_claims))
         _attr = self.attr
         if user_info_claims:
             try:
@@ -87,12 +84,12 @@ class UserInfoLDAP(UserInfo):
             except KeyError:
                 pass
             else:
-                avaspec: Dict[str, List[str]] = {}
+                avaspec: dict[str, list[str]] = {}
                 for key, val in _claims.items():
                     try:
                         attr = self.openid2ldap[key]
                     except KeyError:
-                        logger.warning("OIDC attribute '%s' not defined in map" % key)
+                        logger.warning("OIDC attribute '%s' not defined in map", key)
                     else:
                         try:
                             avaspec[attr].append(val)

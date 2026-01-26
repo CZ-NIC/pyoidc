@@ -1,6 +1,5 @@
 from functools import cmp_to_key
 from typing import Any
-from typing import Dict
 
 from oic.utils.http_util import extract_from_request
 
@@ -17,9 +16,9 @@ TIMESYNCTOKEN = "urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken"
 CMP_TYPE = ["exact", "minimum", "maximum", "better"]
 
 
-class AuthnBroker(object):
+class AuthnBroker:
     def __init__(self):
-        self.db: Dict[str, Any] = {"info": {}, "key": {}}
+        self.db: dict[str, Any] = {"info": {}, "key": {}}
         self.next = 0
 
     @staticmethod
@@ -39,8 +38,7 @@ class AuthnBroker(object):
         return b > a
 
     def add(self, acr, method, level=0, authn_authority=""):
-        """
-        Add a new authentication method.
+        """Add a new authentication method.
 
         Assumes not more than one authentication method per type.
 
@@ -133,14 +131,13 @@ class AuthnBroker(object):
             return [(b, c) for a, b, c in res]
 
     def get_method(self, name):
-        for key, item in self.db["info"].items():
+        for _key, item in self.db["info"].items():
             if item["method"].__class__.__name__ == name:
                 return item["method"]
         raise KeyError("No method by that name")
 
     def pick(self, acr=None, comparision_type="minimum"):
-        """
-        Given the authentication context find zero or more places where the user could be sent next.
+        """Given the authentication context find zero or more places where the user could be sent next.
 
         Ordered according to security level.
 
@@ -166,12 +163,12 @@ class AuthnBroker(object):
 
     def __getitem__(self, item):
         i = 0
-        for key, info in self.db["info"].items():
+        for _key, info in self.db["info"].items():
             if i == item:
                 return info["method"], info["ref"]
             i += 1
 
-        raise IndexError()
+        raise IndexError
 
     def getAcrValuesString(self):
         acr_values = None
@@ -192,8 +189,7 @@ class AuthnBroker(object):
 
 
 def make_auth_verify(callback, next_module_instance=None):
-    """
-    Closure encapsulating the next module (if any exist) in a multi auth chain.
+    """Closure encapsulating the next module (if any exist) in a multi auth chain.
 
     :param callback: function to execute for the callback URL at the OP, see UserAuthnMethod.verify and its subclasses
     (e.g. SAMLAuthnMethod) for signature

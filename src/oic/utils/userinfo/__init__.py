@@ -3,15 +3,14 @@ import copy
 __author__ = "rolandh"
 
 
-class UserInfo(object):
+class UserInfo:
     """Read only interface to a user info store."""
 
     def __init__(self, db=None):
         self.db = db
 
     def filter(self, userinfo, user_info_claims=None):
-        """
-        Return only those claims that are asked for.
+        """Return only those claims that are asked for.
 
         It's a best effort task; if essential claims are not present no error is flagged.
 

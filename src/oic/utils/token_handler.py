@@ -8,9 +8,8 @@ class NotAllowed(Exception):
     pass
 
 
-class TokenHandler(object):
-    """
-    Class for handling tokens.
+class TokenHandler:
+    """Class for handling tokens.
 
     Note! the token and refresh token factories both keep their own token databases.
     """
@@ -24,8 +23,7 @@ class TokenHandler(object):
         keyjar=None,
         sign_alg="RS256",
     ):
-        """
-        Initialize the class.
+        """Initialize the class.
 
         :param token_factory: A callable function that returns a token
         :param refresh_token_factory: A callable function that returns a
@@ -55,8 +53,7 @@ class TokenHandler(object):
             self.refresh_token_factory = refresh_token_factory
 
     def get_access_token(self, target_id, scope, grant_type):
-        """
-        Return access token for given inputs.
+        """Return access token for given inputs.
 
         :param target_id:
         :param scope:
@@ -66,8 +63,8 @@ class TokenHandler(object):
         # No default, either there is an explicit policy or there is not
         try:
             lifetime = self.token_policy["access_token"][target_id][grant_type]
-        except KeyError:
-            raise NotAllowed("Access token for grant_type {} for target_id {} not allowed")
+        except KeyError as err:
+            raise NotAllowed("Access token for grant_type {} for target_id {} not allowed") from err
 
         sid = rndstr(32)
         return self.token_factory(
@@ -79,8 +76,7 @@ class TokenHandler(object):
         )
 
     def refresh_access_token(self, target_id, token, grant_type, **kwargs):
-        """
-        Return refresh_access_token for given input.
+        """Return refresh_access_token for given input.
 
         :param target_id: Who gave me this token
         :param token: The refresh_token
@@ -96,15 +92,15 @@ class TokenHandler(object):
         try:
             if target_id != info["azr"]:
                 raise NotAllowed("{} can't use this token".format(target_id))
-        except KeyError:
+        except KeyError as err:
             if target_id not in info["aud"]:
-                raise NotAllowed("{} can't use this token".format(target_id))
+                raise NotAllowed("{} can't use this token".format(target_id)) from err
 
         if self.token_factory.is_valid(info):
             try:
                 lifetime = self.token_policy["access_token"][target_id][grant_type]
-            except KeyError:
-                raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed")
+            except KeyError as err:
+                raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed") from err
             else:
                 sid = self.token_factory.db[info["jti"]]
                 try:
@@ -117,8 +113,8 @@ class TokenHandler(object):
     def get_refresh_token(self, target_id, grant_type, sid):
         try:
             lifetime = self.token_policy["refresh_token"][target_id][grant_type]
-        except KeyError:
-            raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed")
+        except KeyError as err:
+            raise NotAllowed("Issue access token for grant_type {} for target_id {} not allowed") from err
         else:
             return self.refresh_token_factory(sid, target_id=target_id, lifetime=lifetime)
 

@@ -4,39 +4,34 @@ import logging
 import sys
 import time
 import warnings
-from typing import Dict
-from typing import List
-from urllib.parse import urlencode
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from jwkest import jws
 from jwkest.jwe import JWEException
 from jwkest.jwe import factory as JWE_factory
 from jwkest.jwt import JWT
 
-from oic.exception import InvalidRequest
-from oic.exception import IssuerMismatch
-from oic.exception import MessageException
-from oic.exception import NotForMe
-from oic.exception import PyoidcError
+from oic.exception import InvalidRequest, IssuerMismatch, MessageException, NotForMe, PyoidcError
 from oic.oauth2 import message
 from oic.oauth2.exception import VerificationError
-from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import SINGLE_OPTIONAL_JSON
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import Message
-from oic.oauth2.message import MessageFactory
-from oic.oauth2.message import MessageTuple
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import MissingRequiredValue
-from oic.oauth2.message import NotAllowedValue
-from oic.oauth2.message import ParamDefinition
-from oic.oauth2.message import SchemeError
+from oic.oauth2.message import (
+    OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+    OPTIONAL_LIST_OF_STRINGS,
+    REQUIRED_LIST_OF_SP_SEP_STRINGS,
+    REQUIRED_LIST_OF_STRINGS,
+    SINGLE_OPTIONAL_INT,
+    SINGLE_OPTIONAL_JSON,
+    SINGLE_OPTIONAL_STRING,
+    SINGLE_REQUIRED_STRING,
+    Message,
+    MessageFactory,
+    MessageTuple,
+    MissingRequiredAttribute,
+    MissingRequiredValue,
+    NotAllowedValue,
+    ParamDefinition,
+    SchemeError,
+)
 from oic.utils import time_util
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -149,7 +144,7 @@ def msg_ser(inst, sformat, lev=0):
         elif isinstance(inst, str):  # Iff ID Token
             res = inst
         else:
-            raise MessageException("Wrong type: %s" % type(inst))
+            raise MessageException("Wrong type: {}".format(type(inst)))
     else:
         raise PyoidcError("Unknown sformat", inst)
 
@@ -167,7 +162,7 @@ def msg_ser_json(inst, sformat="json", lev=0):
         elif isinstance(inst, dict):
             res = inst
         else:
-            raise MessageException("Wrong type: %s" % type(inst))
+            raise MessageException("Wrong type: {}".format(type(inst)))
     else:
         sformat = "json"
         if isinstance(inst, Message):
@@ -208,9 +203,9 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         if isinstance(item, dict):
             res = item
         else:
-            raise MessageException("Wrong type: %s" % type(item))
+            raise MessageException("Wrong type: {}".format(type(item)))
     else:
-        raise PyoidcError("Unknown sformat: %s" % sformat, val)
+        raise PyoidcError("Unknown sformat: {}".format(sformat), val)
 
     return res
 
@@ -263,13 +258,13 @@ for char in ["\x21", ("\x23", "\x5b"), ("\x5d", "\x7e")]:
 def check_char_set(string, allowed):
     for c in string:
         if c not in allowed:
-            raise NotAllowedValue("'%c' not in the allowed character set" % c)
+            raise NotAllowedValue("'{c}' not in the allowed character set")
 
 
 TOKEN_VERIFY_ARGS = ["key", "keyjar", "algs", "sender"]
 
 
-def verify_id_token(instance, check_hash=False, **kwargs):
+def verify_id_token(instance, check_hash=False, **kwargs):  # noqa: C901 # was 18
     # Try to decode the JWT, checks the signature
     args = {}
     for arg in TOKEN_VERIFY_ARGS:
@@ -286,7 +281,7 @@ def verify_id_token(instance, check_hash=False, **kwargs):
         try:
             _jws = _jwe.decrypt(keys=kwargs["keyjar"].get_decrypt_key())
         except JWEException as err:
-            raise VerificationError("Could not decrypt id_token", err)
+            raise VerificationError("Could not decrypt id_token", err) from err
     _packer = JWT()
     _body = _packer.unpack(_jws).payload()
 
@@ -294,8 +289,8 @@ def verify_id_token(instance, check_hash=False, **kwargs):
         try:
             if _body["iss"] not in kwargs["keyjar"]:
                 raise ValueError("Unknown issuer")
-        except KeyError:
-            raise MissingRequiredAttribute("iss")
+        except KeyError as err:
+            raise MissingRequiredAttribute("iss") from err
 
     if _jwe is not None:
         # Use the original encrypted token to set correct headers
@@ -438,9 +433,8 @@ class AuthorizationRequest(message.AuthorizationRequest):
         }
     )
 
-    def verify(self, **kwargs):
-        """
-        Check that the request is valid.
+    def verify(self, **kwargs):  # noqa: C901 # was 18
+        """Check that the request is valid.
 
         Authorization Request parameters that are OPTIONAL in the OAuth 2.0
         specification MAY be included in the OpenID Request Object without also
@@ -470,7 +464,7 @@ class AuthorizationRequest(message.AuthorizationRequest):
                 # verify that nothing is change in the original message
                 for key, val in oidr.items():
                     if key in self and self[key] != val:
-                        raise AssertionError()
+                        raise AssertionError
 
                 # replace the JWT with the parsed and verified instance
                 self["request"] = oidr
@@ -572,8 +566,8 @@ class OpenIDSchema(Message):
                 except ValueError:
                     try:
                         time.strptime(self["birthdate"], "0000-%m-%d")
-                    except ValueError:
-                        raise VerificationError("Birthdate format error", self)
+                    except ValueError as err:
+                        raise VerificationError("Birthdate format error", self) from err
 
         if any(val is None for val in self.values()):
             return False
@@ -629,25 +623,25 @@ class RegistrationRequest(Message):
         super().verify(**kwargs)
 
         if "initiate_login_uri" in self and not self["initiate_login_uri"].startswith("https:"):
-            raise AssertionError()
+            raise AssertionError
 
         for param in [
             "request_object_encryption",
             "id_token_encrypted_response",
             "userinfo_encrypted_response",
         ]:
-            alg_param = "%s_alg" % param
-            enc_param = "%s_enc" % param
+            alg_param = "{}_alg".format(param)
+            enc_param = "{}_enc".format(param)
             if alg_param in self:
                 if enc_param not in self:
                     self[enc_param] = "A128CBC-HS256"
 
             # both or none
             if enc_param in self and alg_param not in self:
-                raise AssertionError()
+                raise AssertionError
 
         if "token_endpoint_auth_signing_alg" in self and self["token_endpoint_auth_signing_alg"] == "none":
-            raise AssertionError()
+            raise AssertionError
 
         return True
 
@@ -666,15 +660,14 @@ class RegistrationResponse(Message):
     c_param.update(RegistrationRequest.c_param)
 
     def verify(self, **kwargs):
-        """
-        Verify that the response is valid.
+        """Verify that the response is valid.
 
         Implementations MUST either return both a Client Configuration Endpoint
         and a Registration Access Token or neither of them.
         :param kwargs:
         :return: True if the message is OK otherwise False
         """
-        super(RegistrationResponse, self).verify(**kwargs)
+        super().verify(**kwargs)
 
         has_reg_uri = "registration_client_uri" in self
         has_reg_at = "registration_access_token" in self
@@ -717,8 +710,8 @@ class IdToken(OpenIDSchema):
         }
     )
 
-    def verify(self, **kwargs):
-        super(IdToken, self).verify(**kwargs)
+    def verify(self, **kwargs):  # noqa: C901 # was 22
+        super().verify(**kwargs)
 
         try:
             if kwargs["iss"] != self["iss"]:
@@ -756,8 +749,8 @@ class IdToken(OpenIDSchema):
 
         try:
             _exp = self["exp"]
-        except KeyError:
-            raise MissingRequiredAttribute("exp")
+        except KeyError as err:
+            raise MissingRequiredAttribute("exp") from err
         else:
             if (_now - _skew) > _exp:
                 raise EXPError("Invalid expiration time")
@@ -769,8 +762,8 @@ class IdToken(OpenIDSchema):
 
         try:
             _iat = self["iat"]
-        except KeyError:
-            raise MissingRequiredAttribute("iat")
+        except KeyError as err:
+            raise MissingRequiredAttribute("iat") from err
         else:
             if (_iat + _storage_time) < (_now - _skew):
                 raise IATError("Issued too long ago")
@@ -792,7 +785,7 @@ class RefreshSessionRequest(StateFullMessage):
     c_param.update({"id_token": SINGLE_REQUIRED_STRING, "redirect_url": SINGLE_REQUIRED_STRING})
 
     def verify(self, **kwargs):
-        super(RefreshSessionRequest, self).verify(**kwargs)
+        super().verify(**kwargs)
         if "id_token" in self:
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
@@ -802,7 +795,7 @@ class RefreshSessionResponse(StateFullMessage):
     c_param.update({"id_token": SINGLE_REQUIRED_STRING})
 
     def verify(self, **kwargs):
-        super(RefreshSessionResponse, self).verify(**kwargs)
+        super().verify(**kwargs)
         if "id_token" in self:
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
@@ -811,7 +804,7 @@ class CheckSessionRequest(Message):
     c_param = {"id_token": SINGLE_REQUIRED_STRING}
 
     def verify(self, **kwargs):
-        super(CheckSessionRequest, self).verify(**kwargs)
+        super().verify(**kwargs)
         if "id_token" in self:
             self["id_token"] = verify_id_token(self, check_hash=True, **kwargs)
 
@@ -910,7 +903,7 @@ class ProviderConfigurationResponse(Message):
 
         if "scopes_supported" in self:
             if "openid" not in self["scopes_supported"]:
-                raise AssertionError()
+                raise AssertionError
             for scope in self["scopes_supported"]:
                 check_char_set(scope, SCOPE_CHARSET)
 
@@ -919,7 +912,7 @@ class ProviderConfigurationResponse(Message):
             raise SchemeError("Not HTTPS")
 
         if parts.query or parts.fragment:
-            raise AssertionError()
+            raise AssertionError
 
         if any("code" in rt for rt in self["response_types_supported"]) and "token_endpoint" not in self:
             raise MissingRequiredAttribute("token_endpoint")
@@ -987,7 +980,7 @@ class ResourceRequest(Message):
     c_param = {"access_token": SINGLE_OPTIONAL_STRING}
 
 
-SCOPE2CLAIMS: Dict[str, List[str]] = {
+SCOPE2CLAIMS: dict[str, list[str]] = {
     "openid": ["sub"],
     "profile": [
         "name",
@@ -1104,7 +1097,7 @@ class BackChannelLogoutRequest(Message):
         logout_token.verify(**kwargs)
 
         self["logout_token"] = logout_token
-        logger.info("Verified Logout Token: {}".format(logout_token.to_dict()))
+        logger.info("Verified Logout Token: %s", logout_token.to_dict())
 
         return True
 
@@ -1152,7 +1145,7 @@ MSG = {
 
 
 def factory(msgtype):
-    warnings.warn("`factory` is deprecated. Use `OIDCMessageFactory` instead.", DeprecationWarning)
+    warnings.warn("`factory` is deprecated. Use `OIDCMessageFactory` instead.", DeprecationWarning, stacklevel=2)
     for _, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj) and issubclass(obj, Message):
             try:

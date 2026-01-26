@@ -1,8 +1,9 @@
-from http.cookiejar import FileCookieJar
-from http.cookiejar import http2time  # type: ignore
+from http.cookiejar import (  # type: ignore
+    FileCookieJar,
+    http2time,
+)
 from http.cookies import SimpleCookie
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -10,9 +11,7 @@ from oic.exception import UnSupported
 from oic.oauth2 import util
 from oic.oic import AuthorizationRequest
 from oic.oic.message import AccessTokenRequest
-from oic.utils.template_render import TemplateException
-from oic.utils.template_render import inputs
-from oic.utils.template_render import render_template
+from oic.utils.template_render import TemplateException, inputs, render_template
 
 __author__ = "DIRG"
 
@@ -233,7 +232,7 @@ def test_verify_header():
         util.verify_header(FakeResponse(json_header), "undefined")  # type: ignore
 
 
-class TestRenderTemplate(object):
+class TestRenderTemplate:
     def test_wrong_template(self):
         with pytest.raises(TemplateException):
             render_template("bogus_template", {"action": "action"})
@@ -277,7 +276,7 @@ class TestRenderTemplate(object):
         assert '<form method="post" action="action">' in response
 
 
-class TestInputs(object):
+class TestInputs:
     def test_empty(self):
         assert inputs({}) == ""
 

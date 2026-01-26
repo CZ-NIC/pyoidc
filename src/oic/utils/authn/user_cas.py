@@ -3,15 +3,13 @@ import json
 import logging
 import uuid
 from typing import Optional
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode
 
 import requests
 from defusedxml import ElementTree as ET
 
 from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import SeeOther, Unauthorized
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +40,7 @@ class CasAuthnMethod(UserAuthnMethod):
     CONST_CAS_COOKIE = "cascookie"
 
     def __init__(self, srv, cas_server, service_url, return_to, extra_validation=None, timeout=5):
-        """
-        Construct the class.
+        """Construct the class.
 
         :param srv: Usually none, but otherwise the oic server.
         :param cas_server: Base URL to the cas server.
@@ -61,8 +58,7 @@ class CasAuthnMethod(UserAuthnMethod):
         self.timeout = timeout
 
     def create_redirect(self, query):
-        """
-        Perform the redirect to the CAS server.
+        """Perform the redirect to the CAS server.
 
         :rtype : Response
         :param query: All query parameters to be added to the return_to URL
@@ -94,8 +90,7 @@ class CasAuthnMethod(UserAuthnMethod):
         return SeeOther(cas_url, headers=[cookie])
 
     def handle_callback(self, ticket, service_url):
-        """
-        Handle the callback from the CAS server.
+        """Handle the callback from the CAS server.
 
         :rtype : String
         :param ticket: Onetime CAS ticket to be validated.
@@ -125,8 +120,7 @@ class CasAuthnMethod(UserAuthnMethod):
         return self.create_redirect(query)
 
     def get_service_url(self, nonce, acr):
-        """
-        Create the service url for the CAS server.
+        """Create the service url for the CAS server.
 
         :rtype : String
         :param nonce: The nonce to be added to the service url.
@@ -137,8 +131,7 @@ class CasAuthnMethod(UserAuthnMethod):
         return self.service_url + "?" + self.CONST_NONCE + "=" + nonce + "&acr_values=" + acr
 
     def verify(self, request, cookie, **kwargs):
-        """
-        Verify if the authentication was successful.
+        """Verify if the authentication was successful.
 
         :rtype : Response
         :param request: Contains the request parameters.
@@ -148,7 +141,7 @@ class CasAuthnMethod(UserAuthnMethod):
         return_to url. Otherwise a unauthorized response.
         :raise: ValueError
         """
-        logger.debug("verify(%s)" % request)
+        logger.debug("verify(%s)", request)
         if isinstance(request, str):
             _dict = parse_qs(request)
         elif isinstance(request, dict):

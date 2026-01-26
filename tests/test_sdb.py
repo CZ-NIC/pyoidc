@@ -10,17 +10,18 @@ from unittest import TestCase
 import pytest
 from freezegun import freeze_time
 
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import OpenIDRequest
-from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import Crypt
-from oic.utils.sdb import DefaultToken
-from oic.utils.sdb import DictRefreshDB
-from oic.utils.sdb import ExpiredToken
-from oic.utils.sdb import SessionDB
-from oic.utils.sdb import WrongTokenType
-from oic.utils.sdb import create_session_db
+from oic.oic.message import AuthorizationRequest, OpenIDRequest
+from oic.utils.sdb import (
+    AccessCodeUsed,
+    AuthnEvent,
+    Crypt,
+    DefaultToken,
+    DictRefreshDB,
+    ExpiredToken,
+    SessionDB,
+    WrongTokenType,
+    create_session_db,
+)
 from oic.utils.session_backend import DictSessionBackend
 from oic.utils.time_util import utc_time_sans_frac
 
@@ -65,7 +66,7 @@ def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
-class TestAuthnEvent(object):
+class TestAuthnEvent:
     """Tests for AuthnEvent class."""
 
     def test_from_json(self):
@@ -95,7 +96,7 @@ class TestAuthnEvent(object):
         assert ae.valid_for() > 1499
 
 
-class TestDictRefreshDB(object):
+class TestDictRefreshDB:
     @pytest.fixture(autouse=True)
     def create_rdb(self):
         self.rdb = DictRefreshDB()
@@ -126,7 +127,7 @@ class TestDictRefreshDB(object):
         }
 
 
-class TestToken(object):
+class TestToken:
     @pytest.fixture(autouse=True)
     def create_token(self):
         self.token = DefaultToken("secret", "password", lifetime=60)
@@ -330,7 +331,7 @@ class TestSessionBackend(TestCase):
         assert self.backend.get_uid_by_sid("key") == "my_uid"
 
 
-class TestSessionDB(object):
+class TestSessionDB:
     @pytest.fixture(autouse=True)
     def create_sdb(self, session_db_factory):
         self.sdb = session_db_factory("https://example.com/")
@@ -731,7 +732,7 @@ class TestSessionDB(object):
         assert self.sdb.is_revoke_uid("my_uid")
 
 
-class TestCrypt(object):
+class TestCrypt:
     @pytest.fixture(autouse=True)
     def create_crypt(self):
         self.crypt = Crypt("4-amino-1H-pyrimidine-2-one")

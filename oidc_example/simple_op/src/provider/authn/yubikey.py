@@ -1,12 +1,11 @@
 import json
 import logging
 
-from provider.authn import AuthnModule
-from provider.authn import make_cls_from_name
 from yubico_client import yubico_exceptions
 from yubico_client.yubico import Yubico
 
 from oic.utils.http_util import Response
+from provider.authn import AuthnModule, make_cls_from_name
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class YubicoOTP(AuthnModule):
         template="yubico_otp.jinja2",
         **kwargs,
     ):
-        super(YubicoOTP, self).__init__(None)
+        super().__init__(None)
         self.template_env = template_env
         self.template = template
 
@@ -46,13 +45,13 @@ class YubicoOTP(AuthnModule):
         try:
             status = self.client.verify(otp, return_response=True)
         except yubico_exceptions.InvalidClientIdError as e:
-            logger.error("Client with id {} does not exist".format(e.client_id))
+            logger.error("Client with id %s does not exist", e.client_id)
             return self.FAILED_AUTHN
         except yubico_exceptions.SignatureVerificationError:
             logger.error("Signature verification failed")
             return self.FAILED_AUTHN
         except yubico_exceptions.StatusCodeError as e:
-            logger.error("Negative status code was returned: {}".format(e.status_code))
+            logger.error("Negative status code was returned: %s", e.status_code)
             return self.FAILED_AUTHN
 
         if status:

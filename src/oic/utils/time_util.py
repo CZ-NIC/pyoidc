@@ -17,9 +17,7 @@ import calendar
 import re
 import sys
 import time
-from datetime import datetime, timezone
-from datetime import timedelta
-from typing import Dict
+from datetime import datetime, timedelta, timezone
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 TIME_FORMAT_WITH_FRAGMENT = re.compile(r"^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
@@ -79,7 +77,7 @@ def parse_duration(duration):
     assert duration[index] == "P"  # nosec
     index += 1
 
-    dic: Dict[str, float] = dict([(typ, 0) for (code, typ) in D_FORMAT])
+    dic: dict[str, float] = {typ: 0 for (code, typ) in D_FORMAT}
 
     for code, typ in D_FORMAT:
         if duration[index] == "-":
@@ -96,14 +94,14 @@ def parse_duration(duration):
                 mod = duration[index:].index(code)
                 try:
                     dic[typ] = int(duration[index : index + mod])
-                except ValueError:
+                except ValueError as err:
                     if code == "S":
                         try:
                             dic[typ] = float(duration[index : index + mod])
-                        except ValueError:
-                            raise TimeUtilError("Not a float")
+                        except ValueError as err2:
+                            raise TimeUtilError("Not a float") from err2
                     else:
-                        raise TimeUtilError("Fractions not allow on anything byt seconds")
+                        raise TimeUtilError("Fractions not allow on anything byt seconds") from err
                 index = mod + index + 1
             except ValueError:
                 dic[typ] = 0
@@ -165,8 +163,7 @@ def add_duration(tid, duration):
 
 
 def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
-    """
-    Return time in a future.
+    """Return time in a future.
 
     format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
@@ -179,8 +176,7 @@ def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0
 
 
 def time_a_while_ago(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
-    """
-    Return time in past.
+    """Return time in past.
 
     format of timedelta::
         timedelta([days[, seconds[, microseconds[, milliseconds[,
@@ -209,8 +205,7 @@ def in_a_while(
     weeks=0,
     time_format=TIME_FORMAT,
 ):
-    """
-    Return time in a future.
+    """Return time in a future.
 
     :param days:
     :param seconds:
@@ -238,8 +233,7 @@ def a_while_ago(
     weeks=0,
     time_format=TIME_FORMAT,
 ):
-    """
-    Return time in past.
+    """Return time in past.
 
     :param days:
     :param seconds:
@@ -258,8 +252,7 @@ def a_while_ago(
 
 
 def shift_time(dtime, shift):
-    """
-    Add/delete an integer amount of seconds from a datetime specification.
+    """Add/delete an integer amount of seconds from a datetime specification.
 
     :param dtime: The datatime specification
     :param shift: The wanted time shift (+/-)
@@ -272,8 +265,7 @@ def shift_time(dtime, shift):
 
 
 def str_to_time(timestr, time_format=TIME_FORMAT):
-    """
-    Convert string to time according to TIME_FORMAT.
+    """Convert string to time according to TIME_FORMAT.
 
     :param timestr:
     :param time_format:
@@ -283,14 +275,14 @@ def str_to_time(timestr, time_format=TIME_FORMAT):
         return 0
     try:
         then = time.strptime(timestr, time_format)
-    except ValueError:  # assume it's a format problem
+    except ValueError as err:  # assume it's a format problem
         try:
             elem = TIME_FORMAT_WITH_FRAGMENT.match(timestr)
         except Exception as exc:
-            print("Exception: %s on %s" % (exc, timestr), file=sys.stderr)
+            print("Exception: {} on {}".format(exc, timestr), file=sys.stderr)
             raise
         if elem is None:
-            raise TimeUtilError("Error parsing time")
+            raise TimeUtilError("Error parsing time") from err
         then = time.strptime(elem.groups()[0] + "Z", TIME_FORMAT)
 
     return time.gmtime(calendar.timegm(then))
@@ -354,12 +346,11 @@ def utc_time_sans_frac():
 
 
 def time_sans_frac():
-    return int("%d" % time.time())
+    return int(time.time())
 
 
 def epoch_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0):
-    """
-    Return the number of seconds since epoch a while from now.
+    """Return the number of seconds since epoch a while from now.
 
     :param days:
     :param seconds:

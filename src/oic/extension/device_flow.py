@@ -1,13 +1,12 @@
-from typing import Dict
-
 from oic import rndstr
-from oic.extension.single import SingleClient
-from oic.extension.single import SingleService
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import Message
+from oic.extension.single import SingleClient, SingleService
+from oic.oauth2.message import (
+    SINGLE_OPTIONAL_INT,
+    SINGLE_OPTIONAL_STRING,
+    SINGLE_REQUIRED_STRING,
+    AccessTokenResponse,
+    Message,
+)
 from oic.utils.time_util import time_sans_frac
 
 
@@ -42,10 +41,10 @@ class DeviceFlowServer(SingleService):
         SingleService.__init__(self, host)
         self.host = host
         # map between device_code and user_code
-        self.client_id2device: Dict[str, str] = {}
-        self.device2user: Dict[str, str] = {}
-        self.user_auth: Dict[str, bool] = {}
-        self.device_code_expire_at: Dict[str, int] = {}
+        self.client_id2device: dict[str, str] = {}
+        self.device2user: dict[str, str] = {}
+        self.user_auth: dict[str, bool] = {}
+        self.device_code_expire_at: dict[str, int] = {}
         self.device_code_life_time = 900  # 15 minutes
 
     def device_endpoint(self, request, authn=None):

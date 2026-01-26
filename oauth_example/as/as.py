@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""
-A very simple OAuth2 AS
-"""
+"""A very simple OAuth2 AS."""
 
 import json
 import logging
@@ -14,20 +12,14 @@ import cherrypy
 from authn_setup import authn_setup
 from requests.packages import urllib3
 
-from oic.extension.provider import IntrospectionEndpoint
-from oic.extension.provider import Provider
-from oic.extension.provider import RevocationEndpoint
+from oic.extension.provider import IntrospectionEndpoint, Provider, RevocationEndpoint
 from oic.extension.token import JWTToken
-from oic.oauth2.provider import AuthorizationEndpoint
-from oic.oauth2.provider import TokenEndpoint
+from oic.oauth2.provider import AuthorizationEndpoint, TokenEndpoint
 from oic.oic.provider import RegistrationEndpoint
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import Implicit
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import ServiceError
-from oic.utils.http_util import wsgi_wrapper
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import keyjar_init
+from oic.utils.http_util import NotFound, ServiceError, wsgi_wrapper
+from oic.utils.keyio import KeyBundle, keyjar_init
 
 urllib3.disable_warnings()
 
@@ -54,7 +46,7 @@ JWKS_FILE_NAME = os.path.join(os.path.dirname(__file__), "static/jwks.json")
 
 
 def static(environ, start_response, path):
-    LOGGER.info("[static]sending: %s" % (path,))
+    LOGGER.info("[static]sending: %s", path)
 
     try:
         with open(path, "rb") as fd:
@@ -72,7 +64,7 @@ def static(environ, start_response, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [content]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -82,7 +74,7 @@ def static(environ, start_response, path):
 # ============================================================================
 
 
-class Application(object):
+class Application:
     def __init__(self, oas):
         self.oas = oas
 
@@ -100,7 +92,7 @@ class Application(object):
         ]
 
         for endp in self.endpoints:
-            self.urls.append(("^%s" % endp.etype, endp))
+            self.urls.append(("^{}".format(endp.etype), endp))
 
     # noinspection PyUnusedLocal
     def verify(self, environ, start_response):
@@ -131,8 +123,9 @@ class Application(object):
         return wsgi_wrapper(environ, start_response, self.oas.revocation_endpoint)
 
     def application(self, environ, start_response):
-        """
-        The main WSGI application. Dispatch the current request to
+        """The main WSGI application.
+
+        Dispatch the current request to
         the functions from above and store the regular expression
         captures in the WSGI environment as  `oic.url_args` so that
         the functions from above can access the url placeholders.
@@ -144,10 +137,9 @@ class Application(object):
             request is done
         :return: The response as a list of lines
         """
-
         path = environ.get("PATH_INFO", "").lstrip("/")
 
-        LOGGER.info("path: %s" % path)
+        LOGGER.info("path: %s", path)
         if path == "robots.txt":
             return static(environ, start_response, "static/robots.txt")
 
@@ -162,18 +154,18 @@ class Application(object):
                 except IndexError:
                     environ["oic.url_args"] = path
 
-                LOGGER.debug("callback: %s" % callback)
+                LOGGER.debug("callback: %s", callback)
                 try:
                     return callback(environ, start_response)
                 except Exception as err:
                     print("{}".format(err), file=sys.stderr)
                     message = traceback.format_exception(*sys.exc_info())
                     print(message, file=sys.stderr)
-                    LOGGER.exception("%s" % err)
-                    resp = ServiceError("%s" % err)
+                    LOGGER.exception("%s", err)
+                    resp = ServiceError("{}".format(err))
                     return resp(environ, start_response)
 
-        LOGGER.debug("unknown side: %s" % path)
+        LOGGER.debug("unknown side: %s", path)
         resp = NotFound("Couldn't find the side you asked for!")
         return resp(environ, start_response)
 
@@ -192,8 +184,7 @@ if __name__ == "__main__":
     # This is where session information is stored
     # This serve is stateful.
     from oic import rndstr
-    from oic.utils.sdb import DefaultToken
-    from oic.utils.sdb import SessionDB
+    from oic.utils.sdb import DefaultToken, SessionDB
 
     # Parse the command arguments
     parser = argparse.ArgumentParser()
@@ -264,7 +255,7 @@ if __name__ == "__main__":
     try:
         jwks = keyjar_init(oas, config.keys, kid_template="op%d")
     except Exception as err:
-        LOGGER.error("Key setup failed: {}".format(err))
+        LOGGER.error("Key setup failed: %s", err)
         print("Key setup failed: {}".format(err))
         exit()
     else:
@@ -326,7 +317,7 @@ if __name__ == "__main__":
     else:
         if config.baseurl.endswith("/"):
             config.baseurl = config.baseurl[:-1]
-        oas.baseurl = "%s:%d" % (config.baseurl, args.port)
+        oas.baseurl = f"{config.baseurl}:{int(args.port)}"
 
     if not oas.baseurl.endswith("/"):
         oas.baseurl += "/"

@@ -2,20 +2,14 @@ import base64
 import logging
 from urllib.parse import quote_plus
 
-from jwkest import Invalid
-from jwkest import MissingKey
-from jwkest import as_bytes
+from jwkest import Invalid, MissingKey, as_bytes
 from jwkest.jws import alg2keytype
 
 from oic import rndstr
-from oic.exception import FailedAuthentication
-from oic.exception import NotForMe
-from oic.exception import UnknownAssertionType
+from oic.exception import FailedAuthentication, NotForMe, UnknownAssertionType
 from oic.oauth2 import AccessTokenRequest
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import VREQUIRED
-from oic.oic import DEF_SIGN_ALG
-from oic.oic import JWT_BEARER
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING, VREQUIRED
+from oic.oic import DEF_SIGN_ALG, JWT_BEARER
 from oic.oic.message import AuthnToken
 from oic.utils.keyio import check_key_availability
 from oic.utils.sanitize import sanitize
@@ -50,30 +44,27 @@ def assertion_jwt(cli, keys, audience, algorithm, lifetime=600):
         exp=_now + lifetime,
         iat=_now,
     )
-    logger.debug("AuthnToken: {}".format(at.to_dict()))
+    logger.debug("AuthnToken: %s", at.to_dict())
     return at.to_jwt(key=keys, algorithm=algorithm)
 
 
-class ClientAuthnMethod(object):
+class ClientAuthnMethod:
     def __init__(self, cli=None):
-        """
-        Initialize class.
+        """Initialize class.
 
         :param cli: Client instance
         """
         self.cli = cli
 
     def construct(self, *args, **kwargs):
-        """
-        Add authentication information to a request.
+        """Add authentication information to a request.
 
         :return:
         """
         raise NotImplementedError
 
     def verify(self, *args, **kwargs):
-        """
-        Verify authentication information in a request.
+        """Verify authentication information in a request.
 
         :param kwargs:
         :return:
@@ -82,8 +73,7 @@ class ClientAuthnMethod(object):
 
 
 class ClientSecretBasic(ClientAuthnMethod):
-    """
-    Use HTTP Basic authentication.
+    """Use HTTP Basic authentication.
 
     Clients that have received a client_secret value from the Authorization
     Server, authenticate with the Authorization Server in accordance with
@@ -91,8 +81,7 @@ class ClientSecretBasic(ClientAuthnMethod):
     """
 
     def construct(self, cis, request_args=None, http_args=None, **kwargs):
-        """
-        Create the request.
+        """Create the request.
 
         :param cis: Request class instance
         :param request_args: Request arguments
@@ -142,12 +131,11 @@ class ClientSecretBasic(ClientAuthnMethod):
         if self.cli.cdb[client_id]["client_secret"] == areq["client_secret"]:
             return client_id
         else:
-            raise AuthnFailure()
+            raise AuthnFailure
 
 
 class ClientSecretPost(ClientSecretBasic):
-    """
-    Authenticate using client_secret in POST body.
+    """Authenticate using client_secret in POST body.
 
     Clients that have received a client_secret value from the Authorization
     Server, authenticate with the Authorization Server in accordance with
@@ -163,7 +151,7 @@ class ClientSecretPost(ClientSecretBasic):
                 if self.cli.client_secret:
                     cis["client_secret"] = self.cli.client_secret
                 else:
-                    raise AuthnFailure("Missing client secret")
+                    raise AuthnFailure("Missing client secret") from None
 
         cis["client_id"] = self.cli.client_id
 
@@ -172,8 +160,7 @@ class ClientSecretPost(ClientSecretBasic):
 
 class BearerHeader(ClientAuthnMethod):
     def construct(self, cis=None, request_args=None, http_args=None, **kwargs):
-        """
-        More complicated logic then I would have liked it to be.
+        """More complicated logic then I would have liked it to be.
 
         :param cli: Client instance
         :param cis: Request class instance
@@ -204,7 +191,7 @@ class BearerHeader(ClientAuthnMethod):
                 _acc_token = request_args["access_token"]
 
         # Do I need to base64 encode the access token ? Probably !
-        _bearer = "Bearer %s" % _acc_token
+        _bearer = "Bearer {}".format(_acc_token)
         if http_args is None:
             http_args = {"headers": {}}
             http_args["headers"]["Authorization"] = _bearer
@@ -220,7 +207,7 @@ class BearerHeader(ClientAuthnMethod):
         try:
             cred = environ["HTTP_AUTHORIZATION"]
         except KeyError:
-            raise AuthnFailure("missing authorization info")
+            raise AuthnFailure("missing authorization info") from None
 
         if not cred.startswith("Bearer "):
             raise AuthnFailure("Wrong type of authorization token")
@@ -244,7 +231,7 @@ class BearerBody(ClientAuthnMethod):
                     kwargs["state"]
                 except KeyError:
                     if not self.cli.state:
-                        raise AuthnFailure("Missing state specification")
+                        raise AuthnFailure("Missing state specification") from None
                     kwargs["state"] = self.cli.state
 
                 cis["access_token"] = self.cli.get_token(**kwargs).access_token
@@ -274,11 +261,10 @@ class JWSAuthnMethod(ClientAuthnMethod):
             else:
                 raise NoMatchingKey("Wrong key type")
         else:
-            raise NoMatchingKey("No key with kid:%s" % kid)
+            raise NoMatchingKey("No key with kid:{}".format(kid))
 
-    def construct(self, cis, request_args=None, http_args=None, **kwargs):
-        """
-        Construct a client assertion and signs it with a key.
+    def construct(self, cis, request_args=None, http_args=None, **kwargs):  # noqa: C901 # was 16
+        """Construct a client assertion and signs it with a key.
 
         The request is modified as a side effect.
         :param cis: The request
@@ -314,7 +300,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             else:
                 signing_key = self.get_signing_key(algorithm)
         except NoMatchingKey as err:
-            logger.error("%s" % sanitize(err))
+            logger.error("%s", sanitize(err))
             raise
 
         if "client_assertion" in kwargs:
@@ -357,10 +343,10 @@ class JWSAuthnMethod(ClientAuthnMethod):
                 argv = {}
             bjwt = AuthnToken().from_jwt(areq["client_assertion"], keyjar=self.cli.keyjar, **argv)
         except (Invalid, MissingKey) as err:
-            logger.info("%s" % sanitize(err))
-            raise AuthnFailure("Could not verify client_assertion.")
+            logger.info("%s", sanitize(err))
+            raise AuthnFailure("Could not verify client_assertion.") from None
 
-        logger.debug("authntoken: %s" % sanitize(bjwt.to_dict()))
+        logger.debug("authntoken: %s", sanitize(bjwt.to_dict()))
         areq["parsed_client_assertion"] = bjwt
 
         try:
@@ -374,7 +360,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         # aud can be a string or a list
         _aud = bjwt["aud"]
-        logger.debug("audience: %s, baseurl: %s" % (_aud, self.cli.baseurl))
+        logger.debug("audience: %s, baseurl: %s", _aud, self.cli.baseurl)
 
         # figure out authn method
         if alg2keytype(bjwt.jws_header["alg"]) == "oct":  # Symmetric key
@@ -395,8 +381,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
 
 class ClientSecretJWT(JWSAuthnMethod):
-    """
-    Authentication using JWT.
+    """Authentication using JWT.
 
     Clients that have received a client_secret value from the Authorization Server create a JWT using
     an HMAC SHA algorithm, such as HMAC SHA-256.
@@ -441,20 +426,19 @@ def valid_client_info(cinfo):
 
 
 def get_client_id(cdb, req, authn):
-    """
-    Verify the client and return the client id.
+    """Verify the client and return the client id.
 
     :param req: The request
     :param authn: Authentication information from the HTTP header
     :return:
     """
-    logger.debug("REQ: %s" % sanitize(req.to_dict()))
+    logger.debug("REQ: %s", sanitize(req.to_dict()))
     _secret = None
     if not authn:
         try:
             _id = str(req["client_id"])
         except KeyError:
-            raise FailedAuthentication("Missing client_id")
+            raise FailedAuthentication("Missing client_id") from None
     elif authn.startswith("Basic "):
         logger.debug("Basic auth")
         (_id, _secret) = base64.b64decode(authn[6:].encode("utf-8")).decode("utf-8").split(":")
@@ -469,7 +453,7 @@ def get_client_id(cdb, req, authn):
             _id = cdb[_token]
         except KeyError:
             logger.debug("Unknown access token")
-            raise FailedAuthentication("Unknown access token")
+            raise FailedAuthentication("Unknown access token") from None
     else:
         raise FailedAuthentication("AuthZ type I don't know")
     # We have the client_id by now, so let's verify it
@@ -488,8 +472,7 @@ def get_client_id(cdb, req, authn):
 
 
 def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
-    """
-    Guess authentication method and get client from that.
+    """Guess authentication method and get client from that.
 
     :param inst: Entity instance
     :param areq: The request
@@ -501,7 +484,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
         auth_method = "client_secret_basic"
     elif "client_secret" in areq:  # client_secret_post
         client_id = get_client_id(inst.cdb, areq, authn)
-        logger.debug("Verified Client ID: %s" % client_id)
+        logger.debug("Verified Client ID: %s", client_id)
         cid = ClientSecretBasic(inst).verify(areq, client_id)
         auth_method = "client_secret_post"
     elif "client_assertion" in areq:  # client_secret_jwt or private_key_jwt
@@ -512,7 +495,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
                 cid, auth_method = method(inst).verify(areq)
                 break
         else:
-            logger.error("UnknownAssertionType: {}".format(areq["client_assertion_type"]))
+            logger.error("UnknownAssertionType: %s", areq["client_assertion_type"])
             raise UnknownAssertionType(areq["client_assertion_type"], areq)
     else:
         logger.error("Missing client authentication.")
@@ -525,7 +508,7 @@ def verify_client(inst, areq, authn, type_method=TYPE_METHOD):
             _method = "client_secret_basic"
 
         if _method != auth_method:
-            logger.error("Wrong authentication method used: {} != {}".format(auth_method, _method))
+            logger.error("Wrong authentication method used: %s != %s", auth_method, _method)
             raise FailedAuthentication("Wrong authentication method used")
 
     # store which authn method was used where

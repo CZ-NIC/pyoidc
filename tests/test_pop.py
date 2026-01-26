@@ -1,13 +1,8 @@
 import json
 
-from oic.extension.pop import PoPAS
-from oic.extension.pop import PoPCallBack
-from oic.extension.pop import PoPClient
-from oic.extension.pop import PoPRS
-from oic.oauth2 import AccessTokenRequest
-from oic.oauth2 import AccessTokenResponse
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
+from oic.extension.pop import PoPAS, PoPCallBack, PoPClient, PoPRS
+from oic.oauth2 import AccessTokenRequest, AccessTokenResponse
+from oic.utils.keyio import KeyBundle, KeyJar
 
 __author__ = "roland"
 

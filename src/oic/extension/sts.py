@@ -1,5 +1,4 @@
-"""
-Message types in draft-ietf-oauth-token-exchange-03.
+"""Message types in draft-ietf-oauth-token-exchange-03.
 
 :copyright: (c) 2016 by Roland Hedberg.
 :license: Apache2, see LICENSE for more details.
@@ -8,16 +7,17 @@ Message types in draft-ietf-oauth-token-exchange-03.
 
 import json
 
-from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import Message
-from oic.oauth2.message import ParamDefinition
-from oic.oic.message import SINGLE_REQUIRED_INT
-from oic.oic.message import msg_ser
+from oic.oauth2.message import (
+    OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+    OPTIONAL_LIST_OF_STRINGS,
+    REQUIRED_LIST_OF_STRINGS,
+    SINGLE_OPTIONAL_INT,
+    SINGLE_OPTIONAL_STRING,
+    SINGLE_REQUIRED_STRING,
+    Message,
+    ParamDefinition,
+)
+from oic.oic.message import SINGLE_REQUIRED_INT, msg_ser
 
 __author__ = "roland"
 

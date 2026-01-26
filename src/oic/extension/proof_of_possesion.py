@@ -1,22 +1,17 @@
 import base64
 import json
 import time
-from typing import Dict
-from urllib.parse import parse_qs
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qs, parse_qsl
 
 from jwkest import jws
 from jwkest.jwk import keyrep
 from jwkest.jws import JWS
 
-from oic.extension.signed_http_req import SignedHttpRequest
-from oic.extension.signed_http_req import ValidationError
+from oic.extension.signed_http_req import SignedHttpRequest, ValidationError
 from oic.oauth2 import error_response
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import AccessTokenResponse
+from oic.oic.message import AccessTokenRequest, AccessTokenResponse
 from oic.oic.provider import Provider
-from oic.utils.http_util import Response
-from oic.utils.http_util import get_post
+from oic.utils.http_util import Response, get_post
 
 __author__ = "regu0004"
 
@@ -27,14 +22,14 @@ class NonPoPTokenError(Exception):
 
 class PoPProvider(Provider):
     def __init__(self, *args, **kwargs):
-        super(PoPProvider, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # mapping from signed pop token to access token in db
-        self.access_tokens: Dict[JWS, str] = {}
+        self.access_tokens: dict[JWS, str] = {}
 
     def token_endpoint(self, request="", authn="", dtype="urlencoded", **kwargs):
         atr = AccessTokenRequest().deserialize(kwargs["request"], dtype)
-        resp = super(PoPProvider, self).token_endpoint(**kwargs)
+        resp = super().token_endpoint(**kwargs)
 
         if "token_type" not in atr or atr["token_type"] != "pop":
             return resp
@@ -85,8 +80,8 @@ class PoPProvider(Provider):
             data = _jws.verify_compact(access_token, self.keyjar.get_verify_key(owner=""))
             try:
                 return keyrep(data["cnf"]["jwk"])
-            except KeyError:
-                raise NonPoPTokenError("Could not extract public key as JWK from access token")
+            except KeyError as err:
+                raise NonPoPTokenError("Could not extract public key as JWK from access token") from err
 
         raise NonPoPTokenError("Unsigned access token, maybe not PoP?")
 

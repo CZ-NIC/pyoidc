@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import builtins
 import json
 import logging
 import os
@@ -7,7 +8,7 @@ import sys
 import traceback
 from logging.handlers import BufferingHandler
 
-from exceptions import AttributeError, Exception, IndexError, KeyboardInterrupt, KeyError, OSError
+from exceptions import AttributeError, Exception, IndexError, KeyboardInterrupt, KeyError
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 
@@ -79,7 +80,7 @@ def create_session_logger(log_format="CPC"):
 
     logger = logging.getLogger("")
     try:
-        logger.addHandler(HANDLER["%s-buffer" % log_format])
+        logger.addHandler(HANDLER["{}-buffer".format(log_format)])
     except KeyError:
         _formatter = logging.Formatter(log_format)
         handl = BufferingHandler(10000)
@@ -99,7 +100,7 @@ def replace_format_handler(logger, log_format="CPC"):
     if ACTIVE_HANDLER == log_format:
         return logger
 
-    _handler = HANDLER["%s-file" % log_format]
+    _handler = HANDLER["{}-file".format(log_format)]
     if _handler in logger.handlers:
         return logger
 
@@ -107,7 +108,7 @@ def replace_format_handler(logger, log_format="CPC"):
     logger.handlers = []
 
     try:
-        logger.addHandler(HANDLER["%s-file" % log_format])
+        logger.addHandler(HANDLER["{}-file".format(log_format)])
     except KeyError:
         _formatter = logging.Formatter(log_format)
         handl = logging.FileHandler(LOGFILE_NAME)
@@ -154,7 +155,7 @@ def safe(environ, start_response, logger):
         resp = Unauthorized("Not authorized")
         return resp(environ, start_response)
 
-    info = "'%s' secrets" % _sinfo["sub"]
+    info = "'{}' secrets".format(_sinfo["sub"])
     resp = Response(info)
     return resp(environ, start_response)
 
@@ -164,7 +165,7 @@ def css(environ, start_response, logger):
     try:
         info = open(environ["PATH_INFO"]).read()
         resp = Response(info)
-    except (OSError, IOError):
+    except OSError:
         resp = NotFound(environ["PATH_INFO"])
 
     return resp(environ, start_response)
@@ -244,14 +245,14 @@ def endsession(environ, start_response, logger):
 
 # noinspection PyUnusedLocal
 def meta_info(environ, start_response, logger):
-    """
-    Returns something like this
-     {"links":[
-        {
-            "rel":"http://openid.net/specs/connect/1.0/issuer",
-            "href":"https://openidconnect.info/"
-        }
-     ]}
+    """Returns something like this!
+
+    {"links":[
+       {
+           "rel":"http://openid.net/specs/connect/1.0/issuer",
+           "href":"https://openidconnect.info/"
+       }
+    ]}.
     """
     pass
 
@@ -288,7 +289,7 @@ def static_file(path):
 
 # noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -305,7 +306,7 @@ def static(environ, start_response, logger, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
-    except IOError:
+    except builtins.OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -336,7 +337,7 @@ def add_endpoints(extra):
     global URLS
 
     for endp in extra:
-        URLS.append(("^%s" % endp.etype, endp))
+        URLS.append(("^{}".format(endp.etype), endp))
 
 
 # ----------------------------------------------------------------------------
@@ -354,8 +355,9 @@ LOOKUP = TemplateLookup(
 
 
 def application(environ, start_response):
-    """
-    The main WSGI application. Dispatch the current request to
+    """The main WSGI application.
+
+    Dispatch the current request to
     the functions from above and store the regular expression
     captures in the WSGI environment as  `oic.url_args` so that
     the functions from above can access the url placeholders.
@@ -367,7 +369,6 @@ def application(environ, start_response):
         request is done
     :return: The response as a list of lines
     """
-
     global OAS
 
     # user = environ.get("REMOTE_USER", "")
@@ -395,18 +396,18 @@ def application(environ, start_response):
             except IndexError:
                 environ["oic.url_args"] = path
 
-            logger.info("callback: %s" % callback)
+            logger.info("callback: %s", callback)
             try:
                 return callback(environ, start_response, logger)
             except Exception as err:
-                sys.stderr.write("%s" % err)
+                sys.stderr.write("{}".format(err))
                 message = traceback.format_exception(*sys.exc_info())
                 sys.stderr.write(message)
-                logger.exception("%s" % err)
-                resp = ServiceError("%s" % err)
+                logger.exception("%s", err)
+                resp = ServiceError("{}".format(err))
                 return resp(environ, start_response)
 
-    LOGGER.debug("unknown side: %s" % path)
+    LOGGER.debug("unknown side: %s", path)
     resp = NotFound("Couldn't find the side you asked for!")
     return resp(environ, start_response)
 
@@ -501,7 +502,7 @@ if __name__ == "__main__":
 
     ac = AuthnBroker()
 
-    for authkey, value in config.AUTHORIZATION.items():
+    for authkey, _value in config.AUTHORIZATION.items():
         authn = None
         if "CAS" == authkey:
             from oic.utils.authn.ldap_member import UserLDAPMemberValidation
@@ -512,13 +513,13 @@ if __name__ == "__main__":
                 None,
                 config.CAS_SERVER,
                 config.SERVICE_URL,
-                "%s/authorization" % config.issuer,
+                "{}/authorization".format(config.issuer),
                 UserLDAPMemberValidation(**config.LDAP_EXTRAVALIDATION),
             )
         if "UserPassword" == authkey:
             from oic.utils.authn.user import UsernamePasswordMako
 
-            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD, "%s/authorization" % config.issuer)
+            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD, "{}/authorization".format(config.issuer))
         if authn is not None:
             ac.add(
                 config.AUTHORIZATION[authkey]["ACR"],
@@ -587,7 +588,7 @@ if __name__ == "__main__":
     else:
         if config.baseurl.endswith("/"):
             config.baseurl = config.baseurl[:-1]
-        OAS.baseurl = "%s:%d" % (config.baseurl, args.port)
+        OAS.baseurl = f"{config.baseurl}:{int(args.port)}"
 
     if not OAS.baseurl.endswith("/"):
         OAS.baseurl += "/"
@@ -595,17 +596,17 @@ if __name__ == "__main__":
     try:
         jwks = keyjar_init(OAS, config.keys)
     except Exception as err:
-        LOGGER.error("Key setup failed: %s" % err)
+        LOGGER.error("Key setup failed: %s", err)
         OAS.key_setup("static", sig={"format": "jwk", "alg": "rsa"})
     else:
         new_name = "static/jwks.json"
         f = open(new_name, "w")
         f.write(json.dumps(jwks))
         f.close()
-        OAS.jwks_uri.append("%s%s" % (OAS.baseurl, new_name))
+        OAS.jwks_uri.append("{}{}".format(OAS.baseurl, new_name))
 
     for b in OAS.keyjar[""]:
-        LOGGER.info("OC3 server keys: %s" % b)
+        LOGGER.info("OC3 server keys: %s", b)
 
     if config.USERINFO == "LDAP":
         from oic.utils.userinfo.ldap_info import UserInfoLDAP
@@ -618,14 +619,14 @@ if __name__ == "__main__":
 
         OAS.userinfo = DistributedAggregatedUserInfo(config.USERDB, OAS, config.CLIENT_INFO)
 
-    LOGGER.debug("URLS: '%s" % (URLS,))
+    LOGGER.debug("URLS: '%s", URLS)
     # Add the claims providers keys
     SRV = wsgiserver.CherryPyWSGIServer(("0.0.0.0", args.port), application)  # nosec
 
     SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
 
-    LOGGER.info("OC server starting listening on port:%s" % args.port)
-    print("OC server starting listening on port:%s" % args.port)
+    LOGGER.info("OC server starting listening on port:%s", args.port)
+    print("OC server starting listening on port:{}".format(args.port))
     try:
         SRV.start()
     except KeyboardInterrupt:

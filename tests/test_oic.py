@@ -2,48 +2,39 @@ import json
 import os
 import time
 from collections import Counter
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
-from jwkest.jws import alg2keytype
-from jwkest.jws import left_hash
+from jwkest.jws import alg2keytype, left_hash
 from jwkest.jwt import JWT
 from requests import Response
 
-from oic.exception import CommunicationError
-from oic.exception import RegistrationError
+from oic.exception import CommunicationError, RegistrationError
 from oic.oauth2.exception import OtherError
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import MessageTuple
-from oic.oic import DEF_SIGN_ALG
-from oic.oic import Client
-from oic.oic import Grant
-from oic.oic import Server
-from oic.oic import Token
-from oic.oic import scope2claims
-from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import CheckSessionRequest
-from oic.oic.message import Claims
-from oic.oic.message import ClaimsRequest
-from oic.oic.message import EndSessionRequest
-from oic.oic.message import IdToken
-from oic.oic.message import OIDCMessageFactory
-from oic.oic.message import OpenIDRequest
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import RefreshAccessTokenRequest
-from oic.oic.message import RefreshSessionRequest
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import UserInfoRequest
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING, MessageTuple
+from oic.oic import DEF_SIGN_ALG, Client, Grant, Server, Token, scope2claims
+from oic.oic.message import (
+    SCOPE2CLAIMS,
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    CheckSessionRequest,
+    Claims,
+    ClaimsRequest,
+    EndSessionRequest,
+    IdToken,
+    OIDCMessageFactory,
+    OpenIDRequest,
+    OpenIDSchema,
+    RefreshAccessTokenRequest,
+    RefreshSessionRequest,
+    RegistrationRequest,
+    UserInfoRequest,
+)
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import rsa_load
+from oic.utils.keyio import KeyBundle, KeyJar, rsa_load
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "rohe0002"
@@ -51,7 +42,7 @@ __author__ = "rohe0002"
 KC_SYM_S = KeyBundle(
     {
         "kty": "oct",
-        "key": "abcdefghijklmnop".encode("utf-8"),
+        "key": b"abcdefghijklmnop",
         "use": "sig",
         "alg": "HS256",
     }
@@ -83,7 +74,7 @@ def _eq(l1, l2):
 # ----------------- CLIENT --------------------
 
 
-class TestClient(object):
+class TestClient:
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.redirect_uri = "https://example.com/redirect"
@@ -173,13 +164,13 @@ class TestClient(object):
             c_param.update({"raw_id_token": SINGLE_OPTIONAL_STRING})
 
             def __init__(self, **kwargs):
-                super(AccessTokenResponseWrapper, self).__init__(**kwargs)
+                super().__init__(**kwargs)
                 self["raw_id_token"] = None
 
             def verify(self, **kwargs):
                 if "id_token" in self:
                     self["raw_id_token"] = self["id_token"]
-                return super(AccessTokenResponseWrapper, self).verify(**kwargs)
+                return super().verify(**kwargs)
 
         args = {"response_type": ["code"], "scope": ["openid"]}
 
@@ -706,7 +697,7 @@ class TestClient(object):
     def test_construct_EndSessionRequest_with_id_token_hint_and_post_logout_redirect_uri(
         self,
     ):
-        """Should construct end session request using id_token_hint and post_logout_redirect_uri"""
+        """Should construct end session request using id_token_hint and post_logout_redirect_uri."""
         self.client.keyjar.add_kb(IDTOKEN["iss"], KC_SYM_S)
         _sig_key = self.client.keyjar.get_signing_key("oct", IDTOKEN["iss"])
         _signed_jwt = IDTOKEN.to_jwt(_sig_key, algorithm="HS256")
@@ -802,7 +793,7 @@ class TestClient(object):
     def test_verify_id_token_reject_wrong_aud(self, monkeypatch):
         issuer = "https://provider.example.com"
         monkeypatch.setattr(self.client, "provider_info", {"issuer": issuer})
-        id_token = IdToken(**dict(iss=issuer, aud=["nobody"]))
+        id_token = IdToken(**{"iss": issuer, "aud": ["nobody"]})
 
         with pytest.raises(OtherError) as exc:
             self.client._verify_id_token(id_token)
@@ -812,11 +803,11 @@ class TestClient(object):
         issuer = "https://provider.example.com"
         monkeypatch.setattr(self.client, "provider_info", {"issuer": issuer})
         id_token = IdToken(
-            **dict(
-                iss=issuer,
-                aud=["nobody", "somebody", self.client.client_id],
-                azp="nobody",
-            )
+            **{
+                "iss": issuer,
+                "aud": ["nobody", "somebody", self.client.client_id],
+                "azp": "nobody",
+            }
         )
 
         with pytest.raises(OtherError) as exc:
@@ -874,7 +865,7 @@ class TestClient(object):
         assert len(self.client.grant["foo"].tokens) == 0
 
 
-class TestServer(object):
+class TestServer:
     @pytest.fixture(autouse=True)
     def create_server(self):
         self.srv = Server()
@@ -1137,7 +1128,7 @@ class TestServer(object):
         assert atr.verify(keyjar=self.srv.keyjar)
 
 
-class TestScope2Claims(object):
+class TestScope2Claims:
     def test_scope2claims(self):
         claims = scope2claims(["profile", "email"])
         assert Counter(claims.keys()) == Counter(SCOPE2CLAIMS["profile"] + SCOPE2CLAIMS["email"])

@@ -2,9 +2,7 @@ import json
 import logging
 import re
 from typing import Any
-from typing import Dict
-from urllib.parse import urlencode
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import requests
 
@@ -23,11 +21,11 @@ class WebFingerError(PyoidcError):
     pass
 
 
-class Base(object):
-    c_param: Dict[str, Dict[str, Any]] = {}
+class Base:
+    c_param: dict[str, dict[str, Any]] = {}
 
     def __init__(self, dic=None):
-        self._ava: Dict[str, Any] = {}
+        self._ava: dict[str, Any] = {}
         if dic is not None:
             self.load(dic)
 
@@ -58,7 +56,7 @@ class Base(object):
     def load(self, dictionary):
         for key, spec in list(self.c_param.items()):
             if key not in dictionary and spec["required"] is True:
-                raise AttributeError("Required attribute '%s' missing" % key)
+                raise AttributeError("Required attribute '{}' missing".format(key))
 
         for key, val in list(dictionary.items()):
             if val == "" or val == [""]:
@@ -90,7 +88,7 @@ class Base(object):
         return res
 
     def __repr__(self):
-        return "%s" % self.dump()
+        return "{}".format(self.dump())
 
     def verify(self):
         pass
@@ -184,7 +182,7 @@ class JRD(Base):
 # identifier like userinfo@host:port, e.g., alice@example.com:8080.
 
 
-class URINormalizer(object):
+class URINormalizer:
     def has_scheme(self, inp):
         if "://" in inp:
             return True
@@ -211,13 +209,13 @@ class URINormalizer(object):
         if self.has_scheme(inp):
             pass
         elif self.acct_scheme_assumed(inp):
-            inp = "acct:%s" % inp
+            inp = "acct:{}".format(inp)
         else:
-            inp = "https://%s" % inp
+            inp = "https://{}".format(inp)
         return inp.split("#")[0]  # strip fragment
 
 
-class WebFinger(object):
+class WebFinger:
     def __init__(self, default_rel=None, httpd=None):
         self.default_rel = default_rel
         self.httpd = httpd
@@ -252,7 +250,7 @@ class WebFinger(object):
             else:
                 raise WebFingerError("Unknown schema")
 
-        return "%s?%s" % (WF_URL % host, urlencode(info))
+        return "{}?{}".format(WF_URL % host, urlencode(info))
 
     @staticmethod
     def load(item):
@@ -274,14 +272,13 @@ class WebFinger(object):
         }
 
     def discovery_query(self, resource, host=None):
-        """
-        Given a resource find a OpenID connect OP to use.
+        """Given a resource find a OpenID connect OP to use.
 
         :param host: Force the host. Disable host detection on resource
         :param resource: An identifier of an entity
         :return: A URL if an OpenID Connect OP could be found
         """
-        logger.debug("Looking for OIDC OP for '%s'" % resource)
+        logger.debug("Looking for OIDC OP for '%s'", resource)
         url = self.query(resource, rel=OIC_ISSUER, host=host)
         try:
             rsp = self.httpd.http_request(url, allow_redirects=True)

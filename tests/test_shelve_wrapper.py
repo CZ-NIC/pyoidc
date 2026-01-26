@@ -27,7 +27,7 @@ def populated_db(db):
     return db
 
 
-class TestShelfWrapper(object):
+class TestShelfWrapper:
     def test_keys(self, populated_db):
         assert _eq(populated_db.keys(), VALUES.keys())
 

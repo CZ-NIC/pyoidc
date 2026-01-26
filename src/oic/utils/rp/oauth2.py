@@ -1,21 +1,20 @@
 import copy
 import hashlib
 import logging
-from typing import Dict
-from typing import Type
-from typing import Union
-from typing import cast
+from typing import Union, cast
 from urllib.parse import urlsplit
 
 from oic import rndstr
 from oic.extension import client
 from oic.extension.message import ClientInfoResponse
-from oic.oauth2 import AccessTokenResponse
-from oic.oauth2 import AuthorizationRequest
-from oic.oauth2 import AuthorizationResponse
-from oic.oauth2 import ErrorResponse
-from oic.oauth2 import ResponseError
-from oic.oauth2 import TokenError
+from oic.oauth2 import (
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    ErrorResponse,
+    ResponseError,
+    TokenError,
+)
 from oic.oauth2.message import ASConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Redirect
@@ -72,7 +71,7 @@ class OAuthClient(client.Client):
 
         request_args.update(kwargs)
         cis = self.construct_AuthorizationRequest(request_args=request_args)
-        logger.debug("request: %s" % sanitize(cis))
+        logger.debug("request: %s", sanitize(cis))
 
         url, body, ht_args, cis = cast(
             AuthorizationRequest,
@@ -80,14 +79,14 @@ class OAuthClient(client.Client):
         )
 
         self.authz_req[request_args["state"]] = cis
-        logger.debug("body: %s" % sanitize(body))
-        logger.info("URL: %s" % sanitize(url))
-        logger.debug("ht_args: %s" % sanitize(ht_args))
+        logger.debug("body: %s", sanitize(body))
+        logger.info("URL: %s", sanitize(url))
+        logger.debug("ht_args: %s", sanitize(ht_args))
 
         resp = Redirect(str(url))
         if ht_args:
             resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        logger.debug("resp_headers: %s" % sanitize(resp.headers))
+        logger.debug("resp_headers: %s", sanitize(resp.headers))
         return resp
 
     def has_access_token(self, **kwargs):
@@ -105,25 +104,24 @@ class OAuthClient(client.Client):
         raise OAuth2Error(txt)
 
     def callback(self, response, session, format="dict"):
-        """
-        Call when an AuthN response has been received from the OP.
+        """Call when an AuthN response has been received from the OP.
 
         :param response: The URL returned by the OP
         :return:
         """
         if self.behaviour["response_type"] == "code":
-            respcls: Union[Type[AuthorizationResponse], Type[AccessTokenResponse]] = AuthorizationResponse
+            respcls: Union[type[AuthorizationResponse], type[AccessTokenResponse]] = AuthorizationResponse
         else:
             respcls = AccessTokenResponse
 
         try:
             authresp = self.parse_response(respcls, response, sformat=format, keyjar=self.keyjar)
-        except ResponseError:
+        except ResponseError as err:
             msg = "Could not parse response: '{}'"
             logger.error(msg.format(sanitize(response)))
-            raise OAuth2Error("Problem parsing response")
+            raise OAuth2Error("Problem parsing response") from err
 
-        logger.info("{}: {}".format(respcls.__name__, sanitize(authresp)))
+        logger.info("%s: %s", respcls.__name__, sanitize(authresp))
 
         if isinstance(authresp, ErrorResponse):
             if authresp["error"] == "login_required":
@@ -155,7 +153,7 @@ class OAuthClient(client.Client):
                     request_args=args,
                     authn_method=self.registration_response["token_endpoint_auth_method"],
                 )
-                logger.info("Access token response: {}".format(sanitize(atresp)))
+                logger.info("Access token response: %s", sanitize(atresp))
             except Exception as err:
                 logger.error("%s", err)
                 raise
@@ -170,20 +168,19 @@ class OAuthClient(client.Client):
         return {"access_token": _token}
 
 
-class OAuthClients(object):
+class OAuthClients:
     def __init__(self, config, base_url, seed="", jwks_info=None, verify_ssl=True):
-        """
-        Initialize the client.
+        """Initialize the client.
 
         :param config: Imported configuration module
         :return:
         """
-        self.client: Dict[str, OAuthClient] = {}
+        self.client: dict[str, OAuthClient] = {}
         self.client_cls = OAuthClient
         self.config = config
         self.seed = seed or rndstr(16)
         self.seed = self.seed.encode("utf8")
-        self.path: Dict[str, str] = {}
+        self.path: dict[str, str] = {}
         self.base_url = base_url
         self.jwks_info = jwks_info
         self.verify_ssl = verify_ssl
@@ -206,8 +203,7 @@ class OAuthClients(object):
             self.path[p.path[1:]] = issuer
 
     def create_client(self, **kwargs):
-        """
-        Do an instantiation of a client instance.
+        """Do an instantiation of a client instance.
 
         :param: Keyword arguments
             Keys are:
@@ -218,7 +214,7 @@ class OAuthClients(object):
                 behaviour
         :return: client instance
         """
-        _key_set = set(list(kwargs.keys()))
+        _key_set = set(kwargs.keys())
         try:
             _verify_ssl = kwargs["verify_ssl"]
         except KeyError:
@@ -296,14 +292,14 @@ class OAuthClients(object):
         if not issuer:
             raise OAuth2Error("Missing issuer")
 
-        logger.info("issuer: {}".format(issuer))
+        logger.info("issuer: %s", issuer)
 
         if issuer in self.client:
             return self.client[issuer]
         else:
             # Gather OP information
             _pcr = client.provider_config(issuer)
-            logger.info("Provider info: {}".format(sanitize(_pcr.to_dict())))
+            logger.info("Provider info: %s", sanitize(_pcr.to_dict()))
             issuer = _pcr["issuer"]  # So no hickup later about trailing '/'
             # register the client
             _cinfo = self.config.CLIENTS[""]["client_info"]
@@ -337,8 +333,7 @@ class OAuthClients(object):
             return client
 
     def __getitem__(self, item):
-        """
-        Given a service identifier return a suitable client.
+        """Given a service identifier return a suitable client.
 
         :param item:
         :return:

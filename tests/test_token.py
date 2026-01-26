@@ -6,13 +6,8 @@ from oic import rndstr
 from oic.extension.token import JWTToken
 from oic.oauth2 import AuthorizationRequest
 from oic.oic import OpenIDRequest
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
-from oic.utils.sdb import DefaultToken
-from oic.utils.sdb import ExpiredToken
-from oic.utils.sdb import SessionDB
+from oic.utils.keyio import KeyBundle, KeyJar
+from oic.utils.sdb import AccessCodeUsed, AuthnEvent, DefaultToken, ExpiredToken, SessionDB
 from oic.utils.session_backend import DictSessionBackend
 
 __author__ = "roland"
@@ -107,7 +102,7 @@ SESSION_INFO = {
 }
 
 
-class TestToken(object):
+class TestToken:
     @pytest.fixture(autouse=True)
     def create_token(self):
         kb = KeyBundle(JWKS["keys"])
@@ -140,7 +135,7 @@ class TestToken(object):
         assert _jwt
 
 
-class TestToken2(object):
+class TestToken2:
     @pytest.fixture(autouse=True)
     def create_token(self):
         kb = KeyBundle(JWKS["keys"])
@@ -176,7 +171,7 @@ class TestToken2(object):
         assert info["exp"] - info["iat"] == 1200
 
 
-class TestEncToken(object):
+class TestEncToken:
     @pytest.fixture(autouse=True)
     def create_token(self):
         kb = KeyBundle(JWKS["keys"])
@@ -209,7 +204,7 @@ class TestEncToken(object):
         assert _info
 
 
-class TestSessionDB(object):
+class TestSessionDB:
     @pytest.fixture(autouse=True)
     def create_sdb(self):
         kb = KeyBundle(JWKS["keys"])

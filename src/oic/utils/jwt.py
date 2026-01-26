@@ -1,8 +1,7 @@
 import json
 import uuid
 
-from jwkest import jwe
-from jwkest import jws
+from jwkest import jwe, jws
 from jwkest.jwe import JWE
 from jwkest.jws import NoSuitableSigningKeys
 
@@ -12,7 +11,7 @@ from oic.utils.time_util import utc_time_sans_frac
 __author__ = "roland"
 
 
-class JWT(object):
+class JWT:
     def __init__(
         self,
         keyjar,
@@ -109,7 +108,7 @@ class JWT(object):
         msg = rj.decrypt(token, keys)
         _rj = jws.factory(msg)
         if not _rj:
-            raise KeyError()
+            raise KeyError
         else:
             return self._verify(_rj, msg)
 
@@ -123,7 +122,7 @@ class JWT(object):
         else:
             _rj = jwe.factory(token)
             if not _rj:
-                raise KeyError()
+                raise KeyError
             info = self._decrypt(_rj, token)
 
         if self.message_type:

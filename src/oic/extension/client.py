@@ -4,12 +4,9 @@ import warnings
 
 from jwkest import b64e
 
-from oic import oauth2
-from oic import unreserved
-from oic.exception import AuthzError
-from oic.exception import PyoidcError
-from oic.extension.message import ClientRegistrationError
-from oic.extension.message import ExtensionMessageFactory
+from oic import oauth2, unreserved
+from oic.exception import AuthzError, PyoidcError
+from oic.extension.message import ClientRegistrationError, ExtensionMessageFactory
 from oic.oauth2.exception import Unsupported
 from oic.oauth2.message import ErrorResponse
 from oic.utils.http_util import SUCCESSFUL
@@ -316,7 +313,7 @@ class Client(oauth2.Client):
             _h = CC_METHOD[_method](_cv).digest()
             code_challenge = b64e(_h).decode("ascii")
         except KeyError:
-            raise Unsupported("PKCE Transformation method:{}".format(_method))
+            raise Unsupported("PKCE Transformation method:{}".format(_method)) from None
 
         # TODO store code_verifier
 
@@ -366,14 +363,13 @@ class Client(oauth2.Client):
             try:
                 resp.verify()
                 self.store_response(resp, response.text)
-            except Exception:
-                raise PyoidcError("Registration failed: {}".format(response.text))
+            except Exception as err:
+                raise PyoidcError("Registration failed: {}".format(response.text)) from err
 
         return resp
 
     def register(self, url, **kwargs):
-        """
-        Register the client at an OP.
+        """Register the client at an OP.
 
         :param url: The OPs registration endpoint
         :param kwargs: parameters to the registration request
@@ -395,11 +391,11 @@ class Client(oauth2.Client):
             keyjar=self.keyjar,
         )
         if isinstance(aresp, ErrorResponse):
-            logger.info("ErrorResponse: %s" % sanitize(aresp))
+            logger.info("ErrorResponse: %s", sanitize(aresp))
             raise AuthzError(
                 aresp.error  # type: ignore # Messages have no classical attrs
             )
 
-        logger.info("Aresp: %s" % sanitize(aresp))
+        logger.info("Aresp: %s", sanitize(aresp))
 
         return aresp

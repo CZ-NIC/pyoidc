@@ -1,10 +1,7 @@
 import json
 import uuid
-from typing import Dict
 
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import Message
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS, SINGLE_REQUIRED_STRING, Message
 from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.utils.jwt import JWT
 from oic.utils.sdb import Token
@@ -34,14 +31,13 @@ class JWTToken(Token, JWT):
         kwargs.pop("token_storage", None)
         JWT.__init__(self, keyjar, msgtype=TokenAssertion, **kwargs)
         self.lt_pattern = lt_pattern or {}
-        self.db: Dict[str, str] = {}
+        self.db: dict[str, str] = {}
         self.session_info = {"": 600}
         self.exp_args = ["sinfo"]
         self.extra_claims = extra_claims or {}
 
-    def __call__(self, sid, *args, **kwargs):
-        """
-        Return a token.
+    def __call__(self, sid, *args, **kwargs):  # noqa: C901 # was 18
+        """Return a token.
 
         :return:
         """
@@ -124,8 +120,7 @@ class JWTToken(Token, JWT):
         return utc_time_sans_frac() + lifetime
 
     def type_and_key(self, token):
-        """
-        Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
+        """Return type of Token (A=Access code, T=Token, R=Refresh token) and the session id.
 
         :param token: A token
         :return: tuple of token type and session id
@@ -134,8 +129,7 @@ class JWTToken(Token, JWT):
         return self.type, self.db[msg["jti"]]
 
     def get_key(self, token):
-        """
-        Return session id.
+        """Return session id.
 
         :param token: A token
         :return: The session id
@@ -144,8 +138,7 @@ class JWTToken(Token, JWT):
         return self.db[msg["jti"]]
 
     def get_type(self, token):
-        """
-        Return token type.
+        """Return token type.
 
         :param token: A token
         :return: Type of Token (A=Access code, T=Token, R=Refresh token)

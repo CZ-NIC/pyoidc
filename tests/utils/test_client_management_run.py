@@ -1,14 +1,11 @@
 import tempfile
-from subprocess import PIPE
-from subprocess import STDOUT
-from subprocess import run
+from subprocess import PIPE, STDOUT, run
 from sys import executable as python_executable
 
 import pytest
 
 import oic.utils.client_management
-from oic.utils.client_management import CDB
-from oic.utils.client_management import pack_redirect_uri
+from oic.utils.client_management import CDB, pack_redirect_uri
 
 CLI_PATH = oic.utils.client_management.__file__
 CLI_INVOCATION = "{} {} ".format(python_executable, CLI_PATH)
@@ -21,9 +18,9 @@ def db_file_path():
     return db_file.name
 
 
-class TestClientManagementRun(object):
+class TestClientManagementRun:
     def test_help_prints_usage_instructions(self):
-        result = run(CLI_INVOCATION + "--help", shell=True, stdout=PIPE, stderr=PIPE)
+        result = run(CLI_INVOCATION + "--help", shell=True, capture_output=True)
         assert result.stdout.decode().startswith("usage: ")
         assert result.stderr.decode() == ""
 

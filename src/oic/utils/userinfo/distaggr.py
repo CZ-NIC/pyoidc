@@ -1,8 +1,6 @@
 import copy
 import logging
 from typing import Any
-from typing import Dict
-from typing import List
 
 from oic.exception import MissingAttribute
 from oic.oic import OpenIDSchema
@@ -34,7 +32,7 @@ class DistributedAggregatedUserInfo(UserInfo):
         return cc
 
     def init_claims_clients(self, client_info):
-        res: Dict[str, ClaimsClient] = {}
+        res: dict[str, ClaimsClient] = {}
         if client_info is None:
             return res
 
@@ -58,7 +56,7 @@ class DistributedAggregatedUserInfo(UserInfo):
         except Exception:
             raise
 
-        result: Dict[str, Any] = {"_claims_names": {}, "_claims_sources": {}}
+        result: dict[str, Any] = {"_claims_names": {}, "_claims_sources": {}}
 
         if not alias:
             alias = srv
@@ -75,15 +73,14 @@ class DistributedAggregatedUserInfo(UserInfo):
 
         return result
 
-    def __call__(self, userid, client_id, user_info_claims=None, **kwargs):
-        """
-        Collect the claims.
+    def __call__(self, userid, client_id, user_info_claims=None, **kwargs):  # noqa: C901 # was 16
+        """Collect the claims.
 
         :param userid: The local user id
         :param user_info_claims: Possible userinfo claims (a dictionary)
         :return: A schema dependent userinfo instance
         """
-        logger.info("User_info about '%s'" % userid)
+        logger.info("User_info about '%s'", userid)
         identity = copy.copy(self.db[userid])
 
         if user_info_claims:
@@ -102,7 +99,7 @@ class DistributedAggregatedUserInfo(UserInfo):
 
             # Check if anything asked for is somewhere else
             if (missing or optional) and "_external_" in identity:
-                cpoints: Dict[str, List[str]] = {}
+                cpoints: dict[str, list[str]] = {}
                 remaining = missing[:]
                 missing.extend(optional)
                 for key in missing:
@@ -118,13 +115,13 @@ class DistributedAggregatedUserInfo(UserInfo):
                                 pass
 
                 if remaining:
-                    raise MissingAttribute("Missing properties '%s'" % remaining)
+                    raise MissingAttribute("Missing properties '{}'".format(remaining))
 
                 for srv, what in cpoints.items():
                     cc = self.oidcsrv.claims_clients[srv]
-                    logger.debug("srv: %s, what: %s" % (sanitize(srv), sanitize(what)))
+                    logger.debug("srv: %s, what: %s", sanitize(srv), sanitize(what))
                     _res = self._collect_distributed(srv, cc, userid, what)
-                    logger.debug("Got: %s" % sanitize(_res))
+                    logger.debug("Got: %s", sanitize(_res))
                     for key, val in _res.items():
                         if key in result:
                             result[key].update(val)

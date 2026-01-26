@@ -1,53 +1,34 @@
 import json
 import logging
 import socket
-from typing import Dict
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from jwkest import b64e
 
 from oic import rndstr
-from oic.exception import FailedAuthentication
-from oic.exception import ModificationForbidden
-from oic.exception import RestrictionError
-from oic.exception import UnknownAssertionType
-from oic.exception import UnSupported
+from oic.exception import (
+    FailedAuthentication,
+    ModificationForbidden,
+    RestrictionError,
+    UnknownAssertionType,
+    UnSupported,
+)
 from oic.extension.client import CC_METHOD
-from oic.extension.message import ClientRegistrationError
-from oic.extension.message import ExtensionMessageFactory
-from oic.extension.message import InvalidRedirectUri
-from oic.extension.message import MissingPage
-from oic.oauth2 import TokenErrorResponse
-from oic.oauth2 import compact
-from oic.oauth2 import provider
-from oic.oauth2.exception import CapabilitiesMisMatch
-from oic.oauth2.exception import VerificationError
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import by_schema
+from oic.extension.message import ClientRegistrationError, ExtensionMessageFactory, InvalidRedirectUri, MissingPage
+from oic.oauth2 import TokenErrorResponse, compact, provider
+from oic.oauth2.exception import CapabilitiesMisMatch, VerificationError
+from oic.oauth2.message import ErrorResponse, by_schema
 from oic.oauth2.provider import Endpoint
 from oic.oic import PREFERENCE2PROVIDER
-from oic.oic.provider import RegistrationEndpoint
-from oic.oic.provider import secret
+from oic.oic.provider import RegistrationEndpoint, secret
 from oic.utils import restrict
-from oic.utils.authn.client import AuthnFailure
-from oic.utils.authn.client import UnknownAuthnMethod
-from oic.utils.authn.client import get_client_id
-from oic.utils.authn.client import valid_client_info
-from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import Forbidden
-from oic.utils.http_util import NoContent
-from oic.utils.http_util import Response
-from oic.utils.http_util import Unauthorized
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
+from oic.utils.authn.client import AuthnFailure, UnknownAuthnMethod, get_client_id, valid_client_info
+from oic.utils.http_util import OAUTH2_NOCACHE_HEADERS, BadRequest, Forbidden, NoContent, Response, Unauthorized
+from oic.utils.keyio import KeyBundle, KeyJar
 from oic.utils.sanitize import sanitize
-from oic.utils.sdb import AccessCodeUsed
-from oic.utils.sdb import AuthnEvent
+from oic.utils.sdb import AccessCodeUsed, AuthnEvent
 from oic.utils.time_util import utc_time_sans_frac
-from oic.utils.token_handler import NotAllowed
-from oic.utils.token_handler import TokenHandler
+from oic.utils.token_handler import NotAllowed, TokenHandler
 
 __author__ = "roland"
 
@@ -175,10 +156,10 @@ class Provider(provider.Provider):
             self.capabilities = self.provider_features()
         self.baseurl = baseurl or name
         self.hostname = hostname or socket.gethostname()
-        self.kid: Dict[str, Dict[str, str]] = {"sig": {}, "enc": {}}
+        self.kid: dict[str, dict[str, str]] = {"sig": {}, "enc": {}}
         self.config = config or {}
         self.behavior = behavior or {}
-        self.token_policy: Dict[str, Dict[str, Dict[str, int]]] = {
+        self.token_policy: dict[str, dict[str, dict[str, int]]] = {
             "access_token": {},
             "refresh_token": {},
         }
@@ -224,7 +205,7 @@ class Provider(provider.Provider):
         _uri = []
         for url, query in items:
             if query:
-                _uri.append("%s?%s" % (url, query))
+                _uri.append("{}?{}".format(url, query))
             else:
                 _uri.append(url)
         return _uri
@@ -242,7 +223,7 @@ class Provider(provider.Provider):
             msg = "Failed to load client keys: {}"
             logger.error(msg.format(sanitize(request.to_dict())))
             logger.error("%s", err)
-            error = ClientRegistrationError(error="invalid_configuration_parameter", error_description="%s" % err)
+            error = ClientRegistrationError(error="invalid_configuration_parameter", error_description="{}".format(err))
             return Response(
                 error.to_json(),
                 content="application/json",
@@ -287,8 +268,7 @@ class Provider(provider.Provider):
             self.token_policy[ttyp][cid] = pol
 
     def create_new_client(self, request, restrictions):
-        """
-        Create new client based on request and restrictions.
+        """Create new client based on request and restrictions.
 
         :param request: The Client registration request
         :param restrictions: Restrictions on the client
@@ -311,7 +291,7 @@ class Provider(provider.Provider):
         # If I support client info endpoint
         if ClientInfoEndpoint in self.endp:
             _cinfo["registration_access_token"] = rndstr(32)
-            _cinfo["registration_client_uri"] = "%s%s%s?client_id=%s" % (
+            _cinfo["registration_client_uri"] = "{}{}{}?client_id={}".format(
                 self.name,
                 self.client_info_url,
                 ClientInfoEndpoint.etype,
@@ -402,8 +382,7 @@ class Provider(provider.Provider):
         self.cdb[client_id] = _cinfo
 
     def verify_client(self, environ, areq, authn_method, client_id=""):
-        """
-        Verify the client based on credentials.
+        """Verify the client based on credentials.
 
         :param environ: WSGI environ
         :param areq: The request
@@ -416,15 +395,14 @@ class Provider(provider.Provider):
         try:
             method = self.client_authn_methods[authn_method]
         except KeyError:
-            raise UnSupported()
+            raise UnSupported from None
         return method(self).verify(environ, client_id=client_id)
 
     def consume_software_statement(self, software_statement):
         return {}
 
     def registration_endpoint(self, **kwargs):
-        """
-        Perform dynamic client registration.
+        """Perform dynamic client registration.
 
         :param request: The request
         :param authn: Client authentication information
@@ -437,10 +415,10 @@ class Provider(provider.Provider):
         try:
             _request.verify(keyjar=self.keyjar)
         except InvalidRedirectUri as err:
-            msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="%s" % err)
+            msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="{}".format(err))
             return BadRequest(msg.to_json(), content="application/json")
         except (MissingPage, VerificationError) as err:
-            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="{}".format(err))
             return BadRequest(msg.to_json(), content="application/json")
 
         # If authentication is necessary at registration
@@ -460,17 +438,16 @@ class Provider(provider.Provider):
         try:
             client_id = self.create_new_client(_request, client_restrictions)
         except CapabilitiesMisMatch as err:
-            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="{}".format(err))
             return BadRequest(msg.to_json(), content="application/json")
         except RestrictionError as err:
-            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
+            msg = ClientRegistrationError(error="invalid_client_metadata", error_description="{}".format(err))
             return BadRequest(msg.to_json(), content="application/json")
 
         return self.client_info(client_id)
 
     def client_info_endpoint(self, method="GET", **kwargs):
-        """
-        Operations on this endpoint are switched through the use of different HTTP methods.
+        """Operations on this endpoint are switched through the use of different HTTP methods.
 
         :param method: HTTP method used for the request
         :param kwargs: keyword arguments
@@ -504,10 +481,10 @@ class Provider(provider.Provider):
             try:
                 _request.verify()
             except InvalidRedirectUri as err:
-                msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="%s" % err)
+                msg = ClientRegistrationError(error="invalid_redirect_uri", error_description="{}".format(err))
                 return BadRequest(msg.to_json(), content="application/json")
             except (MissingPage, VerificationError) as err:
-                msg = ClientRegistrationError(error="invalid_client_metadata", error_description="%s" % err)
+                msg = ClientRegistrationError(error="invalid_client_metadata", error_description="{}".format(err))
                 return BadRequest(msg.to_json(), content="application/json")
 
             try:
@@ -525,8 +502,7 @@ class Provider(provider.Provider):
 
     @staticmethod
     def verify_code_challenge(code_verifier, code_challenge, code_challenge_method="S256"):
-        """
-        Verify a PKCE (RFC7636) code challenge.
+        """Verify a PKCE (RFC7636) code challenge.
 
         :param code_verifier: The origin
         :param code_challenge: The transformed verifier used as challenge
@@ -605,12 +581,12 @@ class Provider(provider.Provider):
             err = TokenErrorResponse(error="invalid_grant", error_description="Access grant used")
             return Response(err.to_json(), content="application/json", status="401 Unauthorized")
 
-        logger.debug("_tinfo: %s" % _tinfo)
+        logger.debug("_tinfo: %s", _tinfo)
 
         atr_class = self.server.message_factory.get_response_type("token_endpoint")
         atr = atr_class(**by_schema(atr_class, **_tinfo))
 
-        logger.debug("AccessTokenResponse: %s" % atr)
+        logger.debug("AccessTokenResponse: %s", atr)
 
         return Response(atr.to_json(), content="application/json", headers=OAUTH2_NOCACHE_HEADERS)
 
@@ -629,8 +605,7 @@ class Provider(provider.Provider):
         return Response(atr.to_json(), content="application/json")
 
     def password_grant_type(self, areq):
-        """
-        Token authorization using Resource owner password credentials.
+        """Token authorization using Resource owner password credentials.
 
         RFC6749 section 4.3
         """
@@ -684,8 +659,7 @@ class Provider(provider.Provider):
         return allow
 
     def get_token_info(self, authn, req, endpoint):
-        """
-        Parse token for information.
+        """Parse token for information.
 
         :param authn:
         :param req:
@@ -695,10 +669,10 @@ class Provider(provider.Provider):
             client_id = self.client_authn(self, req, authn)
         except FailedAuthentication as err:
             logger.error("%s", err)
-            error = TokenErrorResponse(error="unauthorized_client", error_description="%s" % err)
+            error = TokenErrorResponse(error="unauthorized_client", error_description="{}".format(err))
             return Response(error.to_json(), content="application/json", status="401 Unauthorized")
 
-        logger.debug("{}: {} requesting {}".format(endpoint, client_id, req.to_dict()))
+        logger.debug("%s: %s requesting %s", endpoint, client_id, req.to_dict())
 
         try:
             token_type = req["token_type_hint"]
@@ -730,8 +704,7 @@ class Provider(provider.Provider):
         return Response(ir.to_json(), content="application/json")
 
     def revocation_endpoint(self, authn="", request=None, **kwargs):
-        """
-        Implement RFC7009 allows a client to invalidate an access or refresh token.
+        """Implement RFC7009 allows a client to invalidate an access or refresh token.
 
         :param authn: Client Authentication information
         :param request: The revocation request
@@ -747,7 +720,7 @@ class Provider(provider.Provider):
         else:
             client_id, token_type, _info = resp
 
-        logger.info("{} token revocation: {}".format(client_id, trr.to_dict()))
+        logger.info("%s token revocation: %s", client_id, trr.to_dict())
 
         try:
             self.sdb.token_factory[token_type].invalidate(trr["token"])
@@ -757,8 +730,7 @@ class Provider(provider.Provider):
             return Response("OK")
 
     def introspection_endpoint(self, authn="", request=None, **kwargs):
-        """
-        Implement RFC7662.
+        """Implement RFC7662.
 
         :param authn: Client Authentication information
         :param request: The introspection request
@@ -776,7 +748,7 @@ class Provider(provider.Provider):
         else:
             client_id, token_type, _info = resp
 
-        logger.info("{} token introspection: {}".format(client_id, tir.to_dict()))
+        logger.info("%s token introspection: %s", client_id, tir.to_dict())
 
         ir = self.server.message_factory.get_response_type("introspection_endpoint")(
             active=self.sdb.token_factory[token_type].is_valid(_info), **_info.to_dict()

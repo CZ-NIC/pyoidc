@@ -1,9 +1,5 @@
-from oic.extension.device_flow import AuthorizationRequest
-from oic.extension.device_flow import DeviceFlowClient
-from oic.extension.device_flow import DeviceFlowServer
-from oic.extension.device_flow import TokenRequest
-from oic.oauth2 import Client
-from oic.oauth2 import Server
+from oic.extension.device_flow import AuthorizationRequest, DeviceFlowClient, DeviceFlowServer, TokenRequest
+from oic.oauth2 import Client, Server
 
 
 def test_device_flow():

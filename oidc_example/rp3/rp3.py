@@ -1,22 +1,16 @@
 #!/usr/bin/env python
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
-from urllib.parse import urlparse
-
 import argparse
 import importlib
 import json
 import logging
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 from requests import ConnectionError
 from requests.packages import urllib3
 
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import get_post
+from oic.utils.http_util import NotFound, Response, SeeOther, get_post
 from oic.utils.keyio import build_keyjar
 from oic.utils.rp.oauth2 import OAuthClients
 
@@ -41,7 +35,7 @@ LOOKUP = TemplateLookup(
 SERVER_ENV = {}
 
 
-class JLog(object):
+class JLog:
     def __init__(self, logger, sid):
         self.logger = logger
         self.id = sid
@@ -64,7 +58,7 @@ class JLog(object):
 
 # noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -81,7 +75,7 @@ def static(environ, start_response, logger, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -150,7 +144,7 @@ def url_eq(a, b):
 KEY_MAP = {"state": "state", "iss": "op"}
 
 
-class Application(object):
+class Application:
     def __init__(self, acrs, clients, conf, userinfo, base, **extra_args):
         self.acr_values = acrs
         self.clients = clients
@@ -201,7 +195,7 @@ class Application(object):
         else:
             return resp(environ, start_response)
 
-    def application(self, environ, start_response):
+    def application(self, environ, start_response):  # noqa: C901
         b_session = environ["beaker.session"]
 
         jlog = JLog(LOGGER, b_session.id)
@@ -251,7 +245,7 @@ class Application(object):
                 except KeyError:
                     pass
 
-                kwargs = dict([(p, session[p]) for p in ["id_token", "userinfo", "user_id"] if p in session])
+                kwargs = {p: session[p] for p in ["id_token", "userinfo", "user_id"] if p in session}
 
                 return opresult(environ, start_response, **kwargs)
         elif path == "rp":  # After having chosen which OP to authenticate at
@@ -294,7 +288,7 @@ class Application(object):
                 if isinstance(result, SeeOther):
                     return result(environ, start_response)
             except OIDCError as err:
-                return operror(environ, start_response, "%s" % err)
+                return operror(environ, start_response, "{}".format(err))
             except Exception:
                 raise
             else:
@@ -359,7 +353,7 @@ class Application(object):
                 if isinstance(result, SeeOther):
                     return result(environ, start_response)
             except OIDCError as err:
-                return operror(environ, start_response, "%s" % err)
+                return operror(environ, start_response, "{}".format(err))
             except Exception:
                 raise
             else:
@@ -431,10 +425,10 @@ class Application(object):
 
 
 if __name__ == "__main__":
-    from oic.utils.rp import OIDCClients
-    from oic.utils.rp import OIDCError
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
+
+    from oic.utils.rp import OIDCClients, OIDCError
 
     parser = argparse.ArgumentParser()
     parser.add_argument(dest="config")
@@ -510,7 +504,7 @@ if __name__ == "__main__":
     else:
         extra = ""
 
-    txt = "RP server starting listening on port:%s%s" % (args.port, extra)
+    txt = "RP server starting listening on port:{}{}".format(args.port, extra)
     LOGGER.info(txt)
     print(txt)
 

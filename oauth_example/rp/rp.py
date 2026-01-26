@@ -3,17 +3,13 @@ import importlib
 import logging
 import sys
 import uuid
-from urllib.parse import parse_qs
-from urllib.parse import unquote
+from urllib.parse import parse_qs, unquote
 
 import cherrypy
 from beaker.middleware import SessionMiddleware
 
 from oic.oauth2.consumer import Consumer
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import get_or_post
+from oic.utils.http_util import NotFound, Response, SeeOther, get_or_post
 
 # ============================================================================
 # First define how logging is supposed to be done
@@ -46,7 +42,7 @@ def as_choice(environ, start_response):
 
 # noinspection PyUnresolvedReferences
 def static(environ, start_response, path):
-    LOGGER.info("[static]sending: %s" % (path,))
+    LOGGER.info("[static]sending: %s", path)
 
     try:
         with open(path, "rb") as fd:
@@ -64,7 +60,7 @@ def static(environ, start_response, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [content]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -128,7 +124,7 @@ def application(environ, start_response):
         atresp = _cli.do_access_token_request(request_args=rargs)
         # Access token should be stored somewhere for later usage
         Token[atresp["state"]] = atresp
-        resp = Response("Got access token: %s" % atresp["access_token"])
+        resp = Response("Got access token: {}".format(atresp["access_token"]))
         return resp(environ, start_response)
 
     return as_choice(environ, start_response)
@@ -191,7 +187,7 @@ if __name__ == "__main__":
             }
         )
 
-    LOGGER.info(START_MESG % (RP_CONF.PORT, RP_CONF.HOST))
+    LOGGER.info(START_MESG, RP_CONF.PORT, RP_CONF.HOST)
     print(START_MESG % (RP_CONF.PORT, RP_CONF.HOST))
     try:
         cherrypy.engine.start()

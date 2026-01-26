@@ -1,35 +1,28 @@
 import json
-from urllib.parse import parse_qs
-from urllib.parse import quote
-from urllib.parse import urlencode
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import pytest
 import responses
 
-from oic.oauth2 import Client
-from oic.oauth2 import Grant
-from oic.oauth2 import Server
-from oic.oauth2 import Token
-from oic.oauth2 import TokenErrorResponse
-from oic.oauth2.exception import GrantError
-from oic.oauth2.exception import MissingEndpoint
-from oic.oauth2.exception import ResponseError
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationErrorResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import CCAccessTokenRequest
-from oic.oauth2.message import DecodeError
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import ExtensionTokenRequest
-from oic.oauth2.message import FormatError
-from oic.oauth2.message import GrantExpired
-from oic.oauth2.message import MessageTuple
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import OauthMessageFactory
-from oic.oauth2.message import RefreshAccessTokenRequest
+from oic.oauth2 import Client, Grant, Server, Token, TokenErrorResponse
+from oic.oauth2.exception import GrantError, MissingEndpoint, ResponseError
+from oic.oauth2.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationErrorResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    CCAccessTokenRequest,
+    DecodeError,
+    ErrorResponse,
+    ExtensionTokenRequest,
+    FormatError,
+    GrantExpired,
+    MessageTuple,
+    MissingRequiredAttribute,
+    OauthMessageFactory,
+    RefreshAccessTokenRequest,
+)
 from oic.utils import time_util
 from oic.utils.keyio import KeyBundle
 
@@ -69,7 +62,7 @@ def _eq(l1, l2):
     return set(l1) == set(l2)
 
 
-class TestClient(object):
+class TestClient:
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.redirect_uri = "https://example.com/redirect"
@@ -143,7 +136,7 @@ class TestClient(object):
     def test_parse_authz_resp_dict(self):
         code = "SplxlOBeZQQYbYS6WxSbIA"
         state = "ghi"
-        resp = dict(code=code, state=state)
+        resp = {"code": code, "state": state}
         aresp = self.client.parse_response(AuthorizationResponse, info=resp, sformat="dict")
 
         assert aresp["code"] == code
@@ -590,7 +583,7 @@ class TestClient(object):
         assert resp["access_token"] == "Token"
 
 
-class TestServer(object):
+class TestServer:
     @pytest.fixture(autouse=True)
     def create_server(self):
         self.srv = Server()  # pylint: disable=attribute-defined-outside-init
@@ -613,7 +606,7 @@ class TestServer(object):
         assert areq["redirect_uri"] == "http://foobar.example.com/oaclient"
         assert areq["state"] == "cold"
 
-        urluenc = "%s?%s" % ("https://example.com/authz", uencq)
+        urluenc = "{}?{}".format("https://example.com/authz", uencq)
         areq = self.srv.parse_authorization_request(url=urluenc)
 
         assert isinstance(areq, AuthorizationRequest)
@@ -632,14 +625,14 @@ class TestServer(object):
 
         self.srv.keyjar["foobar"] = KeyBundle(
             [
-                {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "ver"},
-                {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "sig"},
+                {"kty": "oct", "key": b"A1B2C3D4", "use": "ver"},
+                {"kty": "oct", "key": b"A1B2C3D4", "use": "sig"},
             ]
         )
         self.srv.keyjar[""] = KeyBundle(
             [
-                {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "ver"},
-                {"kty": "oct", "key": "A1B2C3D4".encode("utf-8"), "use": "sig"},
+                {"kty": "oct", "key": b"A1B2C3D4", "use": "ver"},
+                {"kty": "oct", "key": b"A1B2C3D4", "use": "sig"},
             ]
         )
 

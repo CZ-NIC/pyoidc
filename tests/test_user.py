@@ -1,8 +1,7 @@
 # pylint: disable=missing-docstring,redefined-outer-name,no-self-use
 import logging
 import os
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode
 
 import pytest
 from mako.lookup import TemplateLookup
@@ -45,7 +44,7 @@ def create_return_form_env(user, password, query):
     return urlencode(_dict)
 
 
-class TestUsernamePasswordMako(object):
+class TestUsernamePasswordMako:
     def test_authenticated_as_no_cookie(self):
         authn = UsernamePasswordMako(None, "login.mako", tl, PASSWD, "authorization_endpoint")
         res = authn.authenticated_as()
@@ -77,23 +76,20 @@ class TestUsernamePasswordMako(object):
 
         headers = dict(response.headers)
         assert headers["Set-Cookie"].startswith("xyzxyz=")
-        expected = {
-            "query": "query=foo",
-            "login": "user",
-            "password": "<REDACTED>",
-        }
-        # We have to use eval() here to avoid intermittent
-        # failures from dict ordering
-        assert eval(logcap.records[0].msg[7:-1]) == expected
-        expected2 = {
-            "query": "query=foo",
-            "login": "user",
-            "password": "<REDACTED>",
-        }
-        assert eval(logcap.records[1].msg[5:]) == expected2
-        assert logcap.records[2].msg == "Password verification succeeded."
-        expected3 = {"query": ["foo"], "upm_answer": "true"}
-        assert eval(logcap.records[3].msg[8:]) == expected3
+        logcap.check(
+            (
+                "oic.utils.authn.user",
+                "DEBUG",
+                "verify({'login': 'user', 'password': '<REDACTED>', 'query': 'query=foo'})",
+            ),
+            (
+                "oic.utils.authn.user",
+                "DEBUG",
+                "dict: {'login': 'user', 'password': '<REDACTED>', 'query': 'query=foo'}",
+            ),
+            ("oic.utils.authn.user", "DEBUG", "Password verification succeeded."),
+            ("oic.utils.authn.user", "DEBUG", "kwargs: {'upm_answer': 'true', 'query': ['foo']}"),
+        )
 
     def test_not_authenticated(self, srv):
         form = create_return_form_env("user", "hemligt", "QUERY")

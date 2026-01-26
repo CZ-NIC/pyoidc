@@ -4,8 +4,7 @@ import errno
 import json
 import mimetypes
 import os
-from functools import partial
-from functools import wraps
+from functools import partial, wraps
 from urllib import parse as urlparse
 
 import cherrypy
@@ -15,29 +14,25 @@ from cherrypy.wsgiserver.ssl_builtin import BuiltinSSLAdapter
 from jinja2 import select_autoescape
 from jinja2.environment import Environment
 from jinja2.loaders import FileSystemLoader
-from provider.authn import make_cls_from_name
 
 from oic import rndstr
-from oic.oic.provider import AuthorizationEndpoint
-from oic.oic.provider import EndSessionEndpoint
-from oic.oic.provider import Provider
-from oic.oic.provider import RegistrationEndpoint
-from oic.oic.provider import TokenEndpoint
-from oic.oic.provider import UserinfoEndpoint
+from oic.oic.provider import (
+    AuthorizationEndpoint,
+    EndSessionEndpoint,
+    Provider,
+    RegistrationEndpoint,
+    TokenEndpoint,
+    UserinfoEndpoint,
+)
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import get_or_post
-from oic.utils.http_util import get_post
+from oic.utils.http_util import BadRequest, NotFound, Response, SeeOther, get_or_post, get_post
 from oic.utils.keyio import keyjar_init
 from oic.utils.sdb import create_session_db
 from oic.utils.userinfo import UserInfo
-from oic.utils.webfinger import OIC_ISSUER
-from oic.utils.webfinger import WebFinger
+from oic.utils.webfinger import OIC_ISSUER, WebFinger
+from provider.authn import make_cls_from_name
 
 try:
     from cherrypy.wsgiserver.wsgiserver3 import WSGIPathInfoDispatcher
@@ -47,11 +42,12 @@ except ImportError:
 
 def VerifierMiddleware(verifier):
     """Common wrapper for the authentication modules.
+
         * Parses the request before passing it on to the authentication module.
         * Sets 'pyoidc' cookie if authentication succeeds.
         * Redirects the user to complete the authentication.
         * Allows the user to retry authentication if it fails.
-    :param verifier: authentication module
+    :param verifier: authentication module.
     """
 
     @wraps(verifier.verify)
@@ -79,9 +75,10 @@ def VerifierMiddleware(verifier):
 
 def pyoidcMiddleware(func):
     """Common wrapper for the underlying pyoidc library functions.
+
     Reads GET params and POST data before passing it on the library and
     converts the response from oic.utils.http_util to wsgi.
-    :param func: underlying library function
+    :param func: underlying library function.
     """
 
     def wrapper(environ, start_response):
@@ -173,7 +170,7 @@ def main():
     args = parser.parse_args()
 
     # Load configuration
-    with open(args.settings, "r") as f:
+    with open(args.settings) as f:
         settings = yaml.safe_load(f)
 
     issuer = args.base.rstrip("/")

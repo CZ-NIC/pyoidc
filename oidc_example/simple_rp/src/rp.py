@@ -6,13 +6,13 @@ import yaml
 
 from oic import rndstr
 from oic.oic import Client
-from oic.utils.keyio import build_keyjar
 from oic.oic.message import AuthorizationResponse
+from oic.utils.keyio import build_keyjar
 
 __author__ = "regu0004"
 
 
-class OIDCExampleRP(object):
+class OIDCExampleRP:
     def __init__(self, client_metadata, behaviour):
         self.client_metadata = client_metadata
         self.behaviour = behaviour
@@ -47,10 +47,10 @@ class OIDCExampleRP(object):
         auth_response = session["client"].parse_response(AuthorizationResponse, info=query_string, sformat="urlencoded")
 
         if auth_response["state"] != session["state"]:
-            raise "The OIDC state does not match."
+            raise Exception("The OIDC state does not match.")
 
         if "id_token" in auth_response and auth_response["id_token"]["nonce"] != session["nonce"]:
-            raise "The OIDC nonce does not match."
+            raise Exception("The OIDC nonce does not match.")
 
         return auth_response
 
@@ -73,7 +73,7 @@ class OIDCExampleRP(object):
         return userinfo_response
 
 
-class RPServer(object):
+class RPServer:
     def __init__(self, client_metadata, behaviour, verify_ssl):
         self.rp = OIDCExampleRP(client_metadata, behaviour)
         self.verify_ssl = verify_ssl
@@ -142,7 +142,7 @@ class RPServer(object):
             # prepend the root package dir
             path = os.path.join(os.path.dirname(__file__), path)
 
-        with open(path, "r") as f:
+        with open(path) as f:
             return f.read()
 
 
@@ -153,7 +153,7 @@ def main():
     parser.add_argument("settings")
     args = parser.parse_args()
 
-    with open(args.settings, "r") as f:
+    with open(args.settings) as f:
         settings = yaml.safe_load(f)
 
     baseurl = args.base.rstrip("/")  # strip trailing slash if it exists

@@ -5,29 +5,16 @@ import logging
 import os
 import sys
 import time
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any, Optional, Union
 from urllib.parse import urlsplit
 
 import requests
 from Cryptodome.PublicKey import RSA
-from jwkest import as_bytes
-from jwkest import as_unicode
-from jwkest import b64e
-from jwkest import jwe
-from jwkest import jws
+from jwkest import as_bytes, as_unicode, b64e, jwe, jws
 from jwkest.ecc import NISTEllipticCurve
-from jwkest.jwk import ECKey
-from jwkest.jwk import JWKException
-from jwkest.jwk import RSAKey
-from jwkest.jwk import SYMKey
-from jwkest.jwk import rsa_load
+from jwkest.jwk import ECKey, JWKException, RSAKey, SYMKey, rsa_load
 
-from oic.exception import MessageException
-from oic.exception import PyoidcError
+from oic.exception import MessageException, PyoidcError
 
 __author__ = "rohe0002"
 
@@ -63,7 +50,7 @@ K2C = {"RSA": RSAKey, "EC": ECKey, "oct": SYMKey}
 KEYS = Union[RSAKey, SYMKey, ECKey]
 
 
-class KeyBundle(object):
+class KeyBundle:
     def __init__(
         self,
         keys=None,
@@ -75,8 +62,7 @@ class KeyBundle(object):
         keyusage=None,
         timeout=5,
     ):
-        """
-        Initialize the KeyBundle.
+        """Initialize the KeyBundle.
 
         :param keys: A list of dictionaries
             with the keys ["kty", "key", "alg", "use", "kid"]
@@ -88,7 +74,7 @@ class KeyBundle(object):
             a single integer or as a tuple of integers. For more details, refer to
             ``requests`` documentation.
         """
-        self._keys: List[KEYS] = []
+        self._keys: list[KEYS] = []
         self.remote = False
         self.verify_ssl = verify_ssl
         self.cache_time = cache_time
@@ -98,7 +84,7 @@ class KeyBundle(object):
         self.fileformat = fileformat.lower()
         self.keytype = keytype
         self.keyusage = keyusage
-        self.imp_jwks: Dict[str, Any] = {}
+        self.imp_jwks: dict[str, Any] = {}
         self.last_updated: float = 0
         self.timeout = timeout
 
@@ -117,7 +103,7 @@ class KeyBundle(object):
             elif source == "":
                 return
             else:
-                raise KeyIOError("Unsupported source type: %s" % source)
+                raise KeyIOError("Unsupported source type: {}".format(source))
 
             if not self.remote:  # local file
                 if self.fileformat == "jwk":
@@ -126,8 +112,7 @@ class KeyBundle(object):
                     self.do_local_der(self.source, self.keytype, self.keyusage)
 
     def do_keys(self, keys):
-        """
-        Go from JWK description to binary keys.
+        """Go from JWK description to binary keys.
 
         :param keys:
         :return:
@@ -144,7 +129,7 @@ class KeyBundle(object):
                 except KeyError:
                     continue
                 except TypeError:
-                    raise JWKSError("Inappropriate JWKS argument type")
+                    raise JWKSError("Inappropriate JWKS argument type") from None
                 except JWKException as err:
                     logger.warning("Loading a key failed: %s", err)
                 else:
@@ -211,7 +196,7 @@ class KeyBundle(object):
             if not isinstance(self.imp_jwks, dict) or "keys" not in self.imp_jwks:
                 raise_exception(UpdateFailed, MALFORMED.format(self.source))
 
-            logger.debug("Loaded JWKS: %s from %s" % (r.text, self.source))
+            logger.debug("Loaded JWKS: %s from %s", r.text, self.source)
             try:
                 self.do_keys(self.imp_jwks["keys"])
             except KeyError:
@@ -228,8 +213,7 @@ class KeyBundle(object):
         return True
 
     def _parse_remote_response(self, response):
-        """
-        Parse JWKS from the HTTP response.
+        """Parse JWKS from the HTTP response.
 
         Should be overridden by subclasses for adding support of e.g. signed
         JWKS.
@@ -243,7 +227,7 @@ class KeyBundle(object):
         except KeyError:
             pass
 
-        logger.debug("Loaded JWKS: %s from %s" % (response.text, self.source))
+        logger.debug("Loaded JWKS: %s from %s", response.text, self.source)
         try:
             return json.loads(response.text)
         except ValueError:
@@ -262,8 +246,7 @@ class KeyBundle(object):
         return res
 
     def update(self):
-        """
-        Reload the key if necessary.
+        """Reload the key if necessary.
 
         This is a forced update, will happen even if cache time has not elapsed.
         """
@@ -282,8 +265,7 @@ class KeyBundle(object):
         return res
 
     def get(self, typ=""):
-        """
-        Return keys matching the typ.
+        """Return keys matching the typ.
 
         :param typ: Type of key (rsa, ec, oct, ..)
         :return: If typ is undefined all the keys as a dictionary otherwise the appropriate keys in a list
@@ -305,8 +287,7 @@ class KeyBundle(object):
         return self._keys
 
     def remove_key(self, typ, val=None):
-        """
-        Delete key given the type ot type and value.
+        """Delete key given the type ot type and value.
 
         :param typ: Type of key (rsa, ec, oct, ..)
         :param val: The key itself
@@ -321,7 +302,7 @@ class KeyBundle(object):
 
     def jwks(self, private=False):
         self._uptodate()
-        keys = list()
+        keys = []
         for k in self._keys:
             if private:
                 key = k.serialize(private)
@@ -360,8 +341,7 @@ class KeyBundle(object):
         return [key.kid for key in self._keys if key.kid != ""]
 
     def remove_outdated(self, after):
-        """
-        Remove keys that should not be available any more.
+        """Remove keys that should not be available any more.
 
         Outdated means that the key was marked as inactive at a time that was longer ago then what is given in 'after'.
 
@@ -405,8 +385,7 @@ def keybundle_from_local_file(filename, typ, usage):
 
 
 def dump_jwks(kbl, target, private=False):
-    """
-    Write a JWK to a file.
+    """Write a JWK to a file.
 
     :param kbl: List of KeyBundles
     :param target: Name of the file to which everything should be written
@@ -419,7 +398,7 @@ def dump_jwks(kbl, target, private=False):
 
     try:
         f = open(target, "w")
-    except IOError:
+    except OSError:
         (head, tail) = os.path.split(target)
         os.makedirs(head)
         f = open(target, "w")
@@ -429,12 +408,11 @@ def dump_jwks(kbl, target, private=False):
     f.close()
 
 
-class KeyJar(object):
+class KeyJar:
     """A keyjar contains a number of KeyBundles."""
 
     def __init__(self, verify_ssl=True, keybundle_cls=KeyBundle, remove_after=3600, timeout=5):
-        """
-        Initialize the class.
+        """Initialize the class.
 
         :param verify_ssl: Do SSL certificate verification
         :param timeout: Timeout for requests library. Can be specified either as
@@ -442,7 +420,7 @@ class KeyJar(object):
             ``requests`` documentation.
         :return:
         """
-        self.issuer_keys: Dict[str, List[KeyBundle]] = {}
+        self.issuer_keys: dict[str, list[KeyBundle]] = {}
         self.verify_ssl = verify_ssl
         self.timeout = timeout
         self.keybundle_cls = keybundle_cls
@@ -466,8 +444,7 @@ class KeyJar(object):
             self.issuer_keys[issuer][use] = keys
 
     def add(self, issuer, url, **kwargs):
-        """
-        Add keys for issuer.
+        """Add keys for issuer.
 
         :param issuer: Who issued the keys
         :param url: Where can the key/-s be found
@@ -516,9 +493,8 @@ class KeyJar(object):
     def items(self):
         return self.issuer_keys.items()
 
-    def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):
-        """
-        Return keys matching the args.
+    def get(self, key_use, key_type="", issuer="", kid=None, **kwargs):  # noqa: C901  # Was 24
+        """Return keys matching the args.
 
         :param key_use: A key useful for this usage (enc, dec, sig, ver)
         :param key_type: Type of key (rsa, ec, symmetric, ..)
@@ -551,7 +527,7 @@ class KeyJar(object):
             except KeyError:
                 _keys = []
 
-        lst: List[KEYS] = []
+        lst: list[KEYS] = []
         if _keys:
             for bundle in _keys:
                 if key_type:
@@ -605,8 +581,7 @@ class KeyJar(object):
         return self.get("dec", key_type, owner, kid, **kwargs)
 
     def get_key_by_kid(self, kid, owner=""):
-        """
-        Return the key from a specific owner that has a specific kid.
+        """Return the key from a specific owner that has a specific kid.
 
         :param kid: The key identifier
         :param owner: The owner of the key
@@ -625,15 +600,14 @@ class KeyJar(object):
             return False
 
     def x_keys(self, var, part):
-        _func = getattr(self, "get_%s_key" % var)
+        _func = getattr(self, "get_{}_key".format(var))
 
         keys = _func(key_type="", owner=part)
         keys.extend(_func(key_type="", owner=""))
         return keys
 
     def verify_keys(self, part):
-        """
-        Keys for me and someone else.
+        """Keys for me and someone else.
 
         :param part: The other part
         :return: dictionary of keys
@@ -641,8 +615,7 @@ class KeyJar(object):
         return self.x_keys("verify", part)
 
     def decrypt_keys(self, part):
-        """
-        Keys for me and someone else.
+        """Keys for me and someone else.
 
         :param part: The other part
         :return: dictionary of keys
@@ -653,9 +626,7 @@ class KeyJar(object):
         try:
             return self.issuer_keys[issuer]
         except KeyError:
-            logger.debug(
-                "Issuer '{}' not found, available key issuers: {}".format(issuer, list(self.issuer_keys.keys()))
-            )
+            logger.debug("Issuer '%s' not found, available key issuers: %s", issuer, list(self.issuer_keys.keys()))
             raise
 
     def remove_key(self, issuer, key_type, key):
@@ -686,23 +657,22 @@ class KeyJar(object):
             if url.startswith(owner):
                 return owner
 
-        raise KeyIOError("No keys for '%s'" % url)
+        raise KeyIOError("No keys for '{}'".format(url))
 
     def __str__(self):
         _res = {}
         for _id, kbs in self.issuer_keys.items():
-            _l: List[Dict[str, str]] = []
+            _l: list[dict[str, str]] = []
             for kb in kbs:
                 _l.extend(json.loads(kb.jwks())["keys"])
             _res[_id] = {"keys": _l}
-        return "%s" % (_res,)
+        return "{}".format(_res)
 
     def keys(self):
         return self.issuer_keys.keys()
 
     def load_keys(self, pcr, issuer, replace=False):
-        """
-        Fetch keys from another server.
+        """Fetch keys from another server.
 
         :param pcr: The provider information
         :param issuer: The provider URL
@@ -710,9 +680,9 @@ class KeyJar(object):
             should be replace.
         :return: Dictionary with usage as key and keys as values
         """
-        logger.debug("loading keys for issuer: %s" % issuer)
+        logger.debug("loading keys for issuer: %s", issuer)
         try:
-            logger.debug("pcr: %s" % pcr)
+            logger.debug("pcr: %s", pcr)
         except MessageException:
             pass
 
@@ -732,8 +702,7 @@ class KeyJar(object):
                 pass
 
     def find(self, source, issuer):
-        """
-        Find a key bundle.
+        """Find a key bundle.
 
         :param source: A url
         :param issuer: The issuer of keys
@@ -762,16 +731,15 @@ class KeyJar(object):
         return {"keys": keys}
 
     def import_jwks(self, jwks, issuer):
-        """
-        Import key from JWKS.
+        """Import key from JWKS.
 
         :param jwks: Dictionary representation of a JWKS
         :param issuer: Who 'owns' the JWKS
         """
         try:
             _keys = jwks["keys"]
-        except KeyError:
-            raise ValueError("Not a proper JWKS")
+        except KeyError as err:
+            raise ValueError("Not a proper JWKS") from err
         else:
             try:
                 self.issuer_keys[issuer].append(
@@ -817,7 +785,7 @@ class KeyJar(object):
         return self.get(usage, ktype, issuer)
 
     def get_issuer_keys(self, issuer):
-        res: List[KEYS] = []
+        res: list[KEYS] = []
         for kbl in self.issuer_keys[issuer]:
             res.extend(kbl.keys())
         return res
@@ -843,8 +811,7 @@ class KeyJar(object):
         return True
 
     def remove_outdated(self):
-        """
-        Goes through the complete list of issuers and for each of them removes outdated keys.
+        """Goes through the complete list of issuers and for each of them removes outdated keys.
 
         Outdated keys are keys that has been marked as inactive at a time that
         is longer ago then some set number of seconds.
@@ -865,7 +832,7 @@ class KeyJar(object):
 # =============================================================================
 
 
-class RedirectStdStreams(object):
+class RedirectStdStreams:
     def __init__(self, stdout=None, stderr=None):
         self._stdout = stdout or sys.stdout
         self._stderr = stderr or sys.stderr
@@ -884,8 +851,7 @@ class RedirectStdStreams(object):
 
 
 def key_setup(vault, **kwargs):
-    """
-    Create a KeyBundle from file.
+    """Create a KeyBundle from file.
 
     :param vault: Where the keys are kept
     :return: 2-tuple: result of urlsplit and a dictionary with parameter name as key and url and value
@@ -904,7 +870,7 @@ def key_setup(vault, **kwargs):
             _args = kwargs[usage]
             if _args["alg"].upper() == "RSA":
                 try:
-                    _key = rsa_load("%s%s" % (vault_path, "pyoidc"))
+                    _key = rsa_load("{}{}".format(vault_path, "pyoidc"))
                 except Exception:
                     with open(os.devnull, "w") as devnull:
                         with RedirectStdStreams(stdout=devnull, stderr=devnull):
@@ -917,8 +883,7 @@ def key_setup(vault, **kwargs):
 
 
 def key_export(baseurl, local_path, vault, keyjar, **kwargs):
-    """
-    Export keys.
+    """Export keys.
 
     :param baseurl: The base URL to which the key file names are added
     :param local_path: Where on the machine the export files are kept
@@ -935,7 +900,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     else:
         _path = part.path[:]
 
-    local_path = proper_path("%s/%s" % (_path, local_path))
+    local_path = proper_path("{}/{}".format(_path, local_path))
 
     if not os.path.exists(local_path):
         os.makedirs(local_path)
@@ -953,7 +918,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
     with open(_export_filename, "w") as f:
         f.write(str(kb))
 
-    _url = "%s://%s%s" % (part.scheme, part.netloc, _export_filename[1:])
+    _url = "{}://{}{}".format(part.scheme, part.netloc, _export_filename[1:])
 
     return _url
 
@@ -962,8 +927,7 @@ def key_export(baseurl, local_path, vault, keyjar, **kwargs):
 
 
 def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
-    """
-    Create RSA keypair.
+    """Create RSA keypair.
 
     :param name: Name of the key file
     :param path: Path to where the key files are stored
@@ -986,22 +950,21 @@ def create_and_store_rsa_key_pair(name="pyoidc", path=".", size=2048):
 
 
 def proper_path(path):
-    """
-    Clean up the path specification so it looks like something I could use.
+    """Clean up the path specification so it looks like something I could use.
 
     "./" <path> "/"
     """
     if path.startswith("./"):
         pass
     elif path.startswith("/"):
-        path = ".%s" % path
+        path = ".{}".format(path)
     elif path.startswith("."):
         while path.startswith("."):
             path = path[1:]
         if path.startswith("/"):
-            path = ".%s" % path
+            path = ".{}".format(path)
     else:
-        path = "./%s" % path
+        path = "./{}".format(path)
 
     if not path.endswith("/"):
         path += "/"
@@ -1010,8 +973,7 @@ def proper_path(path):
 
 
 def ec_init(spec):
-    """
-    Initialize EC encryption.
+    """Initialize EC encryption.
 
     :param spec: Key specifics of the form
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
@@ -1029,8 +991,7 @@ def ec_init(spec):
 
 
 def rsa_init(spec):
-    """
-    Initialize RSA encryption.
+    """Initialize RSA encryption.
 
     :param spec:
     :return: KeyBundle
@@ -1050,8 +1011,7 @@ def rsa_init(spec):
 
 
 def keyjar_init(instance, key_conf, kid_template=""):
-    """
-    Initialize KeyJar.
+    """Initialize KeyJar.
 
     Configuration of the type:
     keys = [
@@ -1084,8 +1044,7 @@ def _new_rsa_key(spec):
 
 
 def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
-    """
-    Create a KeyJar from keys.
+    """Create a KeyJar from keys.
 
     Configuration of the type:
     keys = [
@@ -1107,17 +1066,17 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
         kidd = {"sig": {}, "enc": {}}
 
     kid = 0
-    jwks: Dict[str, List[Dict[str, str]]] = {"keys": []}
+    jwks: dict[str, list[dict[str, str]]] = {"keys": []}
 
     for spec in key_conf:
         typ = spec["type"].upper()
 
         if typ == "RSA":
             if "key" in spec:
-                error_to_catch = getattr(builtins, "FileNotFoundError", getattr(builtins, "IOError"))
+                error_to_catch = getattr(builtins, "FileNotFoundError", builtins.IOError)
                 try:
                     kb = KeyBundle(
-                        source="file://%s" % spec["key"],
+                        source="file://{}".format(spec["key"]),
                         fileformat="der",
                         keytype=typ,
                         keyusage=spec["use"],
@@ -1147,7 +1106,7 @@ def build_keyjar(key_conf, kid_template="", keyjar=None, kidd=None):
 
 
 def update_keyjar(keyjar):
-    for iss, kbl in keyjar.items():
+    for _iss, kbl in keyjar.items():
         for kb in kbl:
             kb.update()
 
@@ -1169,8 +1128,7 @@ def key_summary(keyjar, issuer):
 
 
 def check_key_availability(inst, jwt):
-    """
-    Try to refresh keys.
+    """Try to refresh keys.
 
     If the server is restarted it will NOT load keys from jwks_uris for
     all the clients that has been registered. So this function is there

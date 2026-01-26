@@ -1,5 +1,4 @@
-"""
-Settings for oic objects.
+"""Settings for oic objects.
 
 .. CAUTION::
     This part is under development.
@@ -13,9 +12,7 @@ The settings make use of `pydantic-settings <https://docs.pydantic.dev/usage/set
 It is possible to instance them directly or use environment values to fill the settings.
 """
 
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Optional, Union
 
 import requests
 from pydantic_settings import BaseSettings
@@ -33,12 +30,12 @@ class PyoidcSettings(BaseSettings):
     * If set to a filename this is used as a certificate bundle in openssl format.
     * If set to a directory name this is used as a CA directory in the openssl format.
     """
-    client_cert: Union[None, str, Tuple[str, str]] = None
+    client_cert: Union[None, str, tuple[str, str]] = None
     """
     Local cert to use as client side certificate.
     Can be a single file (containing the private key and the certificate) or a tuple of both file's path.
     """
-    timeout: Union[float, Tuple[float, float]] = 5
+    timeout: Union[float, tuple[float, float]] = 5
     """
     Timeout for requests library.
     Can be specified either as a single float or as a tuple of floats.

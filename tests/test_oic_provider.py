@@ -5,58 +5,47 @@ import os
 from http.cookies import SimpleCookie
 from time import time
 from typing import Any
-from typing import Dict
-from unittest.mock import Mock
-from unittest.mock import patch
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from unittest.mock import Mock, patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
 from freezegun import freeze_time
-from jwkest.jwe import JWEException
-from jwkest.jwe import JWEnc
+from jwkest.jwe import JWEException, JWEnc
 from requests import ConnectionError
 from requests.exceptions import MissingSchema
 from testfixtures import LogCapture
 
 from oic import rndstr
-from oic.exception import FailedAuthentication
-from oic.exception import InvalidRequest
-from oic.exception import RedirectURIError
+from oic.exception import FailedAuthentication, InvalidRequest, RedirectURIError
 from oic.oauth2.message import ErrorResponse
-from oic.oic import DEF_SIGN_ALG
-from oic.oic import make_openid_request
+from oic.oic import DEF_SIGN_ALG, make_openid_request
 from oic.oic.consumer import Consumer
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import CheckSessionRequest
-from oic.oic.message import Claims
-from oic.oic.message import ClaimsRequest
-from oic.oic.message import IdToken
-from oic.oic.message import Message
-from oic.oic.message import OpenIDSchema
-from oic.oic.message import ProviderConfigurationResponse
-from oic.oic.message import RefreshAccessTokenRequest
-from oic.oic.message import RegistrationRequest
-from oic.oic.message import RegistrationResponse
-from oic.oic.message import TokenErrorResponse
-from oic.oic.message import UserInfoRequest
-from oic.oic.provider import InvalidRedirectURIError
-from oic.oic.provider import InvalidSectorIdentifier
-from oic.oic.provider import Provider
+from oic.oic.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    CheckSessionRequest,
+    Claims,
+    ClaimsRequest,
+    IdToken,
+    Message,
+    OpenIDSchema,
+    ProviderConfigurationResponse,
+    RefreshAccessTokenRequest,
+    RegistrationRequest,
+    RegistrationResponse,
+    TokenErrorResponse,
+    UserInfoRequest,
+)
+from oic.oic.provider import InvalidRedirectURIError, InvalidSectorIdentifier, Provider
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import CookieDealer
-from oic.utils.http_util import Response
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import ec_init
-from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.http_util import CookieDealer, Response
+from oic.utils.keyio import KeyBundle, KeyJar, ec_init, keybundle_from_local_file
 from oic.utils.sdb import AuthnEvent
 from oic.utils.session_backend import DictSessionBackend
 from oic.utils.time_util import epoch_in_a_while
@@ -109,7 +98,7 @@ KEYJAR["number5"] = [KC_SYM2, KC_RSA]
 KEYJAR[""] = KC_RSA
 KEYJAR["https://connect-op.heroku.com"] = KC_RSA
 
-CDB: Dict[str, Dict[str, Any]] = {
+CDB: dict[str, dict[str, Any]] = {
     "number5": {
         "password": "hemligt",
         "client_secret": "drickyoughurt",
@@ -193,7 +182,7 @@ SYMKEY = rndstr(16)  # symmetric key used to encrypt cookie info
 USERINFO = UserInfo(USERDB)
 
 
-class TestProvider(object):
+class TestProvider:
     @pytest.fixture(autouse=True)
     def create_provider(self, session_db_factory):
         self.provider = Provider(

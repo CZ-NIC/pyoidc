@@ -1,37 +1,38 @@
 import json
 from unittest import TestCase
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from jwkest.jwk import SYMKey
 
-from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
-from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
-from oic.oauth2.message import SINGLE_OPTIONAL_INT
-from oic.oauth2.message import SINGLE_OPTIONAL_JSON
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationErrorResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import CCAccessTokenRequest
-from oic.oauth2.message import DecodeError
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import Message
-from oic.oauth2.message import MessageException
-from oic.oauth2.message import MessageFactory
-from oic.oauth2.message import MessageTuple
-from oic.oauth2.message import MissingRequiredAttribute
-from oic.oauth2.message import ParamDefinition
-from oic.oauth2.message import RefreshAccessTokenRequest
-from oic.oauth2.message import ROPCAccessTokenRequest
-from oic.oauth2.message import TokenErrorResponse
-from oic.oauth2.message import json_deserializer
-from oic.oauth2.message import json_serializer
-from oic.oauth2.message import sp_sep_list_deserializer
+from oic.oauth2.message import (
+    OPTIONAL_LIST_OF_STRINGS,
+    REQUIRED_LIST_OF_STRINGS,
+    SINGLE_OPTIONAL_INT,
+    SINGLE_OPTIONAL_JSON,
+    SINGLE_OPTIONAL_STRING,
+    SINGLE_REQUIRED_STRING,
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationErrorResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    CCAccessTokenRequest,
+    DecodeError,
+    ErrorResponse,
+    Message,
+    MessageException,
+    MessageFactory,
+    MessageTuple,
+    MissingRequiredAttribute,
+    ParamDefinition,
+    RefreshAccessTokenRequest,
+    ROPCAccessTokenRequest,
+    TokenErrorResponse,
+    json_deserializer,
+    json_serializer,
+    sp_sep_list_deserializer,
+)
 from oic.utils.keyio import build_keyjar
 
 __author__ = "rohe0002"
@@ -131,7 +132,7 @@ class MessageListMessage(Message):
     c_param = {"opt_message_list": ParamDefinition([Message], False, None, None, False)}
 
 
-class TestMessage(object):
+class TestMessage:
     def test_json_serialization(self):
         item = DummyMessage(
             req_str="Fair",
@@ -363,7 +364,7 @@ class TestMessage(object):
         assert message.to_dict() == {"opt_message_list": [{"req_str": "test"}]}
 
 
-class TestAuthorizationRequest(object):
+class TestAuthorizationRequest:
     def test_authz_req_urlencoded(self):
         ar = AuthorizationRequest(response_type=["code"], client_id="foobar")
         ue = ar.to_urlencoded()
@@ -620,7 +621,7 @@ class TestAuthorizationRequest(object):
         assert _eq(are["scope"], ["openid", "foxtrot"])
 
 
-class TestAuthorizationErrorResponse(object):
+class TestAuthorizationErrorResponse:
     def test_init(self):
         aer = AuthorizationErrorResponse(error="access_denied", state="xyz")
         assert aer["error"] == "access_denied"
@@ -637,7 +638,7 @@ class TestAuthorizationErrorResponse(object):
         assert aer["foo"] == "bar"
 
 
-class TestTokenErrorResponse(object):
+class TestTokenErrorResponse:
     def test_init(self):
         ter = TokenErrorResponse(error="access_denied", state="xyz")
 
@@ -656,7 +657,7 @@ class TestTokenErrorResponse(object):
         assert ter["foo"] == "bar"
 
 
-class TestAccessTokenResponse(object):
+class TestAccessTokenResponse:
     def test_json_serialize(self):
         at = AccessTokenResponse(access_token="SlAV32hkKG", token_type="Bearer", expires_in=3600)
 
@@ -744,7 +745,7 @@ class TestAccessTokenResponse(object):
         )
 
 
-class TestAccessTokenRequest(object):
+class TestAccessTokenRequest:
     def test_extra(self):
         atr = AccessTokenRequest(
             grant_type="authorization_code",
@@ -764,7 +765,7 @@ class TestAccessTokenRequest(object):
         assert atr == atr2
 
 
-class TestAuthorizationResponse(object):
+class TestAuthorizationResponse:
     def test_init(self):
         atr = AuthorizationResponse(code="SplxlOBeZQQYbYS6WxSbIA", state="Fun_state", extra="foo")
 
@@ -773,7 +774,7 @@ class TestAuthorizationResponse(object):
         assert atr["extra"] == "foo"
 
 
-class TestROPCAccessTokenRequest(object):
+class TestROPCAccessTokenRequest:
     def test_init(self):
         ropc = ROPCAccessTokenRequest(grant_type="password", username="johndoe", password="A3ddj3w")
 
@@ -782,7 +783,7 @@ class TestROPCAccessTokenRequest(object):
         assert ropc["password"] == "A3ddj3w"
 
 
-class TestCCAccessTokenRequest(object):
+class TestCCAccessTokenRequest:
     def test_init(self):
         cc = CCAccessTokenRequest(scope="/foo")
 
@@ -790,7 +791,7 @@ class TestCCAccessTokenRequest(object):
         assert cc["scope"] == ["/foo"]
 
 
-class TestRefreshAccessTokenRequest(object):
+class TestRefreshAccessTokenRequest:
     def test_init(self):
         ratr = RefreshAccessTokenRequest(refresh_token="ababababab", client_id="Client_id")
 
@@ -801,7 +802,7 @@ class TestRefreshAccessTokenRequest(object):
         assert ratr.verify()
 
 
-class TestErrorResponse(object):
+class TestErrorResponse:
     def test_omit(self):
         err = ErrorResponse(
             error="invalid_request",
@@ -884,7 +885,7 @@ def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer():
 
     msg.get_verify_keys(KEYJARS["A"], keys, {"iss": "A"}, header, {}, no_kid_issuer=no_kid_issuer)
     assert len(keys) == 3
-    assert set([k.kid for k in keys]) == set(a_kids)
+    assert {k.kid for k in keys} == set(a_kids)
 
 
 def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer_lim():
@@ -899,7 +900,7 @@ def test_get_verify_keys_no_kid_multiple_keys_no_kid_issuer_lim():
 
     msg.get_verify_keys(KEYJARS["A"], keys, {"iss": "A"}, header, {}, no_kid_issuer=no_kid_issuer)
     assert len(keys) == 2
-    assert set([k.kid for k in keys]) == set(a_kids)
+    assert {k.kid for k in keys} == set(a_kids)
 
 
 def test_get_verify_keys_matching_kid():

@@ -1,8 +1,7 @@
 import os
 
 from oic.utils.jwt import JWT
-from oic.utils.keyio import build_keyjar
-from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.keyio import build_keyjar, keybundle_from_local_file
 
 __author__ = "roland"
 
@@ -38,7 +37,7 @@ def test_jwt_pack_and_unpack():
     assert _eq(info.keys(), ["jti", "iat", "exp", "iss", "sub", "kid"])
 
 
-class TestJWT(object):
+class TestJWT:
     """Tests for JWT."""
 
     def test_unpack_verify_key(self):

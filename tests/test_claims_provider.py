@@ -4,17 +4,17 @@ from urllib.parse import parse_qs
 import pytest
 from jwkest.jwk import SYMKey
 
-from oic.oic.claims_provider import ClaimsClient
-from oic.oic.claims_provider import ClaimsServer
-from oic.oic.claims_provider import UserClaimsRequest
-from oic.oic.claims_provider import UserClaimsResponse
-from oic.oic.claims_provider import UserInfoClaimsRequest
+from oic.oic.claims_provider import (
+    ClaimsClient,
+    ClaimsServer,
+    UserClaimsRequest,
+    UserClaimsResponse,
+    UserInfoClaimsRequest,
+)
 from oic.oic.message import OpenIDSchema
 from oic.utils.authn.client import verify_client
 from oic.utils.claims import ClaimsMode
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.keyio import KeyBundle, KeyJar, keybundle_from_local_file
 from oic.utils.userinfo import UserInfo
 
 __author__ = "rohe0002"
@@ -28,7 +28,7 @@ def query_string_compare(query_str1, query_str2):
     return parse_qs(query_str1) == parse_qs(query_str2)
 
 
-class TestClaimsClient(object):
+class TestClaimsClient:
     @pytest.fixture(autouse=True)
     def create_claims_client(self):
         self.cc = ClaimsClient(client_id="client_1")
@@ -63,9 +63,9 @@ def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
         for key, restr in user_info_claims["claims"].items():
             try:
                 result[key] = identity[key]
-            except KeyError:
+            except KeyError as err:
                 if restr == {"essential": True}:
-                    raise Exception("Missing property '%s'" % key)
+                    raise Exception("Missing property '{}'".format(key)) from err
     else:
         result = identity
 
@@ -75,7 +75,7 @@ def user_info(oicsrv, userdb, sub, client_id="", user_info_claims=None):
 USERDB = {"diana": {"birthdate": "02/14/2012", "gender": "female"}}
 
 
-class TestUserClaimsResponse(object):
+class TestUserClaimsResponse:
     def test_init(self):
         info = user_info(None, USERDB, "diana")
 
@@ -87,7 +87,7 @@ class TestUserClaimsResponse(object):
         assert "jwt" in cresp
 
 
-class TestClaimsServer(object):
+class TestClaimsServer:
     USER2MODE = {"diana": "aggregate", "upper": "distribute", "babs": "aggregate"}
     CDB = {"client_1": {"client_secret": "hemlig"}}
 

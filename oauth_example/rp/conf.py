@@ -3,7 +3,7 @@ from mako.lookup import TemplateLookup
 PORT = 8666
 HOST = "localhost"
 
-BASE = "http://%s:%d/" % (HOST, PORT)
+BASE = f"http://{HOST}:{PORT}/"
 
 # If BASE is https these has to be specified
 SERVER_KEY = ""

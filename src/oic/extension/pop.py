@@ -1,12 +1,9 @@
 import json
-from typing import Dict
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from Cryptodome.PublicKey import RSA
 from jwkest import b64e
-from jwkest.jwk import RSAKey
-from jwkest.jwk import load_jwks
+from jwkest.jwk import RSAKey, load_jwks
 
 from oic.extension.message import TokenIntrospectionResponse
 from oic.extension.signed_http_req import SignedHttpRequest
@@ -30,7 +27,7 @@ def sign_http_args(method, url, headers, body=""):
     return kwargs
 
 
-class PoPCallBack(object):
+class PoPCallBack:
     def __init__(self, key, alg):
         self.key = key
         self.alg = alg
@@ -51,16 +48,15 @@ class PoPCallBack(object):
         return kwargs
 
 
-class PoPClient(object):
+class PoPClient:
     def __init__(self, key_size=2048, sign_alg="RS256"):
         self.key_size = key_size
-        self.state2key: Dict[str, RSAKey] = {}
-        self.token2key: Dict[str, RSAKey] = {}
+        self.state2key: dict[str, RSAKey] = {}
+        self.token2key: dict[str, RSAKey] = {}
         self.alg = sign_alg
 
     def update(self, msg, state, key_size=0):
-        """
-        Use to 'update' the AccessToken Request.
+        """Use to 'update' the AccessToken Request.
 
         :param msg:
         :param state: Used to map access token response to this request
@@ -76,17 +72,16 @@ class PoPClient(object):
         return msg
 
     def handle_access_token_response(self, resp):
-        """
-        Map access token to a keypair.
+        """Map access token to a keypair.
 
         :param resp: AccessTokenResponse instance
         """
         self.token2key[resp["access_token"]] = self.state2key[resp["state"]]
 
 
-class PoPAS(object):
+class PoPAS:
     def __init__(self, me):
-        self.thumbprint2key: Dict[str, RSAKey] = {}
+        self.thumbprint2key: dict[str, RSAKey] = {}
         self.keyjar = None
         self.me = me
 
@@ -115,13 +110,12 @@ class PoPAS(object):
         return tir
 
 
-class PoPRS(object):
+class PoPRS:
     def __init__(self):
-        self.token2key: Dict[str, RSAKey] = {}
+        self.token2key: dict[str, RSAKey] = {}
 
     def store_key(self, access_token, tir):
-        """
-        Store key that was returned in response from token introspection.
+        """Store key that was returned in response from token introspection.
 
         :param access_token: The token that was introspected
         :param tir: TokenIntrospectionResponse instance

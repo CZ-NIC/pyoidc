@@ -3,22 +3,20 @@
 import json
 from operator import itemgetter
 from typing import Any
-from typing import Dict
 
 import pytest
 import responses
 
 from oic.oauth2.exception import NoClientInfoReceivedError
-from oic.utils.clientdb import BaseClientDatabase
-from oic.utils.clientdb import MDQClient
+from oic.utils.clientdb import BaseClientDatabase, MDQClient
 
 
-class TestBaseClientDatabase(object):
+class TestBaseClientDatabase:
     class DictClientDatabase(BaseClientDatabase):
         """Test implementation."""
 
         def __init__(self):
-            self.db: Dict[str, Dict[str, Any]] = {}
+            self.db: dict[str, dict[str, Any]] = {}
 
         def __getitem__(self, key):
             return self.db[key]
@@ -61,7 +59,7 @@ class TestBaseClientDatabase(object):
         assert len(cdb) == 2
 
 
-class TestMDQClient(object):
+class TestMDQClient:
     """Tests for MDQClient."""
 
     URL = "http://localhost/mdx/"

@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
-
 import base64
 import hashlib
 import logging
 import uuid
+from urllib.parse import parse_qs, urlencode
 
 import requests
 from beaker.middleware import SessionMiddleware
@@ -13,10 +11,7 @@ from cherrypy import wsgiserver
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 
-from oic.utils.http_util import NotFound
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import ServiceError
+from oic.utils.http_util import NotFound, Response, SeeOther, ServiceError
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = "rp.log"
@@ -41,20 +36,20 @@ RP = None
 def setup_server_env(conf):
     global SERVER_ENV
 
-    SERVER_ENV = dict([(k, v) for k, v in conf.__dict__.items() if not k.startswith("__")])
+    SERVER_ENV = {k: v for k, v in conf.__dict__.items() if not k.startswith("__")}
     SERVER_ENV["template_lookup"] = LOOKUP
     SERVER_ENV["base_url"] = conf.BASE
     # SERVER_ENV["CACHE"] = {}
     SERVER_ENV["OIC_CLIENT"] = {}
 
 
-class Httpd(object):
+class Httpd:
     def http_request(self, url):
         # ignore cert validation for the example...
         return requests.get(url, verify=False)  # nosec
 
 
-class Session(object):
+class Session:
     def __init__(self, session):
         self.session = session
 
@@ -89,7 +84,7 @@ class Session(object):
 
 # noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
+    logger.info("[static]sending: %s", path)
 
     try:
         data = open(path, "rb").read()
@@ -106,7 +101,7 @@ def static(environ, start_response, logger, path):
         else:
             start_response("200 OK", [("Content-Type", "text/xml")])
         return [data]
-    except IOError:
+    except OSError:
         resp = NotFound()
         return resp(environ, start_response)
 
@@ -138,7 +133,7 @@ def id_token_as_signed_jwt(client, alg="RS256"):
     return _signed_jwt
 
 
-def application(environ, start_response):
+def application(environ, start_response):  # noqa: C901
     session = Session(environ["beaker.session"])
 
     path = environ.get("PATH_INFO", "").lstrip("/")
@@ -169,11 +164,11 @@ def application(environ, start_response):
         return post_logout(environ, start_response)
 
     if session["callback"]:
-        _uri = "%s%s" % (conf.BASE, path)
+        _uri = "{}{}".format(conf.BASE, path)
         for _cli in SERVER_ENV["OIC_CLIENT"].values():
             if _uri in _cli.redirect_uris:
                 session["callback"] = False
-                func = getattr(RP, "callback")
+                func = RP.callback
                 return func(environ, SERVER_ENV, start_response, query, session)
 
     if path == "rpAcr":
@@ -182,12 +177,12 @@ def application(environ, start_response):
     if path == "rpAuth":
         # Only called if multiple arc_values (that is authentications) exists.
         if "acr" in query and query["acr"][0] in session["acr_values"]:
-            func = getattr(RP, "create_authnrequest")
+            func = RP.create_authnrequest
             return func(environ, SERVER_ENV, start_response, session, query["acr"][0])
 
     if session["client"] is not None:
         session["callback"] = True
-        func = getattr(RP, "begin")
+        func = RP.begin
         return func(environ, SERVER_ENV, start_response, session, "")
 
     if path == "rp":
@@ -203,15 +198,15 @@ def application(environ, start_response):
             h.update(link.encode("utf-8"))
             opkey = base64.b16encode(h.digest()).decode("utf-8")
             session["callback"] = True
-            func = getattr(RP, "begin")
+            func = RP.begin
             return func(environ, SERVER_ENV, start_response, session, opkey)
 
     return opbyuid(environ, start_response)
 
 
 if __name__ == "__main__":
-    from oidc import OpenIDConnect
     import conf
+    from oidc import OpenIDConnect
 
     setup_server_env(conf)
 
@@ -235,8 +230,8 @@ if __name__ == "__main__":
 
         SRV.ssl_adapter = BuiltinSSLAdapter(conf.SERVER_CERT, conf.SERVER_KEY, conf.CA_BUNDLE)
 
-    LOGGER.info("RP server starting listening on port:%s" % conf.PORT)
-    print("RP server starting listening on port:%s" % conf.PORT)
+    LOGGER.info("RP server starting listening on port:%s", conf.PORT)
+    print("RP server starting listening on port:{}".format(conf.PORT))
     try:
         SRV.start()
     except KeyboardInterrupt:

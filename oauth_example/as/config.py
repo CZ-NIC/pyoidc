@@ -4,13 +4,13 @@ from mako.lookup import TemplateLookup
 
 HOST = "localhost"
 
-baseurl = "https://%s" % HOST
-issuer = "%s:%%d" % baseurl
+baseurl = "https://{}".format(HOST)
+issuer = "{}:%d".format(baseurl)
 
 # Where to go for verifying the authentication info
-SERVICE_URL = "%s/verify" % issuer
+SERVICE_URL = "{}/verify".format(issuer)
 # Where to return the user after the authentication has been completed
-RETURN_TO = "%s/authorization" % issuer
+RETURN_TO = "{}/authorization".format(issuer)
 
 # This is used to pick a subset of users from the set of users that can
 # authenticate at this server
@@ -74,8 +74,8 @@ AUTHN = "Simple"
 COOKIENAME = "pyoic"
 COOKIETTL = 4 * 60  # 4 hours
 SYM_KEY = "IfIwerelookingfo"  # 16 bytes for AES_128 which is the default
-SERVER_CERT = "%s/certs/server.crt" % ROOT
-SERVER_KEY = "%s/certs/server.key" % ROOT
+SERVER_CERT = "{}/certs/server.crt".format(ROOT)
+SERVER_KEY = "{}/certs/server.key".format(ROOT)
 CERT_CHAIN = None
 
 keys = [

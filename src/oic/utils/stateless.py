@@ -1,11 +1,7 @@
 import time
-from typing import List
 
-from oic.oauth2.grant import Grant
-from oic.oauth2.grant import Token
-from oic.oauth2.message import SINGLE_OPTIONAL_STRING
-from oic.oauth2.message import SINGLE_REQUIRED_STRING
-from oic.oauth2.message import Message
+from oic.oauth2.grant import Grant, Token
+from oic.oauth2.message import SINGLE_OPTIONAL_STRING, SINGLE_REQUIRED_STRING, Message
 from oic.oic.message import SINGLE_REQUIRED_INT
 from oic.utils.time_util import epoch_in_a_while
 
@@ -24,7 +20,7 @@ class Content(Message):
     c_allowed_values = {"type": ["code", "access", "refresh"]}
 
 
-class StateLess(object):
+class StateLess:
     def __init__(
         self,
         keys,
@@ -42,12 +38,11 @@ class StateLess(object):
             "access": access_validity,
             "refresh": refresh_validity,
         }
-        self.used_grants: List[Grant] = []
-        self.revoked: List[Token] = []
+        self.used_grants: list[Grant] = []
+        self.revoked: list[Token] = []
 
     def __getitem__(self, token):
-        """
-        Get token.
+        """Get token.
 
         :param token: authz grant code or refresh token
         :return: information about the session
@@ -58,8 +53,7 @@ class StateLess(object):
         return cont.to_jwe(self.keys, self.enc, self.alg)
 
     def create_authz_session(self, sub, areq, **kwargs):
-        """
-        Create session for keeping the Authorization.
+        """Create session for keeping the Authorization.
 
         :param sub: Identifier for the user, this is the real identifier
         :param areq: The AuthorizationRequest instance

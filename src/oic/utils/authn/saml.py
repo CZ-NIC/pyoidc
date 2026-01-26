@@ -1,34 +1,23 @@
 try:
     import saml2
 except ImportError:
-    raise ImportError("This module can be used only with saml2 installed.")
+    raise ImportError("This module can be used only with saml2 installed.") from None
 
 
 import base64
 import importlib
 import json
 import logging
-from typing import Dict
-from typing import List
-from urllib.parse import parse_qs
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode
 
-from saml2 import BINDING_HTTP_ARTIFACT
-from saml2 import BINDING_HTTP_POST
-from saml2 import BINDING_HTTP_REDIRECT
+from saml2 import BINDING_HTTP_ARTIFACT, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
-from saml2.s_utils import UnknownPrincipal
-from saml2.s_utils import UnsupportedBinding
-from saml2.s_utils import rndstr
-from saml2.s_utils import sid
+from saml2.s_utils import UnknownPrincipal, UnsupportedBinding, rndstr, sid
 
 from oic.oauth2.exception import VerificationError
-from oic.utils.authn.user import UserAuthnMethod
-from oic.utils.authn.user import create_return_url
-from oic.utils.http_util import Response
-from oic.utils.http_util import SeeOther
-from oic.utils.http_util import Unauthorized
+from oic.utils.authn.user import UserAuthnMethod, create_return_url
+from oic.utils.http_util import Response, SeeOther, Unauthorized
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +45,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         userinfo=None,
         samlcache=None,
     ):
-        """
-        Construct the class.
+        """Construct the class.
 
         :param srv: Usually none, but otherwise the oic server.
         :param return_to: The URL to return to after a successful
@@ -67,7 +55,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
         self.userinfo = userinfo
 
         if cache is None:
-            self.cache_outstanding_queries: Dict[str, str] = {}
+            self.cache_outstanding_queries: dict[str, str] = {}
         else:
             self.cache_outstanding_queries = cache
         UserAuthnMethod.__init__(self, srv)
@@ -101,9 +89,8 @@ class SAMLAuthnMethod(UserAuthnMethod):
             return resp
         return response
 
-    def verify(self, request, cookie, path, requrl, end_point_index=None, **kwargs):
-        """
-        Verify if the authentication was successful.
+    def verify(self, request, cookie, path, requrl, end_point_index=None, **kwargs):  # noqa: C901  # Was 25
+        """Verify if the authentication was successful.
 
         :rtype : Response
         :param request: Contains the request parameters.
@@ -157,16 +144,16 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 request["SAMLResponse"][0], binding, self.cache_outstanding_queries
             )
         except UnknownPrincipal as excp:
-            logger.error("UnknownPrincipal: %s" % (excp,))
+            logger.error("UnknownPrincipal: %s", excp)
             return Unauthorized(self.not_authorized), False
         except UnsupportedBinding as excp:
-            logger.error("UnsupportedBinding: %s" % (excp,))
+            logger.error("UnsupportedBinding: %s", excp)
             return Unauthorized(self.not_authorized), False
         except VerificationError as err:
-            logger.error("Verification error: %s" % (err,))
+            logger.error("Verification error: %s", err)
             return Unauthorized(self.not_authorized), False
         except Exception as err:
-            logger.error("Other error: %s" % (err,))
+            logger.error("Other error: %s", err)
             return Unauthorized(self.not_authorized), False
 
         if self.sp_conf.VALID_ATTRIBUTE_RESPONSE is not None:  # type: ignore
@@ -225,7 +212,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                         attributes[attr] = samldata[attr]
         else:
             attributes = samldata
-        userdb: Dict[str, List[str]] = {}
+        userdb: dict[str, list[str]] = {}
 
         if self.sp_conf.OPENID2SAMLMAP is None:  # type: ignore
             userdb = attributes.copy()
@@ -235,9 +222,9 @@ class SAMLAuthnMethod(UserAuthnMethod):
                     userdb[oic] = attributes[saml]
         self.userdb[uid] = userdb
 
-    def _pick_idp(self, query, end_point_index):
+    def _pick_idp(self, query, end_point_index):  # noqa: C901 # Was 16
         """If more than one idp and if none is selected, I have to do wayf or disco."""
-        query_dict: Dict[str, List[str]] = {}
+        query_dict: dict[str, list[str]] = {}
         if isinstance(query, str):
             query_dict = dict(parse_qs(query))
         else:
@@ -264,7 +251,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 if _idp_entity_id in idps:
                     idp_entity_id = _idp_entity_id
             except KeyError:
-                logger.debug("No IdP entity ID in query: %s" % query)
+                logger.debug("No IdP entity ID in query: %s", query)
                 pass
 
         if not idp_entity_id:
@@ -298,7 +285,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
 
                     disco_end_point_index = end_point_index["disco_end_point_index"]
                     ret = _cli.config.getattr("endpoints", "sp")["discovery_response"][disco_end_point_index][0]
-                    ret += "?sid=%s" % sid_
+                    ret += "?sid={}".format(sid_)
                     loc = _cli.create_discovery_service_request(
                         self.sp_conf.DISCOSRV,
                         eid,
@@ -318,7 +305,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             -1,
             SeeOther(
                 headers=[
-                    ("Location", "%s?%s" % (self.sp_conf.WAYF, sid_)),  # type: ignore
+                    ("Location", "{}?{}".format(self.sp_conf.WAYF, sid_)),  # type: ignore
                     cookie,
                 ]
             ),
@@ -329,7 +316,7 @@ class SAMLAuthnMethod(UserAuthnMethod):
             binding, destination = _cli.pick_binding(
                 "single_sign_on_service", self.bindings, "idpsso", entity_id=entity_id
             )
-            logger.debug("binding: %s, destination: %s" % (binding, destination))
+            logger.debug("binding: %s, destination: %s", binding, destination)
 
             extensions = None
             kwargs = {}
@@ -350,16 +337,16 @@ class SAMLAuthnMethod(UserAuthnMethod):
                 _sid = req_id
             else:
                 req_id, req = _cli.create_authn_request(destination, vorg=vorg_name, sign=False, **kwargs)
-                msg_str = "%s" % req
+                msg_str = "{}".format(req)
                 _sid = req_id
 
             _rstate = rndstr()
             ht_args = _cli.apply_binding(binding, msg_str, destination, relay_state=_rstate)
 
-            logger.debug("ht_args: %s" % ht_args)
+            logger.debug("ht_args: %s", ht_args)
         except Exception as exc:
             logger.exception("%s", exc)
-            raise ServiceErrorException("Failed to construct the AuthnRequest: %s" % exc)
+            raise ServiceErrorException("Failed to construct the AuthnRequest: {}".format(exc)) from exc
 
         # remember the request
         self.cache_outstanding_queries[_sid] = self.return_to

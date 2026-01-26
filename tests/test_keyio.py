@@ -5,7 +5,6 @@ import time
 from datetime import datetime as dt
 from datetime import timedelta
 from typing import Any
-from typing import Dict
 from unittest import TestCase
 from unittest.mock import sentinel
 
@@ -17,16 +16,18 @@ from jwkest.jws import JWS
 from oic.oauth2.message import MissingSigningKey
 from oic.oic import AuthorizationResponse
 from oic.oic.provider import Provider
-from oic.utils.keyio import JWKSError
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import RSAKey
-from oic.utils.keyio import build_keyjar
-from oic.utils.keyio import check_key_availability
-from oic.utils.keyio import dump_jwks
-from oic.utils.keyio import key_export
-from oic.utils.keyio import keybundle_from_local_file
-from oic.utils.keyio import rsa_init
+from oic.utils.keyio import (
+    JWKSError,
+    KeyBundle,
+    KeyJar,
+    RSAKey,
+    build_keyjar,
+    check_key_availability,
+    dump_jwks,
+    key_export,
+    keybundle_from_local_file,
+    rsa_init,
+)
 
 __author__ = "rohe0002"
 
@@ -38,7 +39,7 @@ RSAKEY = os.path.join(BASE_PATH, "cert.key")
 RSA0 = os.path.join(BASE_PATH, "rsa.key")
 
 with open(os.path.join(jwks_folder, "jwks0.json")) as f:
-    JWK0: Dict[str, Any] = json.load(f)
+    JWK0: dict[str, Any] = json.load(f)
 with open(os.path.join(jwks_folder, "jwks1.json")) as f:
     JWK1 = json.load(f)
 with open(os.path.join(jwks_folder, "jwks2.json")) as f:
@@ -177,7 +178,7 @@ def test_dump_private_jwks():
             assert k.d
 
 
-class TestKeyBundle(object):
+class TestKeyBundle:
     def test_update(self):
         kc = KeyBundle([{"kty": "oct", "key": "supersecret", "use": "sig"}])
         assert len(kc.get("oct")) == 1
@@ -213,7 +214,7 @@ class TestKeyBundle(object):
         assert kc.do_remote() is False
 
 
-class TestKeyJar(object):
+class TestKeyJar:
     def test_keyjar_group_keys(self):
         ks = KeyJar()
         ks[""] = KeyBundle(
@@ -275,7 +276,7 @@ class TestKeyJar(object):
         assert keys == []
 
     def test_get_by_kid(self):
-        kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
+        kb = keybundle_from_local_file("file://{}/jwk.json".format(BASE_PATH), "jwk", ["ver", "sig"])
         kj = KeyJar()
         kj.issuer_keys["https://example.com"] = [kb]
 
@@ -314,7 +315,7 @@ class TestKeyJar(object):
         assert len(key) == 1
 
     def test_dump_issuer_keys(self):
-        kb = keybundle_from_local_file("file://%s/jwk.json" % BASE_PATH, "jwk", ["ver", "sig"])
+        kb = keybundle_from_local_file("file://{}/jwk.json".format(BASE_PATH), "jwk", ["ver", "sig"])
         assert len(kb) == 1
         kj = KeyJar()
         kj.issuer_keys[""] = [kb]

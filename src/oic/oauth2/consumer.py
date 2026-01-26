@@ -2,18 +2,17 @@ import hashlib
 import logging
 import time
 import warnings
-from typing import Dict
 
 from oic import rndstr
-from oic.exception import AuthzError
-from oic.exception import PyoidcError
-from oic.oauth2 import Client
-from oic.oauth2 import Grant
-from oic.oauth2.message import AccessTokenRequest
-from oic.oauth2.message import AccessTokenResponse
-from oic.oauth2.message import AuthorizationRequest
-from oic.oauth2.message import AuthorizationResponse
-from oic.oauth2.message import Message
+from oic.exception import AuthzError, PyoidcError
+from oic.oauth2 import Client, Grant
+from oic.oauth2.message import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    Message,
+)
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
 from oic.utils.settings import OauthConsumerSettings
@@ -33,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def stateID(url, seed):
-    """
-    Create hash of the time + server path + a seed makes an unique SID for each session.
+    """Create hash of the time + server path + a seed makes an unique SID for each session.
 
     :param url: The base URL for this site
     :return: The hex version of the digest
@@ -63,8 +61,7 @@ def stateID(url, seed):
 
 
 def factory(kaka, sdb, client_id, **kwargs):
-    """
-    Return the right Consumer instance dependent on what's in the cookie.
+    """Return the right Consumer instance dependent on what's in the cookie.
 
     :param kaka: The cookie
     :param sdb: The session database
@@ -112,25 +109,23 @@ class Consumer(Client):
         password=None,
         settings=None,
     ):
-        """
-        Initialize a Consumer instance.
+        """Initialize a Consumer instance.
 
         Keyword Args:
-            settings
+            settings:
                 Instance of :class:`OauthConsumerSettings` with configuration options.
                 Currently used settings are:
                  - verify_ssl
                  - client_cert
                  - timeout
-
-        :param session_db: Where info are kept about sessions acts like a
-            dictionary
-        :param client_config: Client configuration
-        :param server_info: Information about the server
-        :param authz_page:
-        :param response_type:
-        :param scope:
-        :param flow_type:
+            session_db: Where info are kept about sessions acts like a dictionary
+            client_config: DEPRECATED Client configuration
+            server_info: Information about the server
+            authz_page: Path to page after authorization - used in redirect_uri.
+            response_type: Requested response_type.
+            scope: Requested scope string.
+            flow_type: Used flow type.
+            password: Used client password (if used).
         """
         self.settings = settings or OauthConsumerSettings()
         if client_config is None:
@@ -183,8 +178,7 @@ class Consumer(Client):
         self._request = None
 
     def update(self, sid):
-        """
-        Update the instance variables from something stored in the session database.
+        """Update the instance variables from something stored in the session database.
 
         Will not overwrite something that's already there.
         Except for the grant dictionary !!
@@ -209,8 +203,7 @@ class Consumer(Client):
         return self
 
     def restore(self, sid):
-        """
-        Restore the instance variables from something stored in the session database.
+        """Restore the instance variables from something stored in the session database.
 
         :param sid: Session identifier
         """
@@ -218,8 +211,7 @@ class Consumer(Client):
             setattr(self, key, val)
 
     def _backup(self, sid):
-        """
-        Store dynamic instance variable values in the session store under a session identifier.
+        """Store dynamic instance variable values in the session store under a session identifier.
 
         :param sid: Session identifier
         """
@@ -235,8 +227,7 @@ class Consumer(Client):
         self.sdb[sid] = res
 
     def begin(self, baseurl, request, response_type="", **kwargs):
-        """
-        Begin the OAuth2 flow.
+        """Begin the OAuth2 flow.
 
         :param baseurl: The RPs base
         :param request: The Authorization query
@@ -246,7 +237,7 @@ class Consumer(Client):
         logger.debug("- begin -")
 
         # Store the request and the redirect uri used
-        self.redirect_uris = ["%s%s" % (baseurl, self.authz_page)]
+        self.redirect_uris = ["{}{}".format(baseurl, self.authz_page)]
         self._request = request
 
         # Put myself in the dictionary of sessions, keyed on session-id
@@ -256,7 +247,7 @@ class Consumer(Client):
         sid = stateID(request, self.seed)
         self.grant[sid] = Grant(seed=self.seed)
         self._backup(sid)
-        self.sdb["seed:%s" % self.seed] = sid
+        self.sdb["seed:{}".format(self.seed)] = sid
 
         if not response_type:
             response_type = self.response_type
@@ -268,19 +259,18 @@ class Consumer(Client):
             request_args={"state": sid, "response_type": response_type},
         )[0]
 
-        logger.debug("Redirecting to: %s" % (sanitize(location),))
+        logger.debug("Redirecting to: %s", sanitize(location))
 
         return sid, location
 
     def handle_authorization_response(self, query="", **kwargs):
-        """
-        We get redirect back to after authorization at the authorization server has happened.
+        """We get redirect back to after authorization at the authorization server has happened.
 
         :param query: The query part of the request
         :return: A AccessTokenResponse instance
         """
-        logger.debug("- authorization - %s flow -" % self.flow_type)
-        logger.debug("QUERY: %s" % sanitize(query))
+        logger.debug("- authorization - %s flow -", self.flow_type)
+        logger.debug("QUERY: %s", sanitize(query))
 
         if "code" in self.response_type:
             # Might be an error response
@@ -296,8 +286,8 @@ class Consumer(Client):
 
             try:
                 self.update(aresp["state"])
-            except KeyError:
-                raise UnknownState(aresp["state"])
+            except KeyError as err:
+                raise UnknownState(aresp["state"]) from err
 
             self._backup(aresp["state"])
 
@@ -311,16 +301,15 @@ class Consumer(Client):
 
             try:
                 self.update(atr["state"])
-            except KeyError:
-                raise UnknownState(atr["state"])
+            except KeyError as err:
+                raise UnknownState(atr["state"]) from err
 
             self.seed = self.grant[atr["state"]].seed
 
             return atr
 
     def complete(self, query, state, **kwargs):
-        """
-        Finish the flow.
+        """Finish the flow.
 
         :param query: The query part of the request URL
         :param state:
@@ -336,8 +325,8 @@ class Consumer(Client):
     def client_auth_info(self):
         if self.password:
             http_args = {"client_password": self.password}
-            request_args: Dict[str, str] = {}
-            extra_args: Dict[str, str] = {}
+            request_args: dict[str, str] = {}
+            extra_args: dict[str, str] = {}
         elif self.client_secret:
             http_args = {}
             request_args = {

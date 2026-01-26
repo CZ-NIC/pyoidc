@@ -25,7 +25,7 @@ else:
                 b"CONFIG = " + str(self.sp_conf.CONFIG).replace("%s", url)  # type: ignore
             )
             ntf.seek(0)
-            self.sp = Saml2Client(config_file="%s" % ntf.name)
+            self.sp = Saml2Client(config_file="{}".format(ntf.name))
             self.samlcache = self.sp_conf.SAML_CACHE  # type: ignore
 
         def __call__(self, userid, client_id, user_info_claims=None, **kwargs):

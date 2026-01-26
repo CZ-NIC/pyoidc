@@ -7,21 +7,20 @@ from oic import rndstr
 from oic.exception import MessageException
 from oic.oic import AccessTokenResponse
 from oic.oic.consumer import Consumer
-from oic.oic.message import BACK_CHANNEL_LOGOUT_EVENT
-from oic.oic.message import AccessTokenRequest
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import BackChannelLogoutRequest
-from oic.oic.message import LogoutToken
+from oic.oic.message import (
+    BACK_CHANNEL_LOGOUT_EVENT,
+    AccessTokenRequest,
+    AuthorizationRequest,
+    BackChannelLogoutRequest,
+    LogoutToken,
+)
 from oic.oic.provider import Provider
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.utils.authn.client import verify_client
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD, verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import AuthzHandling
 from oic.utils.jwt import JWT
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import keybundle_from_local_file
+from oic.utils.keyio import KeyBundle, KeyJar, keybundle_from_local_file
 from oic.utils.sdb import session_update
 from oic.utils.session_backend import DictSessionBackend
 from oic.utils.userinfo import UserInfo
@@ -345,7 +344,7 @@ class TestOICConsumerLogout:
         self.consumer.update("sid")
 
         with pytest.raises(AttributeError):
-            getattr(self.consumer, "foo")
+            self.consumer.foo  # type: ignore[attr-defined]
 
 
 def test_session_update():

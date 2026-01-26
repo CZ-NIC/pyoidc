@@ -1,4 +1,5 @@
 import importlib
+
 from oic.utils.authn.user import UserAuthnMethod
 
 __author__ = "regu0004"
@@ -10,18 +11,18 @@ class AuthnModule(UserAuthnMethod):
     FAILED_AUTHN = (None, True)
 
     def __call__(self, *args, **kwargs):
+        """Display user interaction.
+
+        :return: instance of oic.utils.http_util.Response.
         """
-        Display user interaction.
-        :return: instance of oic.utils.http_util.Response
-        """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def verify(self, *args, **kwargs):
+        """Callback to verify user input.
+
+        :return: username of the authenticated user.
         """
-        Callback to verify user input
-        :return: username of the authenticated user
-        """
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def make_cls_from_name(name):

@@ -1,7 +1,6 @@
 import json
 
-from oic.oic.message import REQUIRED_MESSAGE
-from oic.oic.message import JasonWebToken
+from oic.oic.message import REQUIRED_MESSAGE, JasonWebToken
 from oic.utils.time_util import utc_time_sans_frac
 
 __author__ = "roland"
@@ -12,10 +11,9 @@ class PJWT(JasonWebToken):
     c_param.update({"cnf": REQUIRED_MESSAGE})
 
 
-class PopJWT(object):
+class PopJWT:
     def __init__(self, iss="", aud="", lifetime=3600, in_a_while=0, sub="", jwe=None, keys=None):
-        """
-        Initialize the class.
+        """Initialize the class.
 
         :param iss: issuer
         :param aud: audience
@@ -50,8 +48,7 @@ class PopJWT(object):
         return PJWT(**kwargs)
 
     def pack_jwk(self, jwk):
-        """
-        Pack JWK.
+        """Pack JWK.
 
         :param jwk:
         :return:
@@ -61,8 +58,7 @@ class PopJWT(object):
         return pjwt
 
     def pack_jwe(self, jwe=None, jwk=None, kid=""):
-        """
-        Pack JWE.
+        """Pack JWE.
 
         :param jwe: An encrypted JWT
         :param jwk: A dictionary representing a JWK
@@ -84,8 +80,7 @@ class PopJWT(object):
         return pjwt
 
     def unpack(self, jwt, jwe=None):
-        """
-        Unpack object.
+        """Unpack object.
 
         :param jwt: A json encoded POP JWT
         :param jwe: A jwkest.jwe.JWE instance to use when decrypting

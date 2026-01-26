@@ -1,36 +1,25 @@
 import logging
 import os.path
 import warnings
-from typing import Dict
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Optional, Union
 
 from oic import rndstr
-from oic.exception import AuthzError
-from oic.exception import MessageException
-from oic.exception import NotForMe
-from oic.exception import PyoidcError
-from oic.oauth2.consumer import TokenError
-from oic.oauth2.consumer import UnknownState
-from oic.oauth2.consumer import stateID
+from oic.exception import AuthzError, MessageException, NotForMe, PyoidcError
+from oic.oauth2.consumer import TokenError, UnknownState, stateID
 from oic.oauth2.message import ErrorResponse
-from oic.oic import ENDPOINTS
-from oic.oic import Client
-from oic.oic.message import AccessTokenResponse
-from oic.oic.message import AuthorizationRequest
-from oic.oic.message import AuthorizationResponse
-from oic.oic.message import BackChannelLogoutRequest
-from oic.oic.message import Claims
-from oic.oic.message import ClaimsRequest
-from oic.oic.message import IdToken
+from oic.oic import ENDPOINTS, Client
+from oic.oic.message import (
+    AccessTokenResponse,
+    AuthorizationRequest,
+    AuthorizationResponse,
+    BackChannelLogoutRequest,
+    Claims,
+    ClaimsRequest,
+    IdToken,
+)
 from oic.utils import http_util
 from oic.utils.sanitize import sanitize
-from oic.utils.sdb import DictSessionBackend
-from oic.utils.sdb import SessionBackend
-from oic.utils.sdb import session_extended_get
-from oic.utils.sdb import session_get
-from oic.utils.sdb import session_update
+from oic.utils.sdb import DictSessionBackend, SessionBackend, session_extended_get, session_get, session_update
 
 __author__ = "rohe0002"
 
@@ -38,8 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def factory(kaka, sdb, config):
-    """
-    Return the right Consumer instance dependent on what's in the cookie.
+    """Return the right Consumer instance dependent on what's in the cookie.
 
     :param kaka: The cookie
     :param sdb: The session database
@@ -57,8 +45,7 @@ def factory(kaka, sdb, config):
 
 
 def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
-    """
-    Create userinfo request based on claims.
+    """Create userinfo request based on claims.
 
     config example::
 
@@ -74,8 +61,7 @@ def build_userinfo_claims(claims, sformat="signed", locale="us-en"):
 
 
 def clean_response(aresp):
-    """
-    Create a new instance with only the standard attributes.
+    """Create a new instance with only the standard attributes.
 
     :param aresp: The original AccessTokenResponse
     :return: An AccessTokenResponse instance
@@ -135,8 +121,7 @@ class Consumer(Client):
         client_prefs=None,
         sso_db=None,
     ):
-        """
-        Initialize a Consumer instance.
+        """Initialize a Consumer instance.
 
         :param session_db: Where info are kept about sessions
         :param config: Configuration of the consumer
@@ -168,6 +153,7 @@ class Consumer(Client):
             warnings.warn(
                 "Please use `SessionBackend` to ensure proper API for the database.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         self.sdb = session_db
 
@@ -176,6 +162,7 @@ class Consumer(Client):
                 warnings.warn(
                     "Please use `SessionBackend` to ensure proper API for the database.",
                     DeprecationWarning,
+                    stacklevel=2,
                 )
             self.sso_db: SessionBackend = sso_db
         else:
@@ -191,8 +178,7 @@ class Consumer(Client):
         self.secret_type = "Bearer"  # nosec
 
     def update(self, sid):
-        """
-        Update the instance variables from something stored in the session database.
+        """Update the instance variables from something stored in the session database.
 
         Will not overwrite something that's already there.
         Except for the grant dictionary !!
@@ -213,8 +199,7 @@ class Consumer(Client):
                 setattr(self, key, val)
 
     def restore(self, sid):
-        """
-        Restore the instance variables from something stored in the session database.
+        """Restore the instance variables from something stored in the session database.
 
         :param sid: Session identifier
         """
@@ -222,25 +207,24 @@ class Consumer(Client):
             setattr(self, key, val)
 
     def dictionary(self):
-        return dict([(k, v) for k, v in self.__dict__.items() if k not in IGNORE])
+        return {k: v for k, v in self.__dict__.items() if k not in IGNORE}
 
     def _backup(self, sid):
-        """
-        Store instance variable values in the session store under a session identifier.
+        """Store instance variable values in the session store under a session identifier.
 
         :param sid: Session identifier
         """
         self.sdb[sid] = self.dictionary()
 
-    def begin(self, scope="", response_type="", use_nonce=False, path="", prompt=None, **kwargs):
-        """
-        Begin the OIDC flow.
+    def begin(self, scope="", response_type="", use_nonce=False, path="", prompt=None, **kwargs):  # noqa: C901 # was 20
+        """Begin the OIDC flow.
 
         :param scope: Defines which user info claims is wanted
         :param response_type: Controls the parameters returned in the response from the Authorization Endpoint
         :param use_nonce: If not implicit flow nonce is optional. This defines if it should be used anyway.
         :param path: The path part of the redirect URL
-        :param prompt: Specifies whether the authorization server should prompt the user for reauthentication or consent. Typically "none", "login", "consent", "select_account"
+        :param prompt: Specifies whether the authorization server should prompt the user for reauthentication
+                       or consent. Typically "none", "login", "consent", "select_account".
         :return: A 2-tuple, session identifier and URL to which the user should be redirected
         """
         _log_info = logger.info
@@ -253,12 +237,12 @@ class Consumer(Client):
             if _page.startswith("/"):
                 self.redirect_uris = [path + _page]
             else:
-                self.redirect_uris = ["%s/%s" % (path, _page)]
+                self.redirect_uris = ["{}/{}".format(path, _page)]
         else:
             if _page.startswith("/"):
                 self.redirect_uris = [path + _page[1:]]
             else:
-                self.redirect_uris = ["%s/%s" % (path, _page)]
+                self.redirect_uris = ["{}/{}".format(path, _page)]
 
         # Put myself in the dictionary of sessions, keyed on session-id
         if not self.seed:
@@ -273,7 +257,7 @@ class Consumer(Client):
         self.grant[sid] = self.grant_class(seed=self.seed)
 
         self._backup(sid)
-        self.sdb["seed:%s" % self.seed] = sid
+        self.sdb["seed:{}".format(self.seed)] = sid
         self.sso_db[sid] = {}
 
         args = {
@@ -322,7 +306,7 @@ class Consumer(Client):
                 fid = open(filename, mode="w")
                 fid.write(id_request)
                 fid.close()
-                _webname = "%s%s/%s" % (path, _webpath, _name)
+                _webname = "{}{}/{}".format(path, _webpath, _name)
                 areq["request_uri"] = _webname
                 self.request_uri = _webname
                 self._backup(sid)
@@ -335,7 +319,7 @@ class Consumer(Client):
         location = areq.request(self.authorization_endpoint)
 
         if self.debug:
-            _log_info("Redirecting to: %s" % location)
+            _log_info("Redirecting to: {}".format(location))
 
         self.authz_req[areq["state"]] = areq
         return sid, location
@@ -346,16 +330,16 @@ class Consumer(Client):
         _log_info("Expect Authorization Response")
         aresp = self.parse_response(AuthorizationResponse, info=query, sformat="urlencoded", keyjar=self.keyjar)
         if isinstance(aresp, ErrorResponse):
-            _log_info("ErrorResponse: %s" % sanitize(aresp))
+            _log_info("ErrorResponse: {}".format(sanitize(aresp)))
             raise AuthzError(aresp.get("error"), aresp)
 
-        _log_info("Aresp: %s" % sanitize(aresp))
+        _log_info("Aresp: {}".format(sanitize(aresp)))
 
         _state = aresp["state"]
         try:
             self.update(_state)
-        except KeyError:
-            raise UnknownState(_state, aresp)
+        except KeyError as err:
+            raise UnknownState(_state, aresp) from err
 
         self.redirect_uris = [self.sdb[_state]["redirect_uris"]]
         return aresp, _state
@@ -364,14 +348,13 @@ class Consumer(Client):
         self, query="", **kwargs
     ) -> Union[
         http_util.BadRequest,
-        Tuple[
+        tuple[
             Optional[AuthorizationResponse],
             Optional[AccessTokenResponse],
             Optional[IdToken],
         ],
     ]:
-        """
-        Parse authorization response from server.
+        """Parse authorization response from server.
 
         Couple of cases
         ["code"]
@@ -390,7 +373,7 @@ class Consumer(Client):
         if not query:
             return http_util.BadRequest("Missing query")
 
-        _log_info("response: %s" % sanitize(query))
+        _log_info("response: {}".format(sanitize(query)))
 
         if "algs" not in kwargs:
             kwargs["algs"] = self.sign_enc_algs("id_token")
@@ -460,8 +443,7 @@ class Consumer(Client):
         authn_method: str = "client_secret_basic",
         session_state: Optional[str] = None,
     ):
-        """
-        Do the access token request, the last step in a code flow.
+        """Do the access token request, the last step in a code flow.
 
         'session_state' is an optional parameter that can be provided if the Authorization Server support OIDC Session
         Management.
@@ -493,7 +475,7 @@ class Consumer(Client):
             authn_method=authn_method,
         )
 
-        logger.info("Access Token Response: %s" % sanitize(resp))
+        logger.info("Access Token Response: %s", sanitize(resp))
 
         if resp.type() == "ErrorResponse":
             raise TokenError(resp.error, resp)
@@ -525,8 +507,7 @@ class Consumer(Client):
         pass
 
     def check_session(self):
-        """
-        Check session endpoint.
+        """Check session endpoint.
 
         With python you could use PyQuery to get the onclick attribute of each
         anchor tag, parse that with a regular expression to get the placeId,
@@ -549,9 +530,8 @@ class Consumer(Client):
 
     # LOGOUT related
 
-    def backchannel_logout(self, request: Optional[str] = None, request_args: Optional[Dict] = None) -> str:
-        """
-        Receives a back channel logout request.
+    def backchannel_logout(self, request: Optional[str] = None, request_args: Optional[dict] = None) -> str:
+        """Receives a back channel logout request.
 
         :param request: A urlencoded request
         :param request_args: The request as a dictionary
@@ -569,7 +549,7 @@ class Consumer(Client):
         try:
             req.verify(**kwargs)
         except (MessageException, ValueError, NotForMe) as err:
-            raise MessageException("Bogus logout request: {}".format(err))
+            raise MessageException("Bogus logout request: {}".format(err)) from err
 
         # Find the subject through 'sid' or 'sub'
 

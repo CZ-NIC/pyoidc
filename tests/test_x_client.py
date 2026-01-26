@@ -14,8 +14,7 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
 from oic.utils.authz import Implicit
 from oic.utils.http_util import Response
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import KeyJar
+from oic.utils.keyio import KeyBundle, KeyJar
 
 __author__ = "roland"
 

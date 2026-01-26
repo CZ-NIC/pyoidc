@@ -1,13 +1,12 @@
 __author__ = "rolandh"
 
 
-class ClaimsMode(object):
+class ClaimsMode:
     def __init__(self, user2mode):
         self.user2mode = user2mode
 
     def aggregate(self, uid, info=None):
-        """
-        Determine whether the claims for a user should be aggregated.
+        """Determine whether the claims for a user should be aggregated.
 
         :param uid: user id
         :param info: claims

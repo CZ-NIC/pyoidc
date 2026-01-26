@@ -1,10 +1,6 @@
 #!/usr/bin/env python
-import sys
-from base64 import b64decode
-from base64 import b64encode
-from typing import Dict
-from typing import Union
-from typing import cast
+from base64 import b64decode, b64encode
+from typing import Literal, Union, cast
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
@@ -16,14 +12,9 @@ from Cryptodome.Cipher._mode_siv import SivMode
 
 from oic.utils import tobytes
 
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
 __author__ = "rolandh"
 
-POSTFIX_MODE: Dict[str, Union[Literal[2], Literal[3]]] = {
+POSTFIX_MODE: dict[str, Union[Literal[2], Literal[3]]] = {
     "cbc": AES.MODE_CBC,
     "cfb": AES.MODE_CFB,
     "ecb": AES.MODE_CFB,
@@ -37,8 +28,7 @@ class AESError(Exception):
 
 
 def build_cipher(key, iv, alg="aes_128_cbc"):
-    """
-    Create cipher.
+    """Create cipher.
 
     :param key: encryption key
     :param iv: init vector
@@ -51,7 +41,7 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
         iv = Random.new().read(AES.block_size)
     else:
         if len(iv) != AES.block_size:
-            raise AESError("IV must have the AES block size of %d" % AES.block_size)
+            raise AESError(f"IV must have the AES block size of {AES.block_size}")
 
     if bits not in ["128", "192", "256"]:
         raise AESError("Unsupported key length")
@@ -61,7 +51,7 @@ def build_cipher(key, iv, alg="aes_128_cbc"):
     try:
         return AES.new(tobytes(key), POSTFIX_MODE[cmode], tobytes(iv)), iv
     except KeyError:
-        raise AESError("Unsupported chaining mode")
+        raise AESError("Unsupported chaining mode") from None
 
 
 def encrypt(
@@ -73,8 +63,7 @@ def encrypt(
     b64enc=True,
     block_size=BLOCK_SIZE,
 ):
-    """
-    Encrypt message.
+    """Encrypt message.
 
     :param key: The encryption key
     :param iv: init vector
@@ -105,8 +94,7 @@ def encrypt(
 
 
 def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
-    """
-    Decrypt the message.
+    """Decrypt the message.
 
     :param key: The encryption key
     :param iv: init vector
@@ -125,9 +113,8 @@ def decrypt(key, msg, iv=None, padding="PKCS#7", b64dec=True):
     return res.decode("utf-8")
 
 
-class AEAD(object):
-    """
-    Authenticated Encryption with Associated Data Wrapper.
+class AEAD:
+    """Authenticated Encryption with Associated Data Wrapper.
 
     This does encryption and integrity check in one
     operation, so you do not need to combine HMAC + encryption
@@ -171,8 +158,7 @@ class AEAD(object):
         )
 
     def add_associated_data(self, data):
-        """
-        Add data to include in the MAC.
+        """Add data to include in the MAC.
 
         This data is protected by the MAC but not encrypted.
 
@@ -184,8 +170,7 @@ class AEAD(object):
         self.kernel.update(data)
 
     def encrypt_and_tag(self, cleardata):
-        """
-        Encrypt the given data.
+        """Encrypt the given data.
 
         Encrypts the given data and returns the encrypted
         data and the MAC to later verify and decrypt the data.
@@ -199,8 +184,7 @@ class AEAD(object):
         return self.kernel.encrypt_and_digest(cleardata)
 
     def decrypt_and_verify(self, cipherdata, tag):
-        """
-        Decrypt and verify.
+        """Decrypt and verify.
 
         Checks the integrity against the tag and decrypts the
         data. Any associated data used during encryption
@@ -216,4 +200,4 @@ class AEAD(object):
         try:
             return self.kernel.decrypt_and_verify(cipherdata, tag)
         except ValueError:
-            raise AESError("Failed to verify data")
+            raise AESError("Failed to verify data") from None

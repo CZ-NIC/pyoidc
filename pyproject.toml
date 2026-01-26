@@ -7,7 +7,11 @@ target-version = "py39"
 line-length = 120
 
 [tool.ruff.lint]
-ignore = ["D203", "D212", "E203", "C901", "D413"]
+select = ["E4", "E7", "E9", "F", "W", "I", "G", "ISC", "RSE", "UP", "D", "B", "C"]
+ignore = ["UP032", "D1"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["D1", "B015", "B018"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 120

@@ -1,9 +1,7 @@
 """Client management databases."""
 
-from abc import ABCMeta
-from abc import abstractmethod
-from urllib.parse import quote
-from urllib.parse import urljoin
+from abc import ABCMeta, abstractmethod
+from urllib.parse import quote, urljoin
 
 import requests
 
@@ -11,8 +9,7 @@ from oic.oauth2.exception import NoClientInfoReceivedError
 
 
 class BaseClientDatabase(metaclass=ABCMeta):
-    """
-    Base implementation for Client management database.
+    """Base implementation for Client management database.
 
     Custom Client databases should derive from this class.
     They must implement the following methods:
@@ -22,9 +19,6 @@ class BaseClientDatabase(metaclass=ABCMeta):
     * ``keys(self)``
     * ``items(self)``
     """
-
-    def __init__(self):
-        """Perform initialization of storage. Derived classes may override."""
 
     @abstractmethod
     def __getitem__(self, key):

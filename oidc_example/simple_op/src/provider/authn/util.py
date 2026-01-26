@@ -1,9 +1,9 @@
 import json
 
 
-class JSONDictDB(object):
+class JSONDictDB:
     def __init__(self, json_path):
-        with open(json_path, "r") as f:
+        with open(json_path) as f:
             self._db = json.load(f)
 
     def __getitem__(self, item):

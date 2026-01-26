@@ -6,18 +6,14 @@ import os
 import time
 from http import client
 from http.cookies import SimpleCookie
-from typing import List
-from typing import Tuple
 from urllib.parse import quote
 
 from jwkest import as_unicode
 
 from oic import rndstr
-from oic.exception import ImproperlyConfigured
-from oic.exception import UnsupportedMethod
+from oic.exception import ImproperlyConfigured, UnsupportedMethod
 from oic.utils import time_util
-from oic.utils.aes import AEAD
-from oic.utils.aes import AESError
+from oic.utils.aes import AEAD, AESError
 
 __author__ = "rohe0002"
 
@@ -34,7 +30,7 @@ CORS_HEADERS = [
 OAUTH2_NOCACHE_HEADERS = [("Pragma", "no-cache"), ("Cache-Control", "no-store")]
 
 
-class Response(object):
+class Response:
     _template = ""
     _status_code = 200
     _content_type = "text/html"
@@ -50,7 +46,7 @@ class Response(object):
 
         self.message = message
 
-        self.headers: List[Tuple[str, str]] = []
+        self.headers: list[tuple[str, str]] = []
         self.headers.extend(kwargs.get("headers", []))
         _content_type = kwargs.get("content", self._content_type)
 
@@ -215,8 +211,7 @@ def factory(code, message, **kwargs):
 
 
 def geturl(environ, query=True, path=True):
-    """
-    Rebuild a request URL (from PEP 333).
+    """Rebuild a request URL (from PEP 333).
 
     :param query: Is QUERY_STRING included in URI (default: True)
     :param path: Is path included in URI (default: True)
@@ -253,8 +248,7 @@ def _expiration(timeout, time_format=None):
 
 
 def cookie_signature(key, *parts):
-    """
-    Generate a cookie signature.
+    """Generate a cookie signature.
 
     :param key: The HMAC key to use.
     :type key: bytes
@@ -274,8 +268,7 @@ def cookie_signature(key, *parts):
 
 
 def verify_cookie_signature(sig, key, *parts):
-    """
-    Constant time verifier for signatures.
+    """Constant time verifier for signatures.
 
     :param sig: The signature hexdigest to check
     :type sig: str
@@ -290,8 +283,7 @@ def verify_cookie_signature(sig, key, *parts):
 
 
 def _make_hashed_key(parts, hashfunc="sha256"):
-    """
-    Construct a key via hashing the parts.
+    """Construct a key via hashing the parts.
 
     If the parts do not have enough entropy of their own, this doesn't help.
     The size of the hash digest determines the size.
@@ -318,8 +310,7 @@ def make_cookie(
     httponly=True,
     same_site="",
 ):
-    """
-    Create and return a cookie.
+    """Create and return a cookie.
 
     The cookie is secured against tampering.
 
@@ -394,7 +385,7 @@ def make_cookie(
         ]
 
     cookie[name] = (b"|".join(cookie_payload)).decode("utf-8")
-    cookie[name]._reserved[str("samesite")] = str("SameSite")  # type: ignore
+    cookie[name]._reserved["samesite"] = "SameSite"  # type: ignore
 
     if path:
         cookie[name]["path"] = path
@@ -413,8 +404,7 @@ def make_cookie(
 
 
 def parse_cookie(name, seed, kaka, enc_key=None):
-    """
-    Parse and verify a cookie value.
+    """Parse and verify a cookie value.
 
     Parses a cookie created by `make_cookie` and verifies it has not been tampered with.
 
@@ -443,7 +433,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
         # verify the cookie signature
         cleartext, timestamp, sig = parts
         if not verify_cookie_signature(sig, seed, cleartext, timestamp):
-            raise InvalidCookieSign()
+            raise InvalidCookieSign
         return cleartext, timestamp
     elif len(parts) == 4:
         # encrypted and signed
@@ -462,7 +452,7 @@ def parse_cookie(name, seed, kaka, enc_key=None):
         try:
             cleartext = crypt.decrypt_and_verify(ciphertext, tag)
         except AESError:
-            raise InvalidCookieSign()
+            raise InvalidCookieSign from None
         return cleartext.decode("utf-8"), timestamp
     return None
 
@@ -558,7 +548,7 @@ def wsgi_wrapper(environ, start_response, func, **kwargs):
         raise
 
 
-class CookieDealer(object):
+class CookieDealer:
     @property
     def srv(self):
         return self._srv
@@ -585,7 +575,7 @@ class CookieDealer(object):
             raise ImproperlyConfigured(msg)
 
         if not getattr(srv, "seed", None):
-            setattr(srv, "seed", rndstr().encode("utf-8"))
+            srv.seed = rndstr().encode("utf-8")
 
     def delete_cookie(self, cookie_name=None):
         return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1, kill=True)
@@ -634,8 +624,7 @@ class CookieDealer(object):
         return self.get_cookie_value(cookie, cookie_name)
 
     def get_cookie_value(self, cookie=None, cookie_name=None):
-        """
-        Return information stored in the Cookie.
+        """Return information stored in the Cookie.
 
         :param cookie:
         :param cookie_name: The name of the cookie I'm looking for
