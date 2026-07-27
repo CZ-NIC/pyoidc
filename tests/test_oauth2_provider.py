@@ -294,16 +294,20 @@ class TestProvider:
             (
                 "oic.oauth2",
                 "DEBUG",
-                "Initial response parsing => \"{'state': "
-                f"'{state}', 'code': "
-                "'<REDACTED>', 'iss': 'https://example.com/as', 'client_id': "
-                "'client1'}\"",
+                (
+                    "Initial response parsing => \"{'state': "
+                    f"'{state}', 'code': "
+                    "'<REDACTED>', 'iss': 'https://example.com/as', 'client_id': "
+                    "'client1'}\""
+                ),
             ),
             (
                 "oic.oauth2",
                 "DEBUG",
-                "Verify response with {'client_id': 'client1', 'iss': "
-                "'https://example.com/as', 'keyjar': <KeyJar(issuers=[])>}",
+                (
+                    "Verify response with {'client_id': 'client1', 'iss': "
+                    "'https://example.com/as', 'keyjar': <KeyJar(issuers=[])>}"
+                ),
             ),
         )
 
@@ -357,38 +361,48 @@ class TestProvider:
             (
                 "oic.oauth2.provider",
                 "DEBUG",
-                "token_request: "
-                "grant_type=authorization_code&code=<REDACTED>&redirect_uri=http%3A%2F%2Fexample.com%2Fauthz&client_id=client1&client_secret=<REDACTED>",
+                (
+                    "token_request: "
+                    "grant_type=authorization_code&code=<REDACTED>&redirect_uri=http%3A%2F%2Fexample.com%2Fauthz&client_id=client1&client_secret=<REDACTED>"
+                ),
             ),
             (
                 "oic.utils.authn.client",
                 "DEBUG",
-                "REQ: {'grant_type': 'authorization_code', 'code': '<REDACTED>', "
-                "'redirect_uri': 'http://example.com/authz', 'client_id': 'client1', "
-                "'client_secret': '<REDACTED>'}",
+                (
+                    "REQ: {'grant_type': 'authorization_code', 'code': '<REDACTED>', "
+                    "'redirect_uri': 'http://example.com/authz', 'client_id': 'client1', "
+                    "'client_secret': '<REDACTED>'}"
+                ),
             ),
             ("oic.utils.authn.client", "DEBUG", "Verified Client ID: client1"),
             (
                 "oic.oauth2.provider",
                 "DEBUG",
-                "AccessTokenRequest: {'grant_type': 'authorization_code', 'code': "
-                "'<REDACTED>', 'redirect_uri': 'http://example.com/authz', 'client_id': "
-                "'client1', 'client_secret': '<REDACTED>'}",
+                (
+                    "AccessTokenRequest: {'grant_type': 'authorization_code', 'code': "
+                    "'<REDACTED>', 'redirect_uri': 'http://example.com/authz', 'client_id': "
+                    "'client1', 'client_secret': '<REDACTED>'}"
+                ),
             ),
             (
                 "oic.oauth2.provider",
                 "DEBUG",
-                "_tinfo: {'oauth_state': 'token', 'sub': 'sub', 'authzreq': '', 'client_id': "
-                "'client1', 'code': '<REDACTED>', 'code_used': True, 'redirect_uri': "
-                "'http://example.com/authz', 'access_token': '<REDACTED>', "
-                "'access_token_scope': '?', 'token_type': 'Bearer', 'refresh_token': "
-                "'<REDACTED>'}",
+                (
+                    "_tinfo: {'oauth_state': 'token', 'sub': 'sub', 'authzreq': '', 'client_id': "
+                    "'client1', 'code': '<REDACTED>', 'code_used': True, 'redirect_uri': "
+                    "'http://example.com/authz', 'access_token': '<REDACTED>', "
+                    "'access_token_scope': '?', 'token_type': 'Bearer', 'refresh_token': "
+                    "'<REDACTED>'}"
+                ),
             ),
             (
                 "oic.oauth2.provider",
                 "DEBUG",
-                "AccessTokenResponse: {'access_token': '<REDACTED>', 'token_type': 'Bearer', "
-                "'refresh_token': '<REDACTED>'}",
+                (
+                    "AccessTokenResponse: {'access_token': '<REDACTED>', 'token_type': 'Bearer', "
+                    "'refresh_token': '<REDACTED>'}"
+                ),
             ),
         )
 
