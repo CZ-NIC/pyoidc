@@ -4,7 +4,7 @@ import os
 import warnings
 from base64 import b64encode
 from json import JSONDecodeError
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from jwkest import BadSyntax, as_bytes, jwe, jws, jwt
@@ -318,7 +318,7 @@ class Client(oauth2.Client):
         client_cert=None,
         requests_dir="requests",
         message_factory: type[MessageFactory] = OIDCMessageFactory,
-        settings: Optional[PyoidcSettings] = None,
+        settings: PyoidcSettings | None = None,
     ):
         """Initialize the instance.
 
@@ -823,7 +823,7 @@ class Client(oauth2.Client):
     def user_info_request(self, method="GET", state="", scope="", **kwargs):  # noqa: C901 # was 20
         uir = self.message_factory.get_request_type("userinfo_endpoint")()
         logger.debug("[user_info_request]: kwargs:%s", sanitize(kwargs))
-        token: Optional[Token] = None
+        token: Token | None = None
         if "token" in kwargs:
             if kwargs["token"]:
                 uir["access_token"] = kwargs["token"]
@@ -1431,12 +1431,12 @@ class Server(oauth2.Server):
 
     def __init__(
         self,
-        verify_ssl: Optional[bool] = None,
-        keyjar: Optional[KeyJar] = None,
-        client_cert: Optional[Union[str, tuple[str, str]]] = None,
-        timeout: Optional[float] = None,
+        verify_ssl: bool | None = None,
+        keyjar: KeyJar | None = None,
+        client_cert: str | tuple[str, str] | None = None,
+        timeout: float | None = None,
         message_factory: type[MessageFactory] = OIDCMessageFactory,
-        settings: Optional[PyoidcSettings] = None,
+        settings: PyoidcSettings | None = None,
     ):
         """Initialize the server."""
         self.settings = settings or OicServerSettings()
@@ -1527,7 +1527,7 @@ class Server(oauth2.Server):
         if self.events:
             self.events.store("Request", _req)
 
-        _req_req: Union[Message, dict[str, Any]] = {}
+        _req_req: Message | dict[str, Any] = {}
         try:
             _request = _req["request"]
         except KeyError:

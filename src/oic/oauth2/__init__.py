@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 from urllib.parse import urlparse
 
 import requests
@@ -164,7 +164,7 @@ class Client(PBase):
         client_cert=None,
         timeout=None,
         message_factory: type[MessageFactory] = OauthMessageFactory,
-        settings: Optional[PyoidcSettings] = None,
+        settings: PyoidcSettings | None = None,
     ):
         """Initialize the instance.
 
@@ -222,11 +222,11 @@ class Client(PBase):
             self.settings.timeout = timeout
         PBase.__init__(self, keyjar=keyjar, settings=self.settings)
 
-        self.sso_db: Optional[SessionBackend] = None
+        self.sso_db: SessionBackend | None = None
         self.client_id = client_id
         self.client_authn_method = client_authn_method
 
-        self.nonce: Optional[str] = None
+        self.nonce: str | None = None
 
         self.message_factory = message_factory
         self.grant: dict[str, Grant] = {}
@@ -237,9 +237,9 @@ class Client(PBase):
         self.response_type = ["code"]
 
         # service endpoints
-        self.authorization_endpoint: Optional[str] = None
-        self.token_endpoint: Optional[str] = None
-        self.token_revocation_endpoint: Optional[str] = None
+        self.authorization_endpoint: str | None = None
+        self.token_endpoint: str | None = None
+        self.token_revocation_endpoint: str | None = None
 
         self.request2endpoint = REQUEST2ENDPOINT
         self.response2error: dict[str, list] = RESPONSE2ERROR
@@ -401,7 +401,7 @@ class Client(PBase):
 
     def construct_AuthorizationRequest(
         self,
-        request: Optional[type[AuthorizationRequest]] = None,
+        request: type[AuthorizationRequest] | None = None,
         request_args=None,
         extra_args=None,
         **kwargs,
@@ -427,14 +427,11 @@ class Client(PBase):
 
     def construct_AccessTokenRequest(
         self,
-        request: Optional[
-            Union[
-                type[AccessTokenRequest],
-                type[ROPCAccessTokenRequest],
-                type[CCAccessTokenRequest],
-                type[ExtensionTokenRequest],
-            ]
-        ] = None,
+        request: type[AccessTokenRequest]
+        | type[ROPCAccessTokenRequest]
+        | type[CCAccessTokenRequest]
+        | type[ExtensionTokenRequest]
+        | None = None,
         request_args=None,
         extra_args=None,
         **kwargs,
@@ -476,7 +473,7 @@ class Client(PBase):
 
     def construct_RefreshAccessTokenRequest(
         self,
-        request: Optional[type[RefreshAccessTokenRequest]] = None,
+        request: type[RefreshAccessTokenRequest] | None = None,
         request_args=None,
         extra_args=None,
         **kwargs,
@@ -499,7 +496,7 @@ class Client(PBase):
 
     def construct_ResourceRequest(
         self,
-        request: Optional[type[ResourceRequest]] = None,
+        request: type[ResourceRequest] | None = None,
         request_args=None,
         extra_args=None,
         **kwargs,
@@ -598,7 +595,7 @@ class Client(PBase):
     def parse_response(  # noqa: C901 # was 23
         self,
         response: type[Message],
-        info: Union[str, dict] = "",
+        info: str | dict = "",
         sformat: ENCODINGS = "json",
         state: str = "",
         **kwargs,
@@ -711,11 +708,11 @@ class Client(PBase):
     def parse_request_response(
         self,
         reqresp: requests.Response,
-        response: Optional[type[Message]] = None,
-        body_type: Optional[ENCODINGS] = None,
+        response: type[Message] | None = None,
+        body_type: ENCODINGS | None = None,
         state="",
         **kwargs,
-    ) -> Union[Message, requests.Response]:
+    ) -> Message | requests.Response:
         # Handle the early return stuff
         if reqresp.status_code in [302, 303]:  # redirect
             return reqresp
@@ -762,7 +759,7 @@ class Client(PBase):
     def request_and_return(
         self,
         url: str,
-        response: Optional[type[Message]] = None,
+        response: type[Message] | None = None,
         method="GET",
         body=None,
         body_type: ENCODINGS = "json",
@@ -962,7 +959,7 @@ class Client(PBase):
         request_args=None,
         extra_args=None,
         http_args=None,
-        response: Optional[type[Message]] = None,
+        response: type[Message] | None = None,
         authn_method="",
     ) -> Message:
         url, body, ht_args, _ = self.request_info(
@@ -1126,12 +1123,12 @@ class Server(PBase):
 
     def __init__(
         self,
-        verify_ssl: Optional[bool] = None,
-        keyjar: Optional[KeyJar] = None,
-        client_cert: Optional[Union[str, tuple[str, str]]] = None,
-        timeout: Optional[float] = None,
+        verify_ssl: bool | None = None,
+        keyjar: KeyJar | None = None,
+        client_cert: str | tuple[str, str] | None = None,
+        timeout: float | None = None,
         message_factory: type[MessageFactory] = OauthMessageFactory,
-        settings: Optional[PyoidcSettings] = None,
+        settings: PyoidcSettings | None = None,
     ):
         """Initialize the server.
 
@@ -1188,9 +1185,7 @@ class Server(PBase):
         req.verify()
         return req
 
-    def parse_authorization_request(
-        self, url: Optional[str] = None, query: Optional[dict] = None
-    ) -> AuthorizationRequest:
+    def parse_authorization_request(self, url: str | None = None, query: dict | None = None) -> AuthorizationRequest:
         request = self.message_factory.get_request_type("authorization_endpoint")
         return self.parse_url_request(request, url, query)
 
@@ -1198,7 +1193,7 @@ class Server(PBase):
         self,
         request: type[Message] = AuthorizationRequest,
         txt: str = "",
-        keyjar: Optional[KeyJar] = None,
+        keyjar: KeyJar | None = None,
         verify: bool = True,
         **kwargs,
     ) -> Message:
@@ -1210,15 +1205,15 @@ class Server(PBase):
             areq.verify()
         return areq
 
-    def parse_body_request(self, request: type[Message] = AccessTokenRequest, body: Optional[str] = None):
+    def parse_body_request(self, request: type[Message] = AccessTokenRequest, body: str | None = None):
         req = request().deserialize(body, "urlencoded")
         req.verify()
         return req
 
-    def parse_token_request(self, body: Optional[str] = None) -> AccessTokenRequest:
+    def parse_token_request(self, body: str | None = None) -> AccessTokenRequest:
         request = self.message_factory.get_request_type("token_endpoint")
         return self.parse_body_request(request, body)
 
-    def parse_refresh_token_request(self, body: Optional[str] = None) -> RefreshAccessTokenRequest:
+    def parse_refresh_token_request(self, body: str | None = None) -> RefreshAccessTokenRequest:
         request = self.message_factory.get_request_type("refresh_endpoint")
         return self.parse_body_request(request, body)

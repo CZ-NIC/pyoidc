@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from base64 import b64decode, b64encode
-from typing import Literal, Union, cast
+from typing import Literal, cast
 
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
@@ -14,7 +14,7 @@ from oic.utils import tobytes
 
 __author__ = "rolandh"
 
-POSTFIX_MODE: dict[str, Union[Literal[2], Literal[3]]] = {
+POSTFIX_MODE: dict[str, Literal[2] | Literal[3]] = {
     "cbc": AES.MODE_CBC,
     "cfb": AES.MODE_CFB,
     "ecb": AES.MODE_CFB,
@@ -153,7 +153,7 @@ class AEAD:
         self.mode = mode
         self.iv = iv
         self.kernel = cast(
-            Union[CcmMode, EaxMode, GcmMode, SivMode, OcbMode],
+            CcmMode | EaxMode | GcmMode | SivMode | OcbMode,
             AES.new(self.key, self.mode, self.iv),
         )
 

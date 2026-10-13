@@ -6,7 +6,6 @@ import sys
 import traceback
 import warnings
 from functools import cmp_to_key
-from typing import Optional, Union
 from urllib.parse import parse_qs, unquote, urljoin, urlparse
 
 from jwkest import jws
@@ -196,7 +195,7 @@ class Provider:
         message_factory=OauthMessageFactory,
         capabilities=None,
         jwks_uri="",
-        settings: Optional[PyoidcSettings] = None,
+        settings: PyoidcSettings | None = None,
     ):
         self.settings = settings or OauthProviderSettings()
         if verify_ssl is not None:
@@ -263,7 +262,7 @@ class Provider:
         self.session_cookie_name = "pyoic_session"
         self.sso_cookie_name = "pyoidc_sso"
         self.baseurl = baseurl
-        self.keyjar: Optional[KeyJar] = None
+        self.keyjar: KeyJar | None = None
         self.trace = None
         self.events = None
         self.scopes = ["offline_access"]
@@ -377,7 +376,7 @@ class Provider:
         treated as a dictionary.
         """
         _pinfo = self.provider_features()
-        not_supported: dict[str, Union[str, list[str]]] = {}
+        not_supported: dict[str, str | list[str]] = {}
         for key, val in capabilities.items():
             if isinstance(val, str):
                 if val not in _pinfo.get(key, ""):

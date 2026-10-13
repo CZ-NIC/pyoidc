@@ -3,7 +3,7 @@ import logging
 import warnings
 from http import cookiejar as cookielib
 from http.cookies import CookieError, SimpleCookie
-from typing import Optional, cast
+from typing import cast
 
 import requests
 
@@ -27,7 +27,7 @@ class PBase:
         keyjar=None,
         client_cert=None,
         timeout=None,
-        settings: Optional[PyoidcSettings] = None,
+        settings: PyoidcSettings | None = None,
     ):
         """Initialize the instance.
 

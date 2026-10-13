@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Optional, Union
+from typing import Any, TypeAlias
 from urllib.parse import urlsplit
 
 import requests
@@ -47,7 +47,7 @@ class JWKSError(KeyIOError):
 
 
 K2C = {"RSA": RSAKey, "EC": ECKey, "oct": SYMKey}
-KEYS = Union[RSAKey, SYMKey, ECKey]
+KEYS: TypeAlias = RSAKey | SYMKey | ECKey
 
 
 class KeyBundle:
@@ -80,7 +80,7 @@ class KeyBundle:
         self.cache_time = cache_time
         self.time_out = 0
         self.etag = ""
-        self.source: Optional[str] = None
+        self.source: str | None = None
         self.fileformat = fileformat.lower()
         self.keytype = keytype
         self.keyusage = keyusage

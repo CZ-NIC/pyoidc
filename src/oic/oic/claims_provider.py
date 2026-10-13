@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Any, Optional
+from typing import Any
 
 from oic import rndstr
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS, SINGLE_OPTIONAL_STRING, SINGLE_REQUIRED_STRING, Message
@@ -138,7 +138,7 @@ class ClaimsServer(Provider):
 
         if "claims_names" in ucreq:
             claim_args = {n: {"optional": True} for n in ucreq["claims_names"]}
-            uic: Optional[Claims] = Claims(**claim_args)
+            uic: Claims | None = Claims(**claim_args)
         else:
             uic = None
 

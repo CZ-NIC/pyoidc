@@ -8,6 +8,7 @@ The format is based on the [KeepAChangeLog] project.
 ## Unreleased
 
 ### Changed
+- [#905]: Drop Python 3.9
 - [#896]: Add the `prompt` parameter to `oic.oic.Consumer.begin`
 
 ### Fixed
@@ -16,6 +17,7 @@ The format is based on the [KeepAChangeLog] project.
 
 [#896]: https://github.com/CZ-NIC/pyoidc/pull/896
 [#897]: https://github.com/CZ-NIC/pyoidc/pull/897
+[#905]: https://github.com/CZ-NIC/pyoidc/pull/905
 
 ## 1.7.0 [2024-04-25]
 ### Changed
