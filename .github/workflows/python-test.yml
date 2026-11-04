@@ -11,10 +11,11 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 4
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
@@ -28,8 +29,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install tox
     - name: Run tests
-      run: |
-        tox
+      # Windows runs only the test env; docs and quality are platform-independent.
+      run: tox ${{ runner.os == 'Windows' && '-e py' || '' }}
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@2320916714171c258d01dbd81040d64d798c6f8e # v7.1.1
       with:
