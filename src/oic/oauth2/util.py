@@ -1,7 +1,7 @@
 import logging
 from http import cookiejar as http_cookiejar
 from http.cookiejar import http2time  # type: ignore
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from oic.exception import UnSupported
@@ -192,7 +192,7 @@ def guess_body_type(reqresp):
     return body_type
 
 
-def verify_header(reqresp, body_type: Optional[ENCODINGS]) -> Optional[ENCODINGS]:
+def verify_header(reqresp, body_type: ENCODINGS | None) -> ENCODINGS | None:
     logger.debug("resp.headers: %s", sanitize(reqresp.headers))
     logger.debug("resp.txt: %s", sanitize(reqresp.text))
 

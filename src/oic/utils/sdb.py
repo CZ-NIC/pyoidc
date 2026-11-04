@@ -6,7 +6,7 @@ import logging
 import uuid
 import warnings
 from binascii import Error
-from typing import Any, Optional
+from typing import Any
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -845,7 +845,7 @@ class SessionDB:
         """Return client_ids for a given uid."""
         return self._db.get_client_ids_for_uid(uid)
 
-    def get_verify_logout(self, uid: str) -> Optional[str]:
+    def get_verify_logout(self, uid: str) -> str | None:
         """Return logout verification key for given uid."""
         return self._db.get_verified_logout(uid)
 

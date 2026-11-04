@@ -1,7 +1,7 @@
 import copy
 import hashlib
 import logging
-from typing import Union, cast
+from typing import cast
 from urllib.parse import urlsplit
 
 from oic import rndstr
@@ -110,7 +110,7 @@ class OAuthClient(client.Client):
         :return:
         """
         if self.behaviour["response_type"] == "code":
-            respcls: Union[type[AuthorizationResponse], type[AccessTokenResponse]] = AuthorizationResponse
+            respcls: type[AuthorizationResponse] | type[AccessTokenResponse] = AuthorizationResponse
         else:
             respcls = AccessTokenResponse
 

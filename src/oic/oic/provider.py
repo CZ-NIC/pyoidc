@@ -8,7 +8,7 @@ import uuid
 import warnings
 from functools import cmp_to_key
 from http.cookies import SimpleCookie
-from typing import Any, Optional, Union
+from typing import Any
 from urllib.parse import parse_qs, unquote, urlencode, urljoin, urlparse
 
 from jwkest import b64d, jwe, jws, safe_str_cmp
@@ -219,7 +219,7 @@ class Provider(AProvider):
         post_logout_page=None,
         self_signing_alg="RS256",
         logout_path="",
-        settings: Optional[PyoidcSettings] = None,
+        settings: PyoidcSettings | None = None,
     ):
         self.settings = settings or OicProviderSettings()
         if verify_ssl is not None:
@@ -1204,7 +1204,7 @@ class Provider(AProvider):
 
     @staticmethod
     def verify_redirect_uris(registration_request):
-        verified_redirect_uris: list[tuple[str, Optional[dict[str, list[str]]]]] = []
+        verified_redirect_uris: list[tuple[str, dict[str, list[str]] | None]] = []
         try:
             client_type = registration_request["application_type"]
         except KeyError:  # default
@@ -1251,7 +1251,7 @@ class Provider(AProvider):
 
     def _verify_post_logout_uri(self, request):
         """Verify correct format of post_logout_redirect_uris."""
-        plruri: list[tuple[str, Optional[dict[str, list[str]]]]] = []
+        plruri: list[tuple[str, dict[str, list[str]] | None]] = []
         for uri in request["post_logout_redirect_uris"]:
             part = urlparse(uri)
             if part.fragment:
@@ -1747,7 +1747,7 @@ class Provider(AProvider):
             if len(kb) == 0:
                 self.keyjar.issuer_keys[""].remove(kb)
 
-    def get_by_sub_and_(self, sub: str, key: str, val: Any) -> Optional[str]:
+    def get_by_sub_and_(self, sub: str, key: str, val: Any) -> str | None:
         """Get a session ID based on subject ID and an attribute value pair.
 
         Matches sessions based on a subject identifier (sub) and
@@ -1768,7 +1768,7 @@ class Provider(AProvider):
 
     # Below are LOGOUT related methods
 
-    def verify_post_logout_redirect_uri(self, esreq: Message, client_id: str) -> Optional[str]:
+    def verify_post_logout_redirect_uri(self, esreq: Message, client_id: str) -> str | None:
         """Verify a post logout URI.
 
         :param esreq: End session request
@@ -1795,8 +1795,8 @@ class Provider(AProvider):
         self,
         uid: str,
         esr: Message,
-        cookie: Optional[list[tuple[str, str]]],
-        redirect_uri: Optional[str],
+        cookie: list[tuple[str, str]] | None,
+        redirect_uri: str | None,
     ) -> Response:
         """Show a page to the user, that asks whether logout should be performed.
 
@@ -1832,8 +1832,8 @@ class Provider(AProvider):
         return Response(self.template_renderer("verify_logout", context), headers=headers)
 
     def _get_uid_from_cookie(
-        self, cookie: Optional[Union[str, SimpleCookie]]
-    ) -> tuple[Optional[CookieDealer], Optional[str], Optional[str]]:
+        self, cookie: str | SimpleCookie | None
+    ) -> tuple[CookieDealer | None, str | None, str | None]:
         """Get cookie_dealer, client_id and uid from cookie.
 
         :param cookie: Received cookie
@@ -1853,7 +1853,7 @@ class Provider(AProvider):
 
         return cookie_dealer, client_id, uid
 
-    def do_back_channel_logout(self, cinfo: dict, sub: str, sid: str) -> Optional[tuple[str, str]]:
+    def do_back_channel_logout(self, cinfo: dict, sub: str, sid: str) -> tuple[str, str] | None:
         """Prepare information to be used to do a back-channel logout.
 
         :param cinfo: Client information
@@ -1896,7 +1896,7 @@ class Provider(AProvider):
         for sid in usids:
             del _sdb[sid]
 
-    def logout_info_for_all_clients(self, uid: Optional[str] = "", sid: Optional[str] = "") -> dict:
+    def logout_info_for_all_clients(self, uid: str | None = "", sid: str | None = "") -> dict:
         """Collect information necessary to logout one user from all clients he/she has been using.
 
         One of uid and sid MUST be provided. If uid is provided sid is ignored.
@@ -1943,7 +1943,7 @@ class Provider(AProvider):
         :param client_id: Client ID
         :return: Dictionary with back_channel and front_channel logout info.
         """
-        logout_spec: dict[str, dict[str, Union[None, str, tuple[str, str]]]] = {
+        logout_spec: dict[str, dict[str, None | str | tuple[str, str]]] = {
             "back_channel": {},  # back-channel logout information
             "front_channel": {},  # front-channel logout information
         }
@@ -1963,7 +1963,7 @@ class Provider(AProvider):
     def end_session_endpoint(  # noqa: C901 # was 25
         self,
         request: str = "",
-        cookie: Optional[Union[str, SimpleCookie]] = None,
+        cookie: str | SimpleCookie | None = None,
         **kwargs,
     ) -> Response:
         """Handle a RP initiated Logout request.
@@ -2095,9 +2095,7 @@ class Provider(AProvider):
         except Exception as err:
             raise ValueError(err) from err
 
-    def do_verified_logout(
-        self, sid: str, client_id: str, alla: bool = False, **kwargs
-    ) -> Union[dict, dict[str, list]]:
+    def do_verified_logout(self, sid: str, client_id: str, alla: bool = False, **kwargs) -> dict | dict[str, list]:
         """Perform back channel logout and prepares the information needed for front channel logout.
 
         :param sid: Session ID
@@ -2177,7 +2175,7 @@ class Provider(AProvider):
         return res
 
     @staticmethod
-    def do_front_channel_logout_iframe(client_info: dict, issuer: str, session_id: str) -> Optional[str]:
+    def do_front_channel_logout_iframe(client_info: dict, issuer: str, session_id: str) -> str | None:
         """Construct a front channel logout IFrame.
 
         :param client_info: Client info

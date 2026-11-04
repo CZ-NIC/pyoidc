@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from oic.oauth2.message import AccessTokenResponse, AuthorizationResponse
 from oic.utils.time_util import utc_time_sans_frac
@@ -13,7 +12,7 @@ class Token:
         self.token_expiration_time = 0
         self.access_token = None
         self.refresh_token = None
-        self.token_type: Optional[str] = None
+        self.token_type: str | None = None
         self.replaced = False
         self.id_token = None
 
@@ -69,7 +68,7 @@ class Grant:
         self.seed = seed
         self.tokens: list[Token] = []
         self.id_token = None
-        self.code: Optional[str] = None
+        self.code: str | None = None
         if resp:
             self.add_code(resp)
             self.add_token(resp)

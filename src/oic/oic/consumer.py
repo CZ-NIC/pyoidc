@@ -1,7 +1,6 @@
 import logging
 import os.path
 import warnings
-from typing import Optional, Union
 
 from oic import rndstr
 from oic.exception import AuthzError, MessageException, NotForMe, PyoidcError
@@ -346,14 +345,7 @@ class Consumer(Client):
 
     def parse_authz(
         self, query="", **kwargs
-    ) -> Union[
-        http_util.BadRequest,
-        tuple[
-            Optional[AuthorizationResponse],
-            Optional[AccessTokenResponse],
-            Optional[IdToken],
-        ],
-    ]:
+    ) -> http_util.BadRequest | tuple[AuthorizationResponse | None, AccessTokenResponse | None, IdToken | None]:
         """Parse authorization response from server.
 
         Couple of cases
@@ -441,7 +433,7 @@ class Consumer(Client):
         self,
         state,
         authn_method: str = "client_secret_basic",
-        session_state: Optional[str] = None,
+        session_state: str | None = None,
     ):
         """Do the access token request, the last step in a code flow.
 
@@ -530,7 +522,7 @@ class Consumer(Client):
 
     # LOGOUT related
 
-    def backchannel_logout(self, request: Optional[str] = None, request_args: Optional[dict] = None) -> str:
+    def backchannel_logout(self, request: str | None = None, request_args: dict | None = None) -> str:
         """Receives a back channel logout request.
 
         :param request: A urlencoded request

@@ -53,14 +53,13 @@ setup(
     include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires="~=3.9",
+    python_requires=">=3.10",
     extras_require={
         "develop": ["cherrypy==3.2.4", "pyOpenSSL"],
         "testing": tests_requires,

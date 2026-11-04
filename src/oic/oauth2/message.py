@@ -5,7 +5,7 @@ import warnings
 from collections import namedtuple
 from collections.abc import Mapping, MutableMapping
 from json import JSONDecodeError
-from typing import Any, Optional, Union
+from typing import Any
 from urllib.parse import parse_qs, urlencode
 
 from jwkest import as_unicode, b64d, jwe, jws
@@ -175,7 +175,7 @@ class Message(MutableMapping):
                 if cparam.required and attribute not in self._dict:
                     raise MissingRequiredAttribute("{}".format(attribute), "{}".format(self))
 
-        params: list[tuple[str, Optional[Union[str, bytes, Message]]]] = []
+        params: list[tuple[str, str | bytes | Message | None]] = []
 
         for key, val in self._dict.items():
             cparam = self._extract_cparam(key, _spec)
@@ -214,7 +214,7 @@ class Message(MutableMapping):
         try:
             return urlencode(params)
         except UnicodeEncodeError:
-            _val2: list[tuple[str, Optional[Union[str, bytes, Message]]]] = []
+            _val2: list[tuple[str, str | bytes | Message | None]] = []
             for k, v in params:
                 if isinstance(v, str):
                     _val2.append((k, v.encode("utf-8")))

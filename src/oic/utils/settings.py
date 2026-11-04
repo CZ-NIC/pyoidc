@@ -12,8 +12,6 @@ The settings make use of `pydantic-settings <https://docs.pydantic.dev/usage/set
 It is possible to instance them directly or use environment values to fill the settings.
 """
 
-from typing import Optional, Union
-
 import requests
 from pydantic_settings import BaseSettings
 
@@ -21,7 +19,7 @@ from pydantic_settings import BaseSettings
 class PyoidcSettings(BaseSettings):
     """Main class for all settings shared among consumer and client."""
 
-    verify_ssl: Union[bool, str] = True
+    verify_ssl: bool | str = True
     """
     Control TLS server certificate validation:
 
@@ -30,12 +28,12 @@ class PyoidcSettings(BaseSettings):
     * If set to a filename this is used as a certificate bundle in openssl format.
     * If set to a directory name this is used as a CA directory in the openssl format.
     """
-    client_cert: Union[None, str, tuple[str, str]] = None
+    client_cert: None | str | tuple[str, str] = None
     """
     Local cert to use as client side certificate.
     Can be a single file (containing the private key and the certificate) or a tuple of both file's path.
     """
-    timeout: Union[float, tuple[float, float]] = 5
+    timeout: float | tuple[float, float] = 5
     """
     Timeout for requests library.
     Can be specified either as a single float or as a tuple of floats.
@@ -46,7 +44,7 @@ class PyoidcSettings(BaseSettings):
 class ClientSettings(PyoidcSettings):
     """Base settings for consumer shared among OAuth 2.0 and OpenID Connect."""
 
-    requests_session: Optional[requests.Session] = None
+    requests_session: requests.Session | None = None
     """Instance of `requests.Session` with configuration options."""
 
 

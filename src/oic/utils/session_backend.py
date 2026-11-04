@@ -1,7 +1,7 @@
 import json
 import time
 from abc import ABCMeta, abstractmethod
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 from oic.utils.time_util import time_sans_frac
 
@@ -52,11 +52,11 @@ class SessionBackend(metaclass=ABCMeta):
     """Backend for storing sessionDB data."""
 
     @abstractmethod
-    def __setitem__(self, key: str, value: dict[str, Union[str, bool]]) -> None:
+    def __setitem__(self, key: str, value: dict[str, str | bool]) -> None:
         """Store the session information under the session_id."""
 
     @abstractmethod
-    def __getitem__(self, key: str) -> dict[str, Union[str, bool]]:
+    def __getitem__(self, key: str) -> dict[str, str | bool]:
         """Retrieve the session information based os session_id.
 
         @raises KeyError when no key is found.
@@ -86,7 +86,7 @@ class SessionBackend(metaclass=ABCMeta):
         """Return client ids that have a session for given uid."""
         return [cast(str, self[sid]["client_id"]) for sid in self.get_by_uid(uid)]
 
-    def get_verified_logout(self, uid: str) -> Optional[str]:
+    def get_verified_logout(self, uid: str) -> str | None:
         """Return logout verification key for given uid."""
         # Since all the sessions should be the same, we return the first one
         sids = self.get_by_uid(uid)
@@ -120,7 +120,7 @@ class SessionBackend(metaclass=ABCMeta):
             item[attribute] = value
             self[key] = item
 
-    def get_uid_by_sub(self, sub: str) -> Optional[str]:
+    def get_uid_by_sub(self, sub: str) -> str | None:
         """Return User id based on sub."""
         for sid in self.get_by_sub(sub):
             return AuthnEvent.from_json(self[sid]["authn_event"]).uid
@@ -139,13 +139,13 @@ class DictSessionBackend(SessionBackend):
 
     def __init__(self):
         """Create the storage."""
-        self.storage: dict[str, dict[str, Union[str, bool]]] = {}
+        self.storage: dict[str, dict[str, str | bool]] = {}
 
-    def __setitem__(self, key: str, value: dict[str, Union[str, bool]]) -> None:
+    def __setitem__(self, key: str, value: dict[str, str | bool]) -> None:
         """Store the session info in the storage."""
         self.storage[key] = value
 
-    def __getitem__(self, key: str) -> dict[str, Union[str, bool]]:
+    def __getitem__(self, key: str) -> dict[str, str | bool]:
         """Retrieve session information based on session id."""
         return self.storage[key]
 
