@@ -1271,21 +1271,33 @@ class TestLogoutToken:
             lt.verify()
 
     def test_extra_event(self):
-        # more the one event
+        # Other members are allowed next to the back-channel logout event
         lt = LogoutToken(
             iss="https://example.com",
             aud=["https://rp.example.org"],
             events={
-                BACK_CHANNEL_LOGOUT_EVENT: {},
                 "http://schemas.openid.net/event/other}": {},
+                BACK_CHANNEL_LOGOUT_EVENT: {},
             },
             jti=rndstr(16),
             iat=utc_time_sans_frac(),
             sub="https://example.com/sub",
         )
 
-        with pytest.raises(ValueError):
-            lt.verify()
+        assert lt.verify()
+
+    def test_extra_event_member_from_keycloak(self):
+        # Keycloak adds "revoke_offline_access" when revoking offline sessions
+        lt = LogoutToken(
+            iss="https://example.com",
+            aud=["https://rp.example.org"],
+            events={BACK_CHANNEL_LOGOUT_EVENT: {}, "revoke_offline_access": True},
+            jti=rndstr(16),
+            iat=utc_time_sans_frac(),
+            sub="https://example.com/sub",
+        )
+
+        assert lt.verify()
 
     def test_wrong_event(self):
         lt = LogoutToken(

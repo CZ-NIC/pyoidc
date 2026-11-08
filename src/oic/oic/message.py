@@ -1031,13 +1031,11 @@ class LogoutToken(Message):
         if "nonce" in self:
             raise MessageException('"nonce" is prohibited from appearing in a LogoutToken.')
 
-        # Check the 'events' JSON
-        _keys = list(self["events"].keys())
-        if len(_keys) != 1:
-            raise ValueError('Must only be one member in "events"')
-        if _keys[0] != BACK_CHANNEL_LOGOUT_EVENT:
+        # Check the 'events' JSON, it must contain the back-channel logout event
+        # but other members are allowed next to it
+        if BACK_CHANNEL_LOGOUT_EVENT not in self["events"]:
             raise ValueError('Wrong member in "events"')
-        if self["events"][_keys[0]] != {}:
+        if self["events"][BACK_CHANNEL_LOGOUT_EVENT] != {}:
             raise ValueError('Wrong member value in "events"')
 
         # There must be either a 'sub' or a 'sid', and may contain both
