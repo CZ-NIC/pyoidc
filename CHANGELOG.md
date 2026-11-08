@@ -14,10 +14,12 @@ The format is based on the [KeepAChangeLog] project.
 ### Fixed
 
 - [#897]: End Session endpoint verifies id token hint against incorrect issuer
+- [#907]: LogoutToken accepts extra members in the `events` claim
 
 [#896]: https://github.com/CZ-NIC/pyoidc/pull/896
 [#897]: https://github.com/CZ-NIC/pyoidc/pull/897
 [#905]: https://github.com/CZ-NIC/pyoidc/pull/905
+[#907]: https://github.com/CZ-NIC/pyoidc/pull/907
 
 ## 1.7.0 [2024-04-25]
 ### Changed
