@@ -1,7 +1,15 @@
 [run]
 branch = True
+relative_files = True
+
+[paths]
+# tox installs the package, so map installed paths back to the source tree.
+source =
+    src/oic
+    */site-packages/oic
 
 [report]
 exclude_lines =
     pragma: no cover
     raise NotImplementedError
+fail_under = 64

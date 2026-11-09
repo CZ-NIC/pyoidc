@@ -1,0 +1,31 @@
+name: Post coverage comment
+
+# Posts the coverage comment on PRs from forks, whose own workflow run only gets a read-only token.
+on:  # zizmor: ignore[dangerous-triggers] Only downloads the comment artifact and posts it; never checks out or runs PR code.
+  workflow_run:
+    workflows: ["Run tests and quality control"]
+    types:
+      - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  comment:
+    name: Post coverage comment
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    permissions:
+      pull-requests: write # Post the comment, and edit it on later runs
+      actions: read # Download the comment artifact from the triggering run
+      contents: read
+    steps:
+      # DO NOT run actions/checkout here, see https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+      - name: Post comment
+        uses: py-cov-action/python-coverage-comment-action@e5fb2218463c3377f3504b0c5b5646ed53da7a2f # v4.5
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_PR_RUN_ID: ${{ github.event.workflow_run.id }}
