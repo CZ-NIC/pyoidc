@@ -1,15 +1,19 @@
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 import socket
 import time
+import unicodedata
 import uuid
 import warnings
+from collections.abc import Sequence
+from fnmatch import fnmatchcase
 from functools import cmp_to_key
 from http.cookies import SimpleCookie
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlencode, urljoin, urlparse
+from urllib.parse import ParseResult, parse_qs, unquote, urlencode, urljoin, urlparse
 
 from jwkest import b64d, jwe, jws, safe_str_cmp
 from jwkest.jwe import JWE, JWEException, NotSupportedAlgorithm
@@ -62,6 +66,134 @@ __author__ = "rohe0002"
 logger = logging.getLogger(__name__)
 
 SWD_ISSUER = "http://openid.net/specs/connect/1.0/issuer"
+
+
+# Schemes that must never be registered, not even as a native client "custom scheme".
+# No setting can override this list.
+FORBIDDEN_SCHEMES = (
+    # Script execution and local content
+    "javascript",
+    "data",
+    "vbscript",
+    "file",
+    # Browser-internal schemes
+    "about",
+    "blob",
+    "filesystem",
+    "view-source",
+    "jar",
+    # Windows protocol handlers with a history of exploitation (e.g. Follina CVE-2022-30190)
+    "ms-msdt",
+    "search-ms",
+    "search",
+    "ms-officecmd",
+    # Network shares, may leak NTLM credentials
+    "smb",
+    "ldap",
+    # Non-callback communication schemes
+    "mailto",
+    "tel",
+    "sms",
+    "mms",
+    "callto",
+    "facetime",
+    "facetime-audio",
+    "sip",
+    "sips",
+    "xmpp",
+    "im",
+    "irc",
+    # Legacy network protocols
+    "ftp",
+    "news",
+    "nntp",
+    "telnet",
+    "gopher",
+    # Browser and extension internals
+    "chrome",
+    "chrome-extension",
+    "moz-extension",
+    "resource",
+)
+
+
+def _is_loopback_host(host: str | None, include_unspecified: bool = False) -> bool:
+    """Check whether `host` names the local machine.
+
+    Covers `localhost` and `*.localhost` names (with an optional trailing dot), loopback IPv4/IPv6 addresses
+    including IPv4-mapped IPv6 and the shorthand IPv4 forms accepted by browsers (e.g. `127.1`, `2130706433`).
+
+    :param host: Hostname as returned by `urlparse` (lowercase, without IPv6 brackets)
+    :param include_unspecified: Also treat the unspecified address (`0.0.0.0`, `::`) as local
+    :return: True if the host is local
+    """
+    if not host:
+        return False
+    host = host.rstrip(".")
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    ip: ipaddress.IPv4Address | ipaddress.IPv6Address
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        try:
+            ip = ipaddress.IPv4Address(socket.inet_aton(host))
+        except OSError:
+            return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return ip.is_loopback or (include_unspecified and ip.is_unspecified)
+
+
+def _is_forbidden_char(c: str) -> bool:
+    """Whitespace, ASCII/C1 control characters and invisible format characters (Unicode category Cf)."""
+    return c.isspace() or ord(c) < 0x20 or 0x7F <= ord(c) <= 0x9F or unicodedata.category(c) == "Cf"
+
+
+def _parse_registered_uri(
+    uri: str,
+    client_type: str,
+    exc_cls: type[Exception],
+    name: str,
+    native_schemes: Sequence[str] = (),
+) -> ParseResult:
+    """Parse and check a registered (post logout) redirect URI.
+
+    Checks that the URI is a well formed absolute URI without whitespace, that http(s) URIs have a host and
+    a valid port, and that the scheme is acceptable for the client type: web clients may only use http(s),
+    native clients may also use custom schemes. A custom scheme is rejected if it is in `FORBIDDEN_SCHEMES`,
+    otherwise accepted if it contains a "." (RFC 8252 reverse-domain form) or matches one of `native_schemes`.
+
+    :param uri: The URI to check
+    :param client_type: `web` or `native`
+    :param exc_cls: Exception class to raise on failure
+    :param name: Parameter name used in error messages
+    :param native_schemes: `fnmatch` patterns of extra custom schemes allowed for native clients
+    :return: Parsed URI
+    :raises: exc_cls
+    """
+    if not isinstance(uri, str) or any(_is_forbidden_char(c) for c in uri):
+        raise exc_cls("{} must not contain whitespace, control or invisible characters".format(name))
+    try:
+        p = urlparse(uri)
+        p.port  # noqa: B018 # raises ValueError for an invalid port
+    except ValueError as err:
+        raise exc_cls("{} is not a valid URI".format(name)) from err
+    if not p.scheme:
+        raise exc_cls("{} must be an absolute URI".format(name))
+    if p.scheme in ["http", "https"]:
+        if not p.hostname:
+            raise exc_cls("{} must contain a host".format(name))
+    elif client_type != "native":
+        raise exc_cls("{} must use http or https".format(name))
+    elif p.scheme in FORBIDDEN_SCHEMES:
+        raise exc_cls("{} must not use the {} scheme".format(name, p.scheme))
+    elif "." not in p.scheme and not any(fnmatchcase(p.scheme, pattern.lower()) for pattern in native_schemes):
+        raise exc_cls(
+            "{} custom scheme {} must contain a '.' (RFC 8252) or be allowed by the native_redirect_schemes "
+            "setting".format(name, p.scheme)
+        )
+    return p
 
 
 class InvalidRedirectURIError(Exception):
@@ -1127,7 +1259,7 @@ class Provider(AProvider):
                 return Response(
                     error.to_json(),
                     content="application/json",
-                    status="400 Bad Request",
+                    status_code=400,
                 )
             _cinfo["post_logout_redirect_uris"] = plruri
 
@@ -1202,8 +1334,8 @@ class Provider(AProvider):
 
         return _cinfo
 
-    @staticmethod
-    def verify_redirect_uris(registration_request):
+    def verify_redirect_uris(self, registration_request):
+        native_schemes: list[str] = getattr(self.settings, "native_redirect_schemes", [])
         verified_redirect_uris: list[tuple[str, dict[str, list[str]] | None]] = []
         try:
             client_type = registration_request["application_type"]
@@ -1222,11 +1354,11 @@ class Provider(AProvider):
             must_https = False
 
         for uri in registration_request["redirect_uris"]:
-            p = urlparse(uri)
+            p = _parse_registered_uri(uri, client_type, InvalidRedirectURIError, "redirect_uri", native_schemes)
             if client_type == "native":
                 if p.scheme not in ["http", "https"]:  # Custom scheme
                     pass
-                elif p.scheme == "http" and p.hostname in ["localhost", "127.0.0.1"]:
+                elif p.scheme == "http" and _is_loopback_host(p.hostname):
                     pass
                 else:
                     logger.error(
@@ -1237,7 +1369,9 @@ class Provider(AProvider):
                     raise InvalidRedirectURIError("Redirect_uri must use custom scheme or http and localhost")
             elif must_https and p.scheme != "https":
                 raise InvalidRedirectURIError("None https redirect_uri not allowed")
-            elif p.fragment:
+            elif must_https and _is_loopback_host(p.hostname, include_unspecified=True):
+                raise InvalidRedirectURIError("redirect_uri must not use localhost for implicit or hybrid flow")
+            if p.fragment:
                 raise InvalidRedirectURIError("redirect_uri contains fragment")
 
             query = p.query if p.query else None
@@ -1245,15 +1379,19 @@ class Provider(AProvider):
             if query:
                 verified_redirect_uris.append((base, parse_qs(query)))
             else:
-                verified_redirect_uris.append((base, query))
+                verified_redirect_uris.append((base, None))
 
         return verified_redirect_uris
 
     def _verify_post_logout_uri(self, request):
         """Verify correct format of post_logout_redirect_uris."""
         plruri: list[tuple[str, dict[str, list[str]] | None]] = []
+        client_type = request["application_type"] if "application_type" in request else "web"
+        native_schemes: list[str] = getattr(self.settings, "native_redirect_schemes", [])
         for uri in request["post_logout_redirect_uris"]:
-            part = urlparse(uri)
+            part = _parse_registered_uri(
+                uri, client_type, InvalidPostLogoutUri, "post_logout_redirect_uris", native_schemes
+            )
             if part.fragment:
                 raise InvalidPostLogoutUri("post_logout_redirect_uris contains fragment")
             query = part.query if part.query else None
@@ -1261,7 +1399,7 @@ class Provider(AProvider):
             if query:
                 plruri.append((base, parse_qs(query)))
             else:
-                plruri.append((base, query))
+                plruri.append((base, None))
         return plruri
 
     def _verify_sector_identifier(self, request):
