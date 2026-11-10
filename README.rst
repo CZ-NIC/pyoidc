@@ -4,14 +4,11 @@
 .. image:: https://img.shields.io/pypi/v/oic.svg
     :target: https://pypi.python.org/pypi/oic
 
-.. image:: https://readthedocs.org/projects/pyoidc/badge/?version=latest
-    :target: http://pyoidc.readthedocs.io/en/latest/?badge=latest
+.. image:: https://img.shields.io/readthedocs/pyoidc/latest
+    :target: https://pyoidc.readthedocs.io/en/latest/
 
 .. image:: https://raw.githubusercontent.com/CZ-NIC/pyoidc/python-coverage-comment-action-data/badge.svg
   :target: https://github.com/CZ-NIC/pyoidc/tree/python-coverage-comment-action-data
-
-.. image:: https://api.codacy.com/project/badge/Grade/2038cfa7c56b480db6ae18b8320d7157
-    :target: https://www.codacy.com/app/tpazderka/pyoidc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CZ-NIC/pyoidc&amp;utm_campaign=Badge_Grade
 
 .. image:: https://api.securityscorecards.dev/projects/github.com/CZ-NIC/pyoidc/badge
     :target: https://securityscorecards.dev/viewer/?uri=github.com/CZ-NIC/pyoidc
