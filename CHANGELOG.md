@@ -7,19 +7,34 @@ The format is based on the [KeepAChangeLog] project.
 
 ## Unreleased
 
+### Added
+- [#910]: Add `OicProviderSettings.native_redirect_schemes` to allow extra custom URI schemes for native clients
+
 ### Changed
 - [#905]: Drop Python 3.9
 - [#896]: Add the `prompt` parameter to `oic.oic.Consumer.begin`
+- [#910]: Require `pydantic-settings>=2.7.0`
+- [#910]: Client registration is stricter about `redirect_uris` and `post_logout_redirect_uris`. Web clients (the
+  default `application_type`) may now only register `http` or `https` URIs, so clients that register a custom scheme
+  or `urn:` URI without `application_type=native` now get a 400 error and must register as `native`. Web clients
+  using the implicit or hybrid flow must also not use a local host (`localhost`, `*.localhost`, loopback or
+  unspecified IP addresses) in `redirect_uris`; native clients may use any loopback address with `http`.
+  Custom schemes of native clients must now follow RFC 8252 (contain a `.`, e.g. `com.example.app`); other schemes are
+  rejected unless allowed via `OicProviderSettings.native_redirect_schemes`. Schemes such as `javascript`, `data`,
+  `mailto` or `ftp` are always rejected. Native clients using the out-of-band `urn:ietf:wg:oauth:2.0:oob` redirect are
+  therefore rejected by default; the workaround is to allowlist `urn`, which allows all `urn:` URIs. `Provider.verify_redirect_uris` is no longer a staticmethod.
 
 ### Fixed
 
 - [#897]: End Session endpoint verifies id token hint against incorrect issuer
 - [#907]: LogoutToken accepts extra members in the `events` claim
+- [#910]: Reject relative (non-absolute), malformed and unsafe-scheme redirect_uris and post_logout_redirect_uris during client registration
 
 [#896]: https://github.com/CZ-NIC/pyoidc/pull/896
 [#897]: https://github.com/CZ-NIC/pyoidc/pull/897
 [#905]: https://github.com/CZ-NIC/pyoidc/pull/905
 [#907]: https://github.com/CZ-NIC/pyoidc/pull/907
+[#910]: https://github.com/CZ-NIC/pyoidc/pull/910
 
 ## 1.7.0 [2024-04-25]
 ### Changed

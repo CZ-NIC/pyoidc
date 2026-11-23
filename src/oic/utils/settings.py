@@ -12,8 +12,15 @@ The settings make use of `pydantic-settings <https://docs.pydantic.dev/usage/set
 It is possible to instance them directly or use environment values to fill the settings.
 """
 
+import json
+import re
+from typing import Annotated, Any
+
 import requests
-from pydantic_settings import BaseSettings
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode
+
+_SCHEME_PATTERN = re.compile(r"[a-z0-9+.\-*?\[\]!]+")
 
 
 class PyoidcSettings(BaseSettings):
@@ -78,3 +85,44 @@ class OauthProviderSettings(OauthServerSettings):
 
 class OicProviderSettings(OicServerSettings):
     """Specific settings for OpenID Connect provider."""
+
+    native_redirect_schemes: Annotated[list[str], NoDecode] = []
+    """
+    Extra URI schemes that native clients may register, besides the reverse-domain schemes (containing a ``.``)
+    recommended by RFC 8252.
+    Entries are :mod:`fnmatch` patterns, for example ``"myapp"`` or ``"ms-*"``, matched case-insensitively.
+    ``"*"`` allows any custom scheme (the behaviour before RFC 8252 was enforced).
+    Forbidden schemes (e.g. ``javascript``, ``data`` or ``mailto``) are never allowed.
+    Entries are lowercased, and must be bare schemes (no ``:`` or ``/``).
+    The environment variable ``NATIVE_REDIRECT_SCHEMES`` takes a JSON list or a comma-separated string.
+    """
+
+    @field_validator("native_redirect_schemes", mode="before")
+    @classmethod
+    def _parse_native_redirect_schemes(cls, value: Any) -> Any:
+        """Accept a JSON list or a comma-separated string, normalize and validate the entries."""
+        if isinstance(value, str):
+            stripped = value.strip()
+            if stripped.startswith("["):
+                try:
+                    value = json.loads(stripped)
+                except ValueError as err:
+                    raise ValueError("native_redirect_schemes is not a valid JSON list") from err
+            else:
+                value = stripped.split(",")
+        if not isinstance(value, (list, tuple)):
+            return value
+        result: list[str] = []
+        for item in value:
+            if not isinstance(item, str):
+                raise ValueError("native_redirect_schemes entries must be strings")
+            scheme = item.strip().lower()
+            if not scheme:
+                continue
+            if not _SCHEME_PATTERN.fullmatch(scheme):
+                raise ValueError(
+                    "Invalid native_redirect_schemes entry {!r}: expected a bare scheme or pattern without "
+                    "':' or '/'".format(item)
+                )
+            result.append(scheme)
+        return result

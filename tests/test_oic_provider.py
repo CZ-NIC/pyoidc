@@ -39,7 +39,13 @@ from oic.oic.message import (
     TokenErrorResponse,
     UserInfoRequest,
 )
-from oic.oic.provider import InvalidRedirectURIError, InvalidSectorIdentifier, Provider
+from oic.oic.provider import (
+    InvalidPostLogoutUri,
+    InvalidRedirectURIError,
+    InvalidSectorIdentifier,
+    Provider,
+    _is_loopback_host,
+)
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authn.user import UserAuthnMethod
@@ -48,6 +54,7 @@ from oic.utils.http_util import CookieDealer, Response
 from oic.utils.keyio import KeyBundle, KeyJar, ec_init, keybundle_from_local_file
 from oic.utils.sdb import AuthnEvent
 from oic.utils.session_backend import DictSessionBackend
+from oic.utils.settings import OicProviderSettings, PyoidcSettings
 from oic.utils.time_util import epoch_in_a_while
 from oic.utils.userinfo import UserInfo
 
@@ -1131,6 +1138,461 @@ class TestProvider:
         request = RegistrationRequest(**params)
         verified_uris = self.provider.verify_redirect_uris(request)
         assert verified_uris == [(url, None)]
+
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"response_types": ["code"]},
+            {"response_types": ["id_token", "token"]},
+            {"application_type": "native"},
+        ],
+    )
+    def test_verify_redirect_uris_relative_rejected(self, params):
+        request = RegistrationRequest(redirect_uris=["hello", "world"], **params)
+
+        with pytest.raises(InvalidRedirectURIError) as exc_info:
+            self.provider.verify_redirect_uris(request)
+
+        assert str(exc_info.value) == "redirect_uri must be an absolute URI"
+
+    @pytest.mark.parametrize("uri", ["http:foo", "https:///x", "https://"])
+    @pytest.mark.parametrize("params", [{"response_types": ["code"]}, {"application_type": "native"}])
+    def test_verify_redirect_uris_http_without_host_rejected(self, uri, params):
+        request = RegistrationRequest(redirect_uris=[uri], **params)
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    def test_verify_redirect_uris_native_custom_scheme_accepted(self):
+        request = RegistrationRequest(redirect_uris=["com.example.app:/cb"], application_type="native")
+
+        assert self.provider.verify_redirect_uris(request) == [("com.example.app:/cb", None)]
+
+    def test_verify_post_logout_uri_relative_rejected(self):
+        request = RegistrationRequest(redirect_uris=["https://example.com/cb"], post_logout_redirect_uris=["/logout"])
+
+        with pytest.raises(InvalidPostLogoutUri):
+            self.provider._verify_post_logout_uri(request)
+
+    def test_registration_endpoint_relative_post_logout_uri(self):
+        req = RegistrationRequest(
+            redirect_uris=["https://example.com/cb"],
+            post_logout_redirect_uris=["/logout"],
+            response_types=["code"],
+        )
+
+        resp = self.provider.create_registration(request=req.to_json())
+
+        assert resp.status_code == 400
+        assert json.loads(resp.message)["error"] == "invalid_configuration_parameter"
+
+    def test_registration_endpoint_valid_post_logout_uri(self):
+        req = RegistrationRequest(
+            redirect_uris=["https://example.com/cb"],
+            post_logout_redirect_uris=["https://example.com/logout?a=b"],
+            response_types=["code"],
+        )
+
+        resp = self.provider.create_registration(request=req.to_json())
+
+        assert resp.status_code == 201
+        client_id = json.loads(resp.message)["client_id"]
+        assert self.provider.cdb[client_id]["post_logout_redirect_uris"] == [
+            ("https://example.com/logout", {"a": ["b"]})
+        ]
+
+    @pytest.mark.parametrize("host", [None, ""])
+    def test_is_loopback_host_without_host(self, host):
+        assert _is_loopback_host(host) is False
+        assert _is_loopback_host(host, include_unspecified=True) is False
+
+    @pytest.mark.parametrize(
+        "uri",
+        [
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "c:\\path",
+            "ftp://example.com/cb",
+        ],
+    )
+    def test_verify_redirect_uris_web_non_http_scheme_rejected(self, uri):
+        request = RegistrationRequest(redirect_uris=[uri], response_types=["code"])
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    @pytest.mark.parametrize(
+        "uri",
+        [
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "vbscript:x",
+            "file:///etc/passwd",
+            "about:blank",
+            "blob:https://example.com/uuid",
+            "filesystem:https://example.com/temporary/x",
+            "view-source:https://example.com/",
+            "jar:https://example.com/x.jar!/x",
+            "ms-msdt:/id%20PCWDiagnostic",
+            "search-ms:query=x&crumb=location:\\\\attacker\\share",
+            "search:query=x",
+            "ms-officecmd:{}",
+            "smb://attacker/share",
+            "ldap://attacker/x",
+        ],
+    )
+    def test_verify_redirect_uris_native_dangerous_scheme_rejected(self, uri):
+        request = RegistrationRequest(redirect_uris=[uri], application_type="native")
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    @pytest.mark.parametrize(
+        "uri",
+        [
+            "https://example.com:99999/cb",
+            "https://example.com:abc/cb",
+            "https://[::1/cb",
+            " https://example.com/cb",
+            "https://example.com/cb ",
+            "https://example.com/cb\t",
+            "https://example.com/c b",
+            "https://example.com/cb\n",
+        ],
+    )
+    @pytest.mark.parametrize("params", [{"response_types": ["code"]}, {"application_type": "native"}])
+    def test_verify_redirect_uris_malformed_rejected(self, uri, params):
+        request = RegistrationRequest(redirect_uris=[uri], **params)
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    @pytest.mark.parametrize(
+        "uri",
+        [
+            "com.example.app://cb",
+            "com.example.app:cb",
+            "http://127.0.0.1:8080/cb",
+            "http://localhost:8080/cb",
+            "http://[::1]:8080/cb",
+        ],
+    )
+    def test_verify_redirect_uris_native_accepted(self, uri):
+        request = RegistrationRequest(redirect_uris=[uri], application_type="native")
+
+        assert self.provider.verify_redirect_uris(request) == [(uri, None)]
+
+    def test_registration_endpoint_malformed_ipv6_redirect_uri(self):
+        req = RegistrationRequest(redirect_uris=["https://[::1/cb"], response_types=["code"])
+
+        resp = self.provider.registration_endpoint(request=req.to_json())
+
+        assert resp.status_code == 400
+        assert json.loads(resp.message)["error"] == "invalid_redirect_uri"
+
+    @pytest.mark.parametrize("uri", ["http:foo", "https:///x"])
+    def test_verify_post_logout_uri_without_host_rejected(self, uri):
+        request = RegistrationRequest(redirect_uris=["https://example.com/cb"], post_logout_redirect_uris=[uri])
+
+        with pytest.raises(InvalidPostLogoutUri):
+            self.provider._verify_post_logout_uri(request)
+
+    @pytest.mark.parametrize(
+        "uri,params",
+        [
+            ("javascript:alert(1)", {}),
+            ("data:text/html,x", {}),
+            ("javascript:alert(1)", {"application_type": "native"}),
+            ("file:///etc/passwd", {"application_type": "native"}),
+            ("https://example.com:abc/x", {}),
+            ("https://[::1/x", {}),
+            (" https://example.com/x", {}),
+        ],
+    )
+    def test_verify_post_logout_uri_scheme_policy(self, uri, params):
+        request = RegistrationRequest(
+            redirect_uris=["https://example.com/cb"], post_logout_redirect_uris=[uri], **params
+        )
+
+        with pytest.raises(InvalidPostLogoutUri):
+            self.provider._verify_post_logout_uri(request)
+
+    @pytest.mark.parametrize(
+        "uri,params,expected",
+        [
+            ("http://example.com/x", {}, ("http://example.com/x", None)),
+            ("https://example.com/x?a=b", {}, ("https://example.com/x", {"a": ["b"]})),
+            ("com.example.app:/logout", {"application_type": "native"}, ("com.example.app:/logout", None)),
+            ("https://example.com/x", {"application_type": "native"}, ("https://example.com/x", None)),
+        ],
+    )
+    def test_verify_post_logout_uri_accepted(self, uri, params, expected):
+        request = RegistrationRequest(
+            redirect_uris=["https://example.com/cb"], post_logout_redirect_uris=[uri], **params
+        )
+
+        assert self.provider._verify_post_logout_uri(request) == [expected]
+
+    def test_verify_redirect_uris_custom_scheme_default_client_rejected(self):
+        request = RegistrationRequest(redirect_uris=["com.example.app:/cb"])
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    @pytest.mark.parametrize("uri", ["JAVASCRIPT:alert(1)", "FILE:///etc/passwd", "Data:text/html,x"])
+    def test_verify_redirect_uris_native_dangerous_scheme_uppercase_rejected(self, uri):
+        request = RegistrationRequest(redirect_uris=[uri], application_type="native")
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    def test_verify_redirect_uris_native_fragment_rejected(self):
+        request = RegistrationRequest(redirect_uris=["com.example.app:/cb#f"], application_type="native")
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    @pytest.mark.parametrize("uri", ["https://example.com/c\u200bb", "https://example.com/c\x80b"])
+    @pytest.mark.parametrize("params", [{"response_types": ["code"]}, {"application_type": "native"}])
+    def test_verify_redirect_uris_invisible_characters_rejected(self, uri, params):
+        request = RegistrationRequest(redirect_uris=[uri], **params)
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    @pytest.mark.parametrize(
+        "host",
+        [
+            "localhost",
+            "LOCALHOST",
+            "localhost.",
+            "app.localhost",
+            "127.0.0.1",
+            "127.0.0.2",
+            "127.1",
+            "2130706433",
+            "0x7f.1",
+            "0.0.0.0",
+            "[::1]",
+            "[0:0:0:0:0:0:0:1]",
+            "[::ffff:127.0.0.1]",
+            "[::]",
+        ],
+    )
+    def test_verify_redirect_uris_web_implicit_loopback_rejected(self, host):
+        request = RegistrationRequest(
+            redirect_uris=["https://{}/cb".format(host)], response_types=["id_token", "token"]
+        )
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    @pytest.mark.parametrize(
+        "host", ["example.com", "localhost.example.com", "mylocalhost", "128.0.0.1", "[2001:db8::1]", "bücher.example"]
+    )
+    def test_verify_redirect_uris_web_implicit_non_loopback_accepted(self, host):
+        uri = "https://{}/cb".format(host)
+        request = RegistrationRequest(redirect_uris=[uri], response_types=["id_token", "token"])
+
+        assert self.provider.verify_redirect_uris(request) == [(uri, None)]
+
+    @pytest.mark.parametrize("host", ["127.0.0.2", "localhost.", "app.localhost", "[::ffff:127.0.0.1]"])
+    def test_verify_redirect_uris_native_loopback_variants_accepted(self, host):
+        uri = "http://{}:8080/cb".format(host)
+        request = RegistrationRequest(redirect_uris=[uri], application_type="native")
+
+        assert self.provider.verify_redirect_uris(request) == [(uri, None)]
+
+    @pytest.mark.parametrize("host", ["0.0.0.0", "example.com"])
+    def test_verify_redirect_uris_native_non_loopback_http_rejected(self, host):
+        request = RegistrationRequest(redirect_uris=["http://{}:8080/cb".format(host)], application_type="native")
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(request)
+
+    def test_verify_redirect_uris_web_code_flow_localhost_accepted(self):
+        request = RegistrationRequest(redirect_uris=["http://localhost/cb"], response_types=["code"])
+
+        assert self.provider.verify_redirect_uris(request) == [("http://localhost/cb", None)]
+
+    @pytest.mark.parametrize("uri", ["javascript:alert(1)", "https://[::1/x"])
+    def test_registration_endpoint_invalid_post_logout_uri(self, uri):
+        req = RegistrationRequest(
+            redirect_uris=["https://example.com/cb"], post_logout_redirect_uris=[uri], response_types=["code"]
+        )
+
+        resp = self.provider.create_registration(request=req.to_json())
+
+        assert resp.status_code == 400
+        assert json.loads(resp.message)["error"] == "invalid_configuration_parameter"
+
+    def test_verify_post_logout_uri_native_fragment_rejected(self):
+        request = RegistrationRequest(
+            redirect_uris=["com.example.app:/cb"],
+            post_logout_redirect_uris=["com.example.app:/cb#f"],
+            application_type="native",
+        )
+
+        with pytest.raises(InvalidPostLogoutUri):
+            self.provider._verify_post_logout_uri(request)
+
+    def _native_request(self, uri):
+        return RegistrationRequest(redirect_uris=[uri], application_type="native")
+
+    def _native_logout_request(self, uri):
+        return RegistrationRequest(
+            redirect_uris=["com.example.app:/cb"], post_logout_redirect_uris=[uri], application_type="native"
+        )
+
+    def test_native_dotted_scheme_accepted_by_default(self):
+        assert self.provider.verify_redirect_uris(self._native_request("com.example.app:/cb")) == [
+            ("com.example.app:/cb", None)
+        ]
+
+    def test_native_undotted_scheme_rejected_by_default(self):
+        with pytest.raises(InvalidRedirectURIError) as exc_info:
+            self.provider.verify_redirect_uris(self._native_request("myapp:/cb"))
+
+        assert "native_redirect_schemes" in str(exc_info.value)
+
+    @pytest.mark.parametrize(
+        "patterns,uri",
+        [
+            (["myapp"], "myapp:/cb"),
+            (["MyApp"], "myapp:/cb"),
+            (["ms-*"], "ms-myapp:/cb"),
+            (["*"], "myapp:/cb"),
+        ],
+    )
+    def test_native_allowlisted_scheme_accepted(self, patterns, uri):
+        self.provider.settings = OicProviderSettings(native_redirect_schemes=patterns)
+
+        assert self.provider.verify_redirect_uris(self._native_request(uri)) == [(uri, None)]
+        plr = self._native_logout_request(uri)
+        assert self.provider._verify_post_logout_uri(plr) == [(uri, None)]
+
+    def test_native_prefix_pattern_does_not_match_other_scheme(self):
+        self.provider.settings = OicProviderSettings(native_redirect_schemes=["ms-*"])
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(self._native_request("myapp:/cb"))
+        with pytest.raises(InvalidPostLogoutUri):
+            self.provider._verify_post_logout_uri(self._native_logout_request("myapp:/cb"))
+
+    @pytest.mark.parametrize(
+        "uri",
+        [
+            "javascript:alert(1)",
+            "mailto:a@example.com",
+            "ms-msdt:/x",
+            "tel:+123",
+            "sms:+123",
+            "sip:a@b",
+            "xmpp:a@b",
+            "facetime:a@b",
+            "irc://x/y",
+        ],
+    )
+    @pytest.mark.parametrize("patterns", [["*"], ["javascript", "mailto", "ms-msdt"]])
+    def test_native_forbidden_scheme_never_allowed(self, patterns, uri):
+        self.provider.settings = OicProviderSettings(native_redirect_schemes=patterns)
+
+        with pytest.raises(InvalidRedirectURIError):
+            self.provider.verify_redirect_uris(self._native_request(uri))
+        with pytest.raises(InvalidPostLogoutUri):
+            self.provider._verify_post_logout_uri(self._native_logout_request(uri))
+
+    def test_native_undotted_post_logout_scheme_rejected_by_default(self):
+        with pytest.raises(InvalidPostLogoutUri) as exc_info:
+            self.provider._verify_post_logout_uri(self._native_logout_request("myapp:/logout"))
+
+        assert "native_redirect_schemes" in str(exc_info.value)
+
+    def test_native_dotted_post_logout_scheme_accepted_by_default(self):
+        request = self._native_logout_request("com.example.app:/logout")
+
+        assert self.provider._verify_post_logout_uri(request) == [("com.example.app:/logout", None)]
+
+    def test_registration_endpoint_native_undotted_scheme(self):
+        req = RegistrationRequest(redirect_uris=["myapp:/cb"], application_type="native")
+
+        resp = self.provider.registration_endpoint(request=req.to_json())
+
+        assert resp.status_code == 400
+        error = json.loads(resp.message)
+        assert error["error"] == "invalid_redirect_uri"
+        assert "native_redirect_schemes" in error["error_description"]
+
+    def test_native_redirect_schemes_from_environment(self, monkeypatch):
+        monkeypatch.setenv("NATIVE_REDIRECT_SCHEMES", '["myapp"]')
+        settings = OicProviderSettings()
+        assert settings.native_redirect_schemes == ["myapp"]
+        self.provider.settings = settings
+
+        assert self.provider.verify_redirect_uris(self._native_request("myapp:/cb")) == [("myapp:/cb", None)]
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ('["myapp"]', ["myapp"]),
+            ("myapp", ["myapp"]),
+            (" MyApp , ms-* ,, other", ["myapp", "ms-*", "other"]),
+            ("", []),
+        ],
+    )
+    def test_native_redirect_schemes_env_parsing(self, monkeypatch, value, expected):
+        monkeypatch.setenv("NATIVE_REDIRECT_SCHEMES", value)
+
+        assert OicProviderSettings().native_redirect_schemes == expected
+
+    def test_native_redirect_schemes_env_malformed(self, monkeypatch):
+        monkeypatch.setenv("NATIVE_REDIRECT_SCHEMES", "myapp://")
+
+        with pytest.raises(ValueError, match="native_redirect_schemes"):
+            OicProviderSettings()
+
+    def test_native_redirect_schemes_env_invalid_json(self, monkeypatch):
+        monkeypatch.setenv("NATIVE_REDIRECT_SCHEMES", '["myapp"')
+
+        with pytest.raises(ValueError, match="not a valid JSON list"):
+            OicProviderSettings()
+
+    @pytest.mark.parametrize("value", ['["myapp", 1]', '[["myapp"]]'])
+    def test_native_redirect_schemes_env_non_string_entry(self, monkeypatch, value):
+        monkeypatch.setenv("NATIVE_REDIRECT_SCHEMES", value)
+
+        with pytest.raises(ValueError, match="entries must be strings"):
+            OicProviderSettings()
+
+    @pytest.mark.parametrize("value", [None, 5, '"myapp"', '{"a": 1}'])
+    def test_native_redirect_schemes_not_a_list(self, value):
+        with pytest.raises(ValueError, match="native_redirect_schemes"):
+            OicProviderSettings(native_redirect_schemes=value)
+
+    @pytest.mark.parametrize("entry", ["myapp:", "my/app", "my app", "my_app"])
+    def test_native_redirect_schemes_invalid_entry(self, entry):
+        with pytest.raises(ValueError):
+            OicProviderSettings(native_redirect_schemes=[entry])
+
+    def test_native_redirect_schemes_custom_settings_class(self):
+        class CustomSettings(PyoidcSettings):
+            native_redirect_schemes: list[str] = ["myapp"]
+
+        self.provider.settings = CustomSettings()
+
+        assert self.provider.verify_redirect_uris(self._native_request("myapp:/cb")) == [("myapp:/cb", None)]
+
+    def test_registration_endpoint_native_undotted_post_logout_scheme(self):
+        req = RegistrationRequest(
+            redirect_uris=["com.example.app:/cb"],
+            post_logout_redirect_uris=["myapp:/logout"],
+            application_type="native",
+        )
+
+        resp = self.provider.create_registration(request=req.to_json())
+
+        assert resp.status_code == 400
+        assert json.loads(resp.message)["error"] == "invalid_configuration_parameter"
 
     def test_provider_key_setup(self, tmpdir, session_db_factory):
         path = tmpdir.strpath
