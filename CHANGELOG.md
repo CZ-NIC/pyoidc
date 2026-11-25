@@ -29,12 +29,14 @@ The format is based on the [KeepAChangeLog] project.
 - [#897]: End Session endpoint verifies id token hint against incorrect issuer
 - [#907]: LogoutToken accepts extra members in the `events` claim
 - [#910]: Reject relative (non-absolute), malformed and unsafe-scheme redirect_uris and post_logout_redirect_uris during client registration
+- [#912]: Error description hardening
 
 [#896]: https://github.com/CZ-NIC/pyoidc/pull/896
 [#897]: https://github.com/CZ-NIC/pyoidc/pull/897
 [#905]: https://github.com/CZ-NIC/pyoidc/pull/905
 [#907]: https://github.com/CZ-NIC/pyoidc/pull/907
 [#910]: https://github.com/CZ-NIC/pyoidc/pull/910
+[#912]: https://github.com/CZ-NIC/pyoidc/pull/912
 
 ## 1.7.0 [2024-04-25]
 ### Changed
