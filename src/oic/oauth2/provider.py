@@ -941,8 +941,9 @@ class Provider:
         try:
             client_id = self.client_authn(self, areq, authn)
         except (FailedAuthentication, AuthnFailure) as err:
+            # RFC 6749, section 5.2: client authentication failed
             logger.error("%s", err)
-            error = TokenErrorResponse(error="unauthorized_client", error_description="{}".format(err))
+            error = TokenErrorResponse(error="invalid_client", error_description="{}".format(err))
             return Unauthorized(error.to_json(), content="application/json")
 
         logger.debug("AccessTokenRequest: %s", sanitize(areq))
@@ -953,8 +954,8 @@ class Provider:
                 _info = self.sdb[areq["code"]]
             except KeyError:
                 logger.error("Code not present in SessionDB")
-                error = TokenErrorResponse(error="unauthorized_client", error_description="Invalid code.")
-                return Unauthorized(error.to_json(), content="application/json")
+                error = TokenErrorResponse(error="invalid_grant", error_description="Invalid code.")
+                return BadRequest(error.to_json(), content="application/json")
 
             resp = self.token_scope_check(areq, _info)
             if resp:
@@ -963,18 +964,18 @@ class Provider:
             if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
                 logger.error("Redirect_uri mismatch")
                 error = TokenErrorResponse(
-                    error="unauthorized_client",
+                    error="invalid_grant",
                     error_description="Redirect_uris do not match.",
                 )
-                return Unauthorized(error.to_json(), content="application/json")
+                return BadRequest(error.to_json(), content="application/json")
             if "state" in areq:
                 if _info["state"] != areq["state"]:
                     logger.error("State value mismatch")
                     error = TokenErrorResponse(
-                        error="unauthorized_client",
+                        error="invalid_grant",
                         error_description="State values do not match.",
                     )
-                    return Unauthorized(error.to_json(), content="application/json")
+                    return BadRequest(error.to_json(), content="application/json")
 
         # Propagate the client_id further
         areq.setdefault("client_id", client_id)
@@ -988,7 +989,8 @@ class Provider:
         elif grant_type == "password":
             return self.password_grant_type(areq)
         else:
-            raise UnSupported("grant_type: {}".format(grant_type))
+            logger.error("Unsupported grant_type: %s", sanitize(grant_type))
+            return error_response("unsupported_grant_type", descr="Unsupported grant_type")
 
     def code_grant_type(self, areq):
         """Token authorization using Code Grant.

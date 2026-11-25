@@ -556,8 +556,8 @@ class Provider(provider.Provider):
         if "state" in areq:
             if self.sdb[areq["code"]]["state"] != areq["state"]:
                 logger.error("State value mismatch")
-                err = TokenErrorResponse(error="unauthorized_client")
-                return Unauthorized(err.to_json(), content="application/json")
+                err = TokenErrorResponse(error="invalid_grant", error_description="State values do not match.")
+                return BadRequest(err.to_json(), content="application/json")
 
         resp = self.token_scope_check(areq, _info)
         if resp:
@@ -567,8 +567,8 @@ class Provider(provider.Provider):
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
             logger.error("Redirect_uri mismatch")
-            err = TokenErrorResponse(error="unauthorized_client")
-            return Unauthorized(err.to_json(), content="application/json")
+            err = TokenErrorResponse(error="invalid_grant", error_description="Redirect_uris do not match.")
+            return BadRequest(err.to_json(), content="application/json")
 
         issue_refresh = False
         if "scope" in authzreq and "offline_access" in authzreq["scope"]:
