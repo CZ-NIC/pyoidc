@@ -429,9 +429,9 @@ class TestProvider:
             token_type_hint="access_token",
         )
         resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
-        assert resp
+        assert resp.status_code == 401
         ti_resp = TokenIntrospectionResponse().deserialize(resp.message, "json")
-        assert ti_resp["error"] == "unauthorized_client"
+        assert ti_resp["error"] == "invalid_client"
 
     def test_token_revocation_and_introspection(self):
         authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
