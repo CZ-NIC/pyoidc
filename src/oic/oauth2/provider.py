@@ -2,8 +2,6 @@ import copy
 import hashlib
 import logging
 import os
-import sys
-import traceback
 import warnings
 from functools import cmp_to_key
 from urllib.parse import parse_qs, unquote, urljoin, urlparse
@@ -470,9 +468,9 @@ class Provider:
 
             resp = Response(_response.to_json(), content="application/json", headers=headers)
         except Exception:
-            message = traceback.format_exception(*sys.exc_info())
-            logger.error(message)
-            resp = error_response("service_error", message)
+            # Details go to the log only, never to the caller
+            logger.exception("Failed to create the provider info response")
+            resp = error_response("server_error", "Could not create provider information", status_code=500)
 
         return resp
 
@@ -580,11 +578,10 @@ class Provider:
                 self.get_redirect_uri(areq)
             except (RedirectURIError, ParameterError) as err:
                 return error_response("invalid_request", "{}".format(err))
-        except Exception as err:
-            message = traceback.format_exception(*sys.exc_info())
-            logger.error(message)
-            logger.debug("Bad request: %s (%s)", err, err.__class__.__name__)
-            error = ErrorResponse(error="invalid_request", error_description=str(err))
+        except Exception:
+            # Details go to the log only; the exception text may expose internals
+            logger.exception("Failed to parse the authorization request")
+            error = ErrorResponse(error="invalid_request", error_description="Malformed authorization request")
             return BadRequest(error.to_json(), content="application/json")
 
         if not areq:
