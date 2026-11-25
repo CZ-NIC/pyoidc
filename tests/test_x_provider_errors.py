@@ -94,6 +94,23 @@ class TestExtensionProviderErrorResponses:
 
         _assert_error(self.provider.code_grant_type(areq), 400, "invalid_grant")
 
+    def test_state_mismatch_in_code_grant_type_returns_400(self):
+        # code_grant_type answers 401 unauthorized_client; the client is fine, the grant does not match
+        code = self._make_code()
+        self.provider.sdb.update_by_token(code, "state", "state")
+        areq = self._token_request(code)
+        areq["state"] = "other_state"
+
+        _assert_error(self.provider.code_grant_type(areq), 400, "invalid_grant")
+
+    def test_redirect_uri_mismatch_in_code_grant_type_returns_400(self):
+        # RFC 6749, section 5.2 names a redirect_uri mismatch as invalid_grant
+        code = self._make_code()
+        areq = self._token_request(code)
+        areq["redirect_uri"] = "http://example.com/other"
+
+        _assert_error(self.provider.code_grant_type(areq), 400, "invalid_grant")
+
     def test_introspection_with_wrong_client_secret_returns_401(self):
         # verify_client raises AuthnFailure, which get_token_info does not catch -> HTTP 500
         req = TokenIntrospectionRequest(token="whatever", client_id="client1", client_secret="wrong")
