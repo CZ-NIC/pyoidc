@@ -466,6 +466,39 @@ class TestProvider:
         atr = TokenErrorResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ["error_description", "error"])
 
+    def test_token_endpoint_missing_redirect_uri(self):
+        # The authorization request had a redirect_uri, so the token request must repeat it
+        # (RFC 6749, section 4.1.3).
+        authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "sub": "sub",
+            "authzreq": "",
+            "client_id": "client1",
+            "code": access_grant,
+            "code_used": False,
+            "redirect_uri": "http://example.com/authz",
+        }
+
+        areq = AccessTokenRequest(
+            code=access_grant,
+            client_id="client1",
+            client_secret="hemlighet",
+            grant_type="authorization_code",
+        )
+        areq.lax = True  # allow serializing without the required redirect_uri
+
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+
+        assert resp.status_code == 400
+        atr = TokenErrorResponse().deserialize(resp.message, "json")
+        assert atr["error"] == "invalid_request"
+        assert _sdb[sid]["code_used"] is False
+
     def test_token_endpoint_malformed_code(self):
         authreq = AuthorizationRequest(
             state="state",
