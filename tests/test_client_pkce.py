@@ -1,6 +1,7 @@
 """PKCE (RFC 7636) on the client side: a client that sends a code_challenge must send the matching code_verifier."""
 
 import hashlib
+from collections.abc import MutableMapping
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -18,8 +19,8 @@ REDIRECT_URI = "https://example.com/redirect"
 PKCE_CONFIG = {"code_challenge": {"method": "S256", "length": 64}}
 
 
-def _make_client(client_cls, config):
-    client = client_cls(client_id="client_1", client_authn_method=CLIENT_AUTHN_METHOD, config=config)
+def _make_client(client_cls, config, **kwargs):
+    client = client_cls(client_id="client_1", client_authn_method=CLIENT_AUTHN_METHOD, config=config, **kwargs)
     client.client_secret = "abcdefghijklmnop"
     client.redirect_uris = [REDIRECT_URI]
     client.authorization_endpoint = AUTHORIZATION_ENDPOINT
@@ -48,29 +49,56 @@ def _query(url):
     return {k: v[0] for k, v in parse_qs(urlparse(url).query).items()}
 
 
+def _callback_location(state):
+    return "{}?code=code-{}&state={}".format(REDIRECT_URI, state, state)
+
+
+def _handle_callback(client, state):
+    """Parse the authorization response, as the redirect_uri handler would."""
+    response_cls = client.message_factory.get_response_type("authorization_endpoint")
+    client.parse_response(response_cls, _callback_location(state), sformat="urlencoded")
+
+
 def _authorize(client, rsps, state, request_args=None):
     """Run the authorization request and feed the redirect back; return the authorization request params."""
-    location = "{}?code=code-{}&state={}".format(REDIRECT_URI, state, state)
-    rsps.add(responses.GET, AUTHORIZATION_ENDPOINT, status=302, headers={"location": location})
+    rsps.add(responses.GET, AUTHORIZATION_ENDPOINT, status=302, headers={"location": _callback_location(state)})
     if request_args is None:
         request_args = {"response_type": ["code"], "scope": ["openid"]}
     client.do_authorization_request(state=state, request_args=request_args)
 
-    response_cls = client.message_factory.get_response_type("authorization_endpoint")
-    client.parse_response(response_cls, location, sformat="urlencoded")
+    _handle_callback(client, state)
     return _query(rsps.calls[-1].request.url)
 
 
-def _token(client, rsps, state, request_args=None):
+def _token(client, rsps, state, request_args=None, status=200, body=None):
     """Run the token request; return the token request params."""
-    rsps.add(
-        responses.POST,
-        TOKEN_ENDPOINT,
-        content_type="application/json",
-        json={"token_type": "Bearer", "access_token": "token", "state": state},
-    )
+    if body is None:
+        body = {"token_type": "Bearer", "access_token": "token", "state": state}
+    rsps.add(responses.POST, TOKEN_ENDPOINT, status=status, content_type="application/json", json=body)
     client.do_access_token_request(state=state, request_args=request_args)
     return {k: v[0] for k, v in parse_qs(rsps.calls[-1].request.body).items()}
+
+
+class VerifierStore(MutableMapping):
+    """A store that is not a dict, as a persistent (database, cache) backend would be."""
+
+    def __init__(self):
+        self.data = {}
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+    def __delitem__(self, key):
+        del self.data[key]
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def __len__(self):
+        return len(self.data)
 
 
 def _s256(verifier):
@@ -154,3 +182,80 @@ def test_manual_pkce_still_works(plain_client):
 
     assert authz_request["code_challenge"] == _s256(verifier)
     assert token_request["code_verifier"] == verifier
+
+
+# --- a pluggable store for the code verifiers ---
+
+
+@pytest.fixture(params=["default", "custom"])
+def store_kwargs(request):
+    """Client constructor kwargs for the default (in-memory) and a custom verifier store."""
+    if request.param == "default":
+        return {}
+    return {"code_verifier_store": VerifierStore()}
+
+
+def test_custom_store_receives_verifier(client_cls):
+    store = VerifierStore()
+    client = _make_client(client_cls, dict(PKCE_CONFIG), code_verifier_store=store)
+
+    with responses.RequestsMock() as rsps:
+        authz_request = _authorize(client, rsps, "state0")
+
+    assert _s256(store["state0"]) == authz_request["code_challenge"]
+
+
+def test_custom_store_shared_between_instances(client_cls):
+    # One instance sends the authorization request, another one handles the callback
+    store = VerifierStore()
+    first = _make_client(client_cls, dict(PKCE_CONFIG), code_verifier_store=store)
+    second = _make_client(client_cls, dict(PKCE_CONFIG), code_verifier_store=store)
+
+    with responses.RequestsMock() as rsps:
+        authz_request = _authorize(first, rsps, "state0")
+        _handle_callback(second, "state0")
+        token_request = _token(second, rsps, "state0")
+
+    assert _s256(token_request["code_verifier"]) == authz_request["code_challenge"]
+
+
+def test_verifier_removed_after_successful_token_response(client_cls, store_kwargs):
+    # The code is single-use, so the verifier is no longer needed; persistent stores must not grow
+    client = _make_client(client_cls, dict(PKCE_CONFIG), **store_kwargs)
+
+    with responses.RequestsMock() as rsps:
+        _authorize(client, rsps, "state0")
+        _token(client, rsps, "state0")
+
+    assert "state0" not in client.code_verifiers
+
+
+def test_verifier_kept_after_error_response(client_cls, store_kwargs):
+    # A failed token request may be retried, so the verifier stays
+    client = _make_client(client_cls, dict(PKCE_CONFIG), **store_kwargs)
+
+    with responses.RequestsMock() as rsps:
+        _authorize(client, rsps, "state0")
+        _token(client, rsps, "state0", status=400, body={"error": "invalid_request"})
+
+    assert "state0" in client.code_verifiers
+
+
+def test_reset_keeps_custom_store(client_cls):
+    # The store may be shared with other instances, so one instance's reset must not wipe it
+    store = VerifierStore()
+    store["other-state"] = "verifier"
+    client = _make_client(client_cls, dict(PKCE_CONFIG), code_verifier_store=store)
+
+    client.reset()
+
+    assert client.code_verifiers is store
+    assert store["other-state"] == "verifier"
+
+
+def test_reset_clears_default_store(client):
+    client.code_verifiers["state0"] = "verifier"
+
+    client.reset()
+
+    assert "state0" not in client.code_verifiers
