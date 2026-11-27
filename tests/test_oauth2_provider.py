@@ -499,6 +499,49 @@ class TestProvider:
         assert atr["error"] == "invalid_request"
         assert _sdb[sid]["code_used"] is False
 
+    def test_token_endpoint_no_redirect_uri_in_authz_request(self):
+        # RFC 6749, section 4.1.3: redirect_uri is only REQUIRED in the token request if it was
+        # included in the authorization request. Plain OAuth 2.0 (unlike OIDC) allows omitting it there.
+        authreq = AuthorizationRequest(state="state", client_id="client1")
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "sub": "sub",
+            "authzreq": "",
+            "client_id": "client1",
+            "code": access_grant,
+            "code_used": False,
+        }
+
+        areq = AccessTokenRequest(
+            code=access_grant,
+            client_id="client1",
+            client_secret="hemlighet",
+            grant_type="authorization_code",
+        )
+        areq.lax = True  # allow serializing without redirect_uri
+
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+
+        assert resp.status_code == 200
+        atr = AccessTokenResponse().deserialize(resp.message, "json")
+        assert "access_token" in atr
+        assert _sdb[sid]["code_used"] is True
+
+    @pytest.mark.parametrize("grant_type", ["client_credentials", "password", "refresh_token"])
+    def test_token_endpoint_non_code_grants_need_no_redirect_uri(self, grant_type):
+        # RFC 6749, sections 4.3.2, 4.4.2 and 6: these grants have no redirect_uri parameter, so the
+        # redirect_uri check must not reject them. The base Provider doesn't implement them, so
+        # unsupported_grant_type (and not invalid_request/"Missing redirect_uri") is the expected answer.
+        areq = Message(grant_type=grant_type)
+        authn = "Basic Y2xpZW50Mjp2ZXJ5c2VjcmV0="
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded(), authn=authn)
+        parsed = TokenErrorResponse().from_json(resp.message)
+        assert parsed["error"] == "unsupported_grant_type"
+
     def test_token_endpoint_malformed_code(self):
         authreq = AuthorizationRequest(
             state="state",
