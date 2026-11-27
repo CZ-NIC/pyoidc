@@ -82,14 +82,14 @@ class TestExtensionProviderErrorResponses:
         return self.provider.token_endpoint(request=self._token_request(code).to_urlencoded())
 
     def test_code_reuse_returns_400(self):
-        # code_grant_type passes status="401 Unauthorized", which Response ignores -> HTTP 200
-        code = self._make_code()
+        # A used code is invalid_grant, HTTP 400 (RFC 6749, section 5.2)
+        code =self._make_code()
         _assert_token(self._token(code))
 
         _assert_error(self._token(code), 400, "invalid_grant")
 
     def test_unknown_code_in_code_grant_type_returns_400(self):
-        # Same ignored status="401 Unauthorized" -> HTTP 200
+        # An unknown code is invalid_grant, HTTP 400 (RFC 6749, section 5.2)
         areq = self._token_request("unknown-code")
 
         _assert_error(self.provider.code_grant_type(areq), 400, "invalid_grant")
@@ -120,7 +120,7 @@ class TestExtensionProviderErrorResponses:
         _assert_error(resp, 401, "invalid_client")
 
     def test_introspection_without_client_authentication_returns_401(self):
-        # get_token_info passes status="401 Unauthorized", which Response ignores -> HTTP 200
+        # Failed client authentication is invalid_client, HTTP 401 (RFC 7662, section 2.3)
         req = TokenIntrospectionRequest(token="whatever")
 
         resp = self.provider.introspection_endpoint(request=req.to_urlencoded())
