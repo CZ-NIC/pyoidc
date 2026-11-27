@@ -6,7 +6,6 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from testfixtures import LogCapture
 
-from oic.exception import UnSupported
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.message import (
     AccessTokenRequest,
@@ -465,6 +464,9 @@ class TestProvider:
         resp = self.provider.token_endpoint(request=areq.to_urlencoded())
         atr = TokenErrorResponse().deserialize(resp.message, "json")
         assert _eq(atr.keys(), ["error_description", "error"])
+        # RFC 6749, section 5.2: failed client authentication is invalid_client
+        assert resp.status_code == 401
+        assert atr["error"] == "invalid_client"
 
     def test_token_endpoint_malformed_code(self):
         authreq = AuthorizationRequest(
@@ -500,8 +502,10 @@ class TestProvider:
         txt = areq.to_urlencoded()
 
         resp = self.provider.token_endpoint(request=txt)
+        # RFC 6749, section 5.2: an invalid authorization code is invalid_grant
+        assert resp.status_code == 400
         atr = TokenErrorResponse().deserialize(resp.message, "json")
-        assert atr["error"] == "unauthorized_client"
+        assert atr["error"] == "invalid_grant"
 
     def test_token_endpoint_bad_redirect_uri(self):
         authreq = AuthorizationRequest(
@@ -537,8 +541,10 @@ class TestProvider:
         txt = areq.to_urlencoded()
 
         resp = self.provider.token_endpoint(request=txt)
+        # RFC 6749, section 5.2: a redirect_uri mismatch is invalid_grant
+        assert resp.status_code == 400
         atr = TokenErrorResponse().deserialize(resp.message, "json")
-        assert atr["error"] == "unauthorized_client"
+        assert atr["error"] == "invalid_grant"
 
     def test_token_endpoint_ok_state(self):
         authreq = AuthorizationRequest(
@@ -618,8 +624,10 @@ class TestProvider:
         txt = areq.to_urlencoded()
 
         resp = self.provider.token_endpoint(request=txt)
+        # The grant was not issued for this state; the client itself is fine
+        assert resp.status_code == 400
         atr = TokenErrorResponse().deserialize(resp.message, "json")
-        assert atr["error"] == "unauthorized_client"
+        assert atr["error"] == "invalid_grant"
 
     def test_token_endpoint_client_credentials(self):
         authreq = AuthorizationRequest(state="state", redirect_uri="http://example.com/authz", client_id="client1")
@@ -683,8 +691,11 @@ class TestProvider:
         }
         areq = Message(grant_type="some_other")
         authn = "Basic Y2xpZW50Mjp2ZXJ5c2VjcmV0="
-        with pytest.raises(UnSupported):
-            self.provider.token_endpoint(request=areq.to_urlencoded(), authn=authn)
+        # RFC 6749, section 5.2: an error response, not an exception (HTTP 500)
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded(), authn=authn)
+        assert resp.status_code == 400
+        parsed = TokenErrorResponse().from_json(resp.message)
+        assert parsed["error"] == "unsupported_grant_type"
 
     def test_code_grant_type_used(self):
         authreq = AuthorizationRequest(

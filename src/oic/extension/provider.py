@@ -540,7 +540,7 @@ class Provider(provider.Provider):
             _info = self.sdb[areq["code"]]
         except KeyError:
             err = TokenErrorResponse(error="invalid_grant", error_description="Unknown access grant")
-            return Response(err.to_json(), content="application/json", status="401 Unauthorized")
+            return BadRequest(err.to_json(), content="application/json")
 
         authzreq = json.loads(_info["authzreq"])
         if "code_verifier" in areq:
@@ -556,8 +556,8 @@ class Provider(provider.Provider):
         if "state" in areq:
             if self.sdb[areq["code"]]["state"] != areq["state"]:
                 logger.error("State value mismatch")
-                err = TokenErrorResponse(error="unauthorized_client")
-                return Unauthorized(err.to_json(), content="application/json")
+                err = TokenErrorResponse(error="invalid_grant", error_description="State values do not match.")
+                return BadRequest(err.to_json(), content="application/json")
 
         resp = self.token_scope_check(areq, _info)
         if resp:
@@ -567,8 +567,8 @@ class Provider(provider.Provider):
         # verify that the one given here is the correct one.
         if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
             logger.error("Redirect_uri mismatch")
-            err = TokenErrorResponse(error="unauthorized_client")
-            return Unauthorized(err.to_json(), content="application/json")
+            err = TokenErrorResponse(error="invalid_grant", error_description="Redirect_uris do not match.")
+            return BadRequest(err.to_json(), content="application/json")
 
         issue_refresh = False
         if "scope" in authzreq and "offline_access" in authzreq["scope"]:
@@ -579,7 +579,7 @@ class Provider(provider.Provider):
             _tinfo = self.sdb.upgrade_to_token(areq["code"], issue_refresh=issue_refresh)
         except AccessCodeUsed:
             err = TokenErrorResponse(error="invalid_grant", error_description="Access grant used")
-            return Response(err.to_json(), content="application/json", status="401 Unauthorized")
+            return BadRequest(err.to_json(), content="application/json")
 
         logger.debug("_tinfo: %s", _tinfo)
 
@@ -667,10 +667,11 @@ class Provider(provider.Provider):
         """
         try:
             client_id = self.client_authn(self, req, authn)
-        except FailedAuthentication as err:
+        except (FailedAuthentication, AuthnFailure) as err:
+            # RFC 6749, section 5.2 (referenced by RFC 7009 and RFC 7662): client authentication failed
             logger.error("%s", err)
-            error = TokenErrorResponse(error="unauthorized_client", error_description="{}".format(err))
-            return Response(error.to_json(), content="application/json", status="401 Unauthorized")
+            error = TokenErrorResponse(error="invalid_client", error_description="{}".format(err))
+            return Unauthorized(error.to_json(), content="application/json")
 
         logger.debug("%s: %s requesting %s", endpoint, client_id, req.to_dict())
 
