@@ -35,7 +35,6 @@ def test_providerinfo_endpoint_does_not_return_traceback(provider, monkeypatch):
 
 
 def test_authorization_endpoint_does_not_return_exception_text(provider, monkeypatch):
-    # auth_init catches any exception while parsing the request and returns str(err) today
     monkeypatch.setattr(provider.server, "parse_authorization_request", _boom)
 
     resp = provider.authorization_endpoint(request="response_type=code&client_id=client1")
@@ -46,12 +45,12 @@ def test_authorization_endpoint_does_not_return_exception_text(provider, monkeyp
 
 
 def test_registration_key_loading_does_not_return_exception_text(provider, monkeypatch):
-    # Failing to load the client's keys (e.g. fetching jwks_uri) returns the exception text today
     provider.cdb["client1"] = {"client_id": "client1"}
     monkeypatch.setattr(provider.keyjar, "load_keys", _boom)
     request = RegistrationRequest(jwks_uri="https://client.example.com/jwks.json")
 
     resp = provider.do_client_registration(request, "client1")
 
+    assert resp.status_code == 500
     assert json.loads(resp.message)["error"] == "invalid_configuration_parameter"
     _assert_no_internal_details(resp)
