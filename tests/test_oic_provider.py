@@ -559,6 +559,48 @@ class TestProvider:
         assert atr["error"] == "invalid_request"
         assert atr["error_description"] == "Missing redirect_uri"
 
+    def test_token_endpoint_missing_redirect_uri(self):
+        # Same as above, but through token_endpoint, which checks redirect_uri before code_grant_type
+        authreq = AuthorizationRequest(
+            state="state",
+            redirect_uri="http://example.com/authz",
+            client_id=CLIENT_ID,
+            response_type="code",
+            scope=["openid"],
+        )
+
+        _sdb = self.provider.sdb
+        sid = _sdb.access_token.key(user="sub", areq=authreq)
+        access_grant = _sdb.access_token(sid=sid)
+        ae = AuthnEvent("user", "salt")
+        _sdb[sid] = {
+            "oauth_state": "authz",
+            "authn_event": ae.to_json(),
+            "authzreq": authreq.to_json(),
+            "client_id": CLIENT_ID,
+            "code": access_grant,
+            "code_used": False,
+            "scope": ["openid"],
+            "redirect_uri": "http://example.com/authz",
+        }
+        _sdb.do_sub(sid, "client_salt")
+
+        areq = AccessTokenRequest(
+            code=access_grant,
+            client_id=CLIENT_ID,
+            client_secret=CLIENT_SECRET,
+            grant_type="authorization_code",
+        )
+        areq.lax = True  # allow serializing without the required redirect_uri
+
+        resp = self.provider.token_endpoint(request=areq.to_urlencoded())
+
+        assert resp.status_code == 400
+        atr = TokenErrorResponse().deserialize(resp.message, "json")
+        assert atr["error"] == "invalid_request"
+        assert atr["error_description"] == "Missing redirect_uri"
+        assert _sdb[sid]["code_used"] is False
+
     def test_code_grant_type_used(self):
         authreq = AuthorizationRequest(
             state="state",

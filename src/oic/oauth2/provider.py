@@ -959,7 +959,11 @@ class Provider:
             resp = self.token_scope_check(areq, _info)
             if resp:
                 return resp
-            # If redirect_uri was in the initial authorization request verify that they match
+            # If redirect_uri was in the initial authorization request it must be present
+            # and identical here (RFC 6749, section 4.1.3)
+            if "redirect_uri" in _info and "redirect_uri" not in areq:
+                logger.error("Missing redirect_uri")
+                return error_response("invalid_request", descr="Missing redirect_uri")
             if "redirect_uri" in _info and areq["redirect_uri"] != _info["redirect_uri"]:
                 logger.error("Redirect_uri mismatch")
                 error = TokenErrorResponse(
