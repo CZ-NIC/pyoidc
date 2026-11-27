@@ -1327,10 +1327,11 @@ class Provider(AProvider):
             logger.error("Failed to load client keys: %s", sanitize(request.to_dict()))
             logger.error("%s", err)
             logger.debug("Verify SSL: %s", self.keyjar.verify_ssl)
+            # The exception text (e.g. from fetching jwks_uri) stays in the log
             error = ClientRegistrationErrorResponse(
-                error="invalid_configuration_parameter", error_description="{}".format(err)
+                error="invalid_configuration_parameter", error_description="Could not load the client keys"
             )
-            return Response(error.to_json(), content="application/json", status="400 Bad Request")
+            return BadRequest(error.to_json(), content="application/json")
 
         return _cinfo
 
