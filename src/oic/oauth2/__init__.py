@@ -1081,6 +1081,20 @@ class Client(PBase):
         self.code_verifiers[state] = code_verifier
         return request_args
 
+    def _update_code_verifier(self, state, saved):
+        """Take over the code verifier for a state from a saved copy of ``code_verifiers``.
+
+        The Consumers use this when they pick up a session from their session database.
+        A store from the settings is shared already, so it is left alone.
+
+        :param state: The state of the authorization request.
+        :param saved: The saved ``code_verifiers``.
+        """
+        if not self._own_code_verifier_store or not isinstance(saved, dict):
+            return
+        if state in saved and state not in self.code_verifiers:
+            self.code_verifiers[state] = saved[state]
+
     def handle_provider_config(
         self,
         pcr: ASConfigurationResponse,

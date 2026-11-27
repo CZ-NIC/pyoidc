@@ -407,6 +407,20 @@ clear a store from the settings, since other instances may use it. Give entries
 an expiry so that abandoned logins do not pile up. The store is a live object, so
 unlike most settings it cannot be set through an environment variable.
 
+The ``Consumer`` classes (``oic.oic.consumer.Consumer`` and
+``oic.oauth2.consumer.Consumer``) use the same switch in the client
+configuration::
+
+    consumer = Consumer(session_db, consumer_config,
+                        client_config={"client_id": client_id,
+                                       "config": {"code_challenge": {}}},
+                        server_info=server_info)
+
+``begin()`` then adds the challenge and ``complete()`` sends the verifier. The
+Consumers save the verifier in their session database together with the rest of
+the session, so another Consumer instance using the same session database can
+complete the flow. A ``code_verifier_store`` in the settings works as well.
+
 Implicit Flow
 ^^^^^^^^^^^^^
 

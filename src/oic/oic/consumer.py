@@ -185,6 +185,9 @@ class Consumer(Client):
         :param sid: Session identifier
         """
         for key, val in self.sdb[sid].items():
+            if key == "code_verifiers":
+                self._update_code_verifier(sid, val)
+                continue
             try:
                 _val = getattr(self, key)
             except AttributeError:
@@ -254,17 +257,21 @@ class Consumer(Client):
 
         sid = stateID(path, self.seed)
         self.grant[sid] = self.grant_class(seed=self.seed)
+        # Before the backup, so that another instance can send the code_verifier
+        args = self.add_pkce_to_authorization_request(sid)
 
         self._backup(sid)
         self.sdb["seed:{}".format(self.seed)] = sid
         self.sso_db[sid] = {}
 
-        args = {
-            "client_id": self.client_id,
-            "state": sid,
-            "response_type": response_type,
-            "scope": scope,
-        }
+        args.update(
+            {
+                "client_id": self.client_id,
+                "state": sid,
+                "response_type": response_type,
+                "scope": scope,
+            }
+        )
         if prompt is not None:
             args["prompt"] = prompt
 
