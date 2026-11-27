@@ -7,11 +7,13 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 import responses
 from jwkest import b64e
+from pydantic import ValidationError
 
 from oic import unreserved
 from oic.extension.client import Client as ExtensionClient
 from oic.oic import Client as OicClient
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.settings import OauthClientSettings, OicClientSettings
 
 AUTHORIZATION_ENDPOINT = "https://example.com/authorization"
 TOKEN_ENDPOINT = "https://example.com/token"
@@ -184,32 +186,55 @@ def test_manual_pkce_still_works(plain_client):
     assert token_request["code_verifier"] == verifier
 
 
-# --- a pluggable store for the code verifiers ---
+# --- a pluggable store for the code verifiers, set through the client settings ---
+
+SETTINGS_CLS = {ExtensionClient: OauthClientSettings, OicClient: OicClientSettings}
+
+
+def _settings(client_cls, **kwargs):
+    return SETTINGS_CLS[client_cls](**kwargs)
 
 
 @pytest.fixture(params=["default", "custom"])
-def store_kwargs(request):
+def store_kwargs(request, client_cls):
     """Client constructor kwargs for the default (in-memory) and a custom verifier store."""
     if request.param == "default":
         return {}
-    return {"code_verifier_store": VerifierStore()}
+    return {"settings": _settings(client_cls, code_verifier_store=VerifierStore())}
+
+
+@pytest.mark.parametrize("settings_cls", [OauthClientSettings, OicClientSettings])
+def test_settings_keep_the_store_object(settings_cls):
+    # pydantic must not replace the store with a copy, or instances sharing it would each get their own
+    store = VerifierStore()
+
+    assert settings_cls(code_verifier_store=store).code_verifier_store is store
+
+
+def test_store_not_taken_from_environment(monkeypatch):
+    # A store is a live object; a JSON value from the environment must not become one
+    monkeypatch.setenv("CODE_VERIFIER_STORE", '{"state0": "verifier"}')
+
+    with pytest.raises(ValidationError):
+        OauthClientSettings()
 
 
 def test_custom_store_receives_verifier(client_cls):
     store = VerifierStore()
-    client = _make_client(client_cls, dict(PKCE_CONFIG), code_verifier_store=store)
+    client = _make_client(client_cls, dict(PKCE_CONFIG), settings=_settings(client_cls, code_verifier_store=store))
 
     with responses.RequestsMock() as rsps:
         authz_request = _authorize(client, rsps, "state0")
 
+    assert client.code_verifiers is store
     assert _s256(store["state0"]) == authz_request["code_challenge"]
 
 
 def test_custom_store_shared_between_instances(client_cls):
     # One instance sends the authorization request, another one handles the callback
-    store = VerifierStore()
-    first = _make_client(client_cls, dict(PKCE_CONFIG), code_verifier_store=store)
-    second = _make_client(client_cls, dict(PKCE_CONFIG), code_verifier_store=store)
+    settings = _settings(client_cls, code_verifier_store=VerifierStore())
+    first = _make_client(client_cls, dict(PKCE_CONFIG), settings=settings)
+    second = _make_client(client_cls, dict(PKCE_CONFIG), settings=settings)
 
     with responses.RequestsMock() as rsps:
         authz_request = _authorize(first, rsps, "state0")
@@ -217,6 +242,19 @@ def test_custom_store_shared_between_instances(client_cls):
         token_request = _token(second, rsps, "state0")
 
     assert _s256(token_request["code_verifier"]) == authz_request["code_challenge"]
+
+
+def test_shared_settings_without_store_keep_verifiers_per_instance(client_cls):
+    # Without a store in the settings, each client keeps its own in-memory store
+    settings = _settings(client_cls)
+    first = _make_client(client_cls, dict(PKCE_CONFIG), settings=settings)
+    second = _make_client(client_cls, dict(PKCE_CONFIG), settings=settings)
+
+    with responses.RequestsMock() as rsps:
+        _authorize(first, rsps, "state0")
+
+    assert "state0" in first.code_verifiers
+    assert "state0" not in second.code_verifiers
 
 
 def test_verifier_removed_after_successful_token_response(client_cls, store_kwargs):
@@ -245,7 +283,7 @@ def test_reset_keeps_custom_store(client_cls):
     # The store may be shared with other instances, so one instance's reset must not wipe it
     store = VerifierStore()
     store["other-state"] = "verifier"
-    client = _make_client(client_cls, dict(PKCE_CONFIG), code_verifier_store=store)
+    client = _make_client(client_cls, dict(PKCE_CONFIG), settings=_settings(client_cls, code_verifier_store=store))
 
     client.reset()
 

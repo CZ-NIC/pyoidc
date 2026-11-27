@@ -358,10 +358,49 @@ configuration, if there is one::
 the length of the verifier, 43 to 128 characters, 64 by default.
 
 With this configuration, ``do_authorization_request`` adds the challenge on its
-own and keeps the verifier per state in the client instance;
-``do_access_token_request`` then sends it for that state. This only works if the
-same client instance handles both requests. Set ``code_challenge`` to ``{}`` to
-use the defaults.
+own and keeps the verifier per state; ``do_access_token_request`` then sends it
+for that state and forgets it once it gets a token response (after an error
+response it is kept, so you can retry). Set ``code_challenge`` to ``{}`` to use
+the defaults.
+
+By default the verifiers live in the client instance, so the same instance must
+handle both requests. If that is not the case, e.g. with several processes or a
+new client per request, pass a shared store: any mutable mapping from state to
+verifier, such as a thin wrapper around your database or cache::
+
+    from collections.abc import MutableMapping
+
+    class VerifierStore(MutableMapping):
+        """Keep PKCE code verifiers in a shared cache, keyed by state."""
+
+        def __init__(self, cache):
+            self.cache = cache
+
+        def __getitem__(self, state):
+            value = self.cache.get("pkce:" + state)
+            if value is None:
+                raise KeyError(state)
+            return value
+
+        def __setitem__(self, state, verifier):
+            self.cache.set("pkce:" + state, verifier, timeout=600)
+
+        def __delitem__(self, state):
+            self.cache.delete("pkce:" + state)
+
+        def __iter__(self):
+            raise NotImplementedError
+
+        def __len__(self):
+            raise NotImplementedError
+
+    client = Client(client_authn_method=CLIENT_AUTHN_METHOD,
+                    config={"code_challenge": {}},
+                    code_verifier_store=VerifierStore(cache))
+
+The client only reads, writes and deletes single entries. ``reset()`` does not
+clear a store you pass in, since other instances may use it. Give entries an
+expiry so that abandoned logins do not pile up.
 
 Implicit Flow
 ^^^^^^^^^^^^^

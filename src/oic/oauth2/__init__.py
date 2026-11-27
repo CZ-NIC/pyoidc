@@ -1,5 +1,6 @@
 import logging
 import warnings
+from collections.abc import MutableMapping
 from typing import Any, cast
 from urllib.parse import urlparse
 
@@ -165,6 +166,7 @@ class Client(PBase):
         timeout=None,
         message_factory: type[MessageFactory] = OauthMessageFactory,
         settings: PyoidcSettings | None = None,
+        code_verifier_store: MutableMapping[str, str] | None = None,
     ):
         """Initialize the instance.
 
@@ -175,6 +177,10 @@ class Client(PBase):
                  - verify_ssl
                  - client_cert
                  - timeout
+            code_verifier_store:
+                Where to keep the PKCE code verifiers between the authorization and the access token request,
+                keyed by state. Any mutable mapping, e.g. one backed by a database or cache, so that another
+                client instance can send the access token request. Default: an in-memory dict.
             client_id:
                 The client identifier
             client_authn_method:
@@ -251,7 +257,8 @@ class Client(PBase):
         self.kid: dict[str, dict] = {"sig": {}, "enc": {}}
         self.authz_req: dict[str, Message] = {}
         # PKCE code verifiers by state, see `add_pkce_to_authorization_request`
-        self.code_verifiers: dict[str, str] = {}
+        self._own_code_verifier_store = code_verifier_store is None
+        self.code_verifiers: MutableMapping[str, str] = {} if code_verifier_store is None else code_verifier_store
 
         # the OAuth issuer is the URL of the authorization server's
         # configuration information location
@@ -286,7 +293,9 @@ class Client(PBase):
         self.nonce = None
 
         self.grant = {}
-        self.code_verifiers = {}
+        if self._own_code_verifier_store:
+            # A store passed in may be shared with other instances, leave it alone
+            self.code_verifiers = {}
 
         self.authorization_endpoint = None
         self.token_endpoint = None
@@ -898,7 +907,7 @@ class Client(PBase):
         logger.debug("<do_access_token> URL: %s, Body: %s", sanitize(url), sanitize(body))
         logger.debug("<do_access_token> response_cls: %s", response_cls)
 
-        return self.request_and_return(
+        resp = self.request_and_return(
             url,
             response_cls,
             method,
@@ -908,6 +917,12 @@ class Client(PBase):
             http_args=http_args,
             **kwargs,
         )
+
+        # The code is used up, so is its verifier. After an error response keep it for a retry.
+        if isinstance(resp, response_cls):
+            self.code_verifiers.pop(state, None)
+
+        return resp
 
     def do_access_token_refresh(
         self,
