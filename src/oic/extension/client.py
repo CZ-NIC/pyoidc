@@ -36,7 +36,6 @@ class Client(oauth2.Client):
         config=None,
         message_factory=ExtensionMessageFactory,
         settings=None,
-        code_verifier_store=None,
     ):
         self.settings = settings or OauthClientSettings()
         if verify_ssl is not None:
@@ -53,7 +52,6 @@ class Client(oauth2.Client):
             config=config,
             message_factory=message_factory,
             settings=self.settings,
-            code_verifier_store=code_verifier_store,
         )
         self.allow = {}
         self.request2endpoint.update(

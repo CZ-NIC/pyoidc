@@ -166,7 +166,6 @@ class Client(PBase):
         timeout=None,
         message_factory: type[MessageFactory] = OauthMessageFactory,
         settings: PyoidcSettings | None = None,
-        code_verifier_store: MutableMapping[str, str] | None = None,
     ):
         """Initialize the instance.
 
@@ -177,10 +176,7 @@ class Client(PBase):
                  - verify_ssl
                  - client_cert
                  - timeout
-            code_verifier_store:
-                Where to keep the PKCE code verifiers between the authorization and the access token request,
-                keyed by state. Any mutable mapping, e.g. one backed by a database or cache, so that another
-                client instance can send the access token request. Default: an in-memory dict.
+                 - code_verifier_store
             client_id:
                 The client identifier
             client_authn_method:
@@ -256,7 +252,9 @@ class Client(PBase):
         self._c_secret: str = ""
         self.kid: dict[str, dict] = {"sig": {}, "enc": {}}
         self.authz_req: dict[str, Message] = {}
-        # PKCE code verifiers by state, see `add_pkce_to_authorization_request`
+        # PKCE code verifiers by state, see `add_pkce_to_authorization_request` and
+        # `ClientSettings.code_verifier_store`
+        code_verifier_store = getattr(self.settings, "code_verifier_store", None)
         self._own_code_verifier_store = code_verifier_store is None
         self.code_verifiers: MutableMapping[str, str] = {} if code_verifier_store is None else code_verifier_store
 

@@ -3,7 +3,6 @@ import logging
 import os
 import warnings
 from base64 import b64encode
-from collections.abc import MutableMapping
 from json import JSONDecodeError
 from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
@@ -320,7 +319,6 @@ class Client(oauth2.Client):
         requests_dir="requests",
         message_factory: type[MessageFactory] = OIDCMessageFactory,
         settings: PyoidcSettings | None = None,
-        code_verifier_store: MutableMapping[str, str] | None = None,
     ):
         """Initialize the instance.
 
@@ -331,8 +329,6 @@ class Client(oauth2.Client):
                  - verify_ssl
                  - client_cert
                  - timeout
-            code_verifier_store:
-                Where to keep the PKCE code verifiers, see :class:`oic.oauth2.Client`.
             client_id:
                 Client_id
             client_prefs:
@@ -375,7 +371,6 @@ class Client(oauth2.Client):
             config=config,
             message_factory=message_factory,
             settings=self.settings,
-            code_verifier_store=code_verifier_store,
         )
 
         self.file_store = "./file/"

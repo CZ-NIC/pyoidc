@@ -365,8 +365,9 @@ the defaults.
 
 By default the verifiers live in the client instance, so the same instance must
 handle both requests. If that is not the case, e.g. with several processes or a
-new client per request, pass a shared store: any mutable mapping from state to
-verifier, such as a thin wrapper around your database or cache::
+new client per request, set a shared store in the client settings: any mutable
+mapping from state to verifier, such as a thin wrapper around your database or
+cache::
 
     from collections.abc import MutableMapping
 
@@ -394,13 +395,17 @@ verifier, such as a thin wrapper around your database or cache::
         def __len__(self):
             raise NotImplementedError
 
+    from oic.utils.settings import OicClientSettings
+
+    settings = OicClientSettings(code_verifier_store=VerifierStore(cache))
     client = Client(client_authn_method=CLIENT_AUTHN_METHOD,
                     config={"code_challenge": {}},
-                    code_verifier_store=VerifierStore(cache))
+                    settings=settings)
 
 The client only reads, writes and deletes single entries. ``reset()`` does not
-clear a store you pass in, since other instances may use it. Give entries an
-expiry so that abandoned logins do not pile up.
+clear a store from the settings, since other instances may use it. Give entries
+an expiry so that abandoned logins do not pile up. The store is a live object, so
+unlike most settings it cannot be set through an environment variable.
 
 Implicit Flow
 ^^^^^^^^^^^^^
