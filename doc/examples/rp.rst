@@ -315,6 +315,112 @@ and based on the token type choose the authentication method.
 used openid as the scope, *userinfo* will not contain a lot of information,
 actually only the *sub* parameter.
 
+PKCE
+^^^^
+
+Proof Key for Code Exchange (PKCE, `RFC 7636`_) binds the authorization code to
+the client that asked for it: the client sends a ``code_challenge`` with the
+authentication request and the matching ``code_verifier`` with the access token
+request. Use it with the Authorization Code Flow; some providers require it.
+
+.. _RFC 7636: https://tools.ietf.org/html/rfc7636
+
+If you build the authentication request yourself, as above, create the challenge
+with ``add_code_challenge`` and keep the verifier together with the state and
+nonce::
+
+    pkce_args, session["code_verifier"] = client.add_code_challenge()
+    args.update(pkce_args)
+
+    auth_req = client.construct_AuthorizationRequest(request_args=args)
+
+and send it with the access token request::
+
+    args = {
+        "code": aresp["code"],
+        "code_verifier": session["code_verifier"],
+    }
+
+    resp = client.do_access_token_request(state=aresp["state"],
+                                          request_args=args,
+                                          authn_method="client_secret_basic")
+
+The verifier is a secret: keep it on the server side, never put it in a cookie
+or a URL.
+
+``add_code_challenge`` uses the ``code_challenge`` entry of the client
+configuration, if there is one::
+
+    client = Client(client_authn_method=CLIENT_AUTHN_METHOD,
+                    config={"code_challenge": {"method": "S256", "length": 64}})
+
+``method`` can be ``S256`` (the default), ``S384`` or ``S512``; ``length`` is
+the length of the verifier, 43 to 128 characters, 64 by default.
+
+With this configuration, ``do_authorization_request`` adds the challenge on its
+own and keeps the verifier per state; ``do_access_token_request`` then sends it
+for that state and forgets it once it gets a token response (after an error
+response it is kept, so you can retry). Set ``code_challenge`` to ``{}`` to use
+the defaults.
+
+By default the verifiers live in the client instance, so the same instance must
+handle both requests. If that is not the case, e.g. with several processes or a
+new client per request, set a shared store in the client settings: any mutable
+mapping from state to verifier, such as a thin wrapper around your database or
+cache::
+
+    from collections.abc import MutableMapping
+
+    class VerifierStore(MutableMapping):
+        """Keep PKCE code verifiers in a shared cache, keyed by state."""
+
+        def __init__(self, cache):
+            self.cache = cache
+
+        def __getitem__(self, state):
+            value = self.cache.get("pkce:" + state)
+            if value is None:
+                raise KeyError(state)
+            return value
+
+        def __setitem__(self, state, verifier):
+            self.cache.set("pkce:" + state, verifier, timeout=600)
+
+        def __delitem__(self, state):
+            self.cache.delete("pkce:" + state)
+
+        def __iter__(self):
+            raise NotImplementedError
+
+        def __len__(self):
+            raise NotImplementedError
+
+    from oic.utils.settings import OicClientSettings
+
+    settings = OicClientSettings(code_verifier_store=VerifierStore(cache))
+    client = Client(client_authn_method=CLIENT_AUTHN_METHOD,
+                    config={"code_challenge": {}},
+                    settings=settings)
+
+The client only reads, writes and deletes single entries. ``reset()`` does not
+clear a store from the settings, since other instances may use it. Give entries
+an expiry so that abandoned logins do not pile up. The store is a live object, so
+unlike most settings it cannot be set through an environment variable.
+
+The ``Consumer`` classes (``oic.oic.consumer.Consumer`` and
+``oic.oauth2.consumer.Consumer``) use the same switch in the client
+configuration::
+
+    consumer = Consumer(session_db, consumer_config,
+                        client_config={"client_id": client_id,
+                                       "config": {"code_challenge": {}}},
+                        server_info=server_info)
+
+``begin()`` then adds the challenge and ``complete()`` sends the verifier. The
+Consumers save the verifier in their session database together with the rest of
+the session, so another Consumer instance using the same session database can
+complete the flow. A ``code_verifier_store`` in the settings works as well.
+
 Implicit Flow
 ^^^^^^^^^^^^^
 

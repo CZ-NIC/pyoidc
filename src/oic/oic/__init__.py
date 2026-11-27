@@ -496,7 +496,7 @@ class Client(oauth2.Client):
     def construct_AuthorizationRequest(self, request=None, request_args=None, extra_args=None, **kwargs):  # noqa: C901 # was 18
         if request_args is not None:
             if "nonce" not in request_args:
-                _rt = request_args["response_type"]
+                _rt = request_args.get("response_type", self.response_type)
                 if "token" in _rt or "id_token" in _rt:
                     request_args["nonce"] = rndstr(32)
         elif "response_type" in kwargs:
@@ -653,10 +653,6 @@ class Client(oauth2.Client):
         **kwargs,
     ):
         algs = self.sign_enc_algs("id_token")
-
-        if "code_challenge" in self.config:
-            _args, code_verifier = self.add_code_challenge()
-            request_args.update(_args)
 
         return super().do_authorization_request(
             state=state,

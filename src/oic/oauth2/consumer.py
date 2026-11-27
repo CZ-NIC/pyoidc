@@ -119,7 +119,8 @@ class Consumer(Client):
                  - client_cert
                  - timeout
             session_db: Where info are kept about sessions acts like a dictionary
-            client_config: DEPRECATED Client configuration
+            client_config: Keyword arguments for :class:`oic.oauth2.Client`, e.g. ``client_id`` and ``config``.
+                The keys ``verify_ssl``, ``client_cert`` and ``timeout`` are deprecated, use ``settings`` instead.
             server_info: Information about the server
             authz_page: Path to page after authorization - used in redirect_uri.
             response_type: Requested response_type.
@@ -186,6 +187,9 @@ class Consumer(Client):
         :param sid: Session identifier
         """
         for key, val in self.sdb[sid].items():
+            if key == "code_verifiers":
+                self._update_code_verifier(sid, val)
+                continue
             _val = getattr(self, key)
             if not _val and val:
                 setattr(self, key, val)
@@ -224,6 +228,10 @@ class Consumer(Client):
         for endpoint in ENDPOINTS:
             res[endpoint] = getattr(self, endpoint, None)
 
+        # A store from the settings is shared already, only the in-memory one needs saving
+        if self._own_code_verifier_store and sid in self.code_verifiers:
+            res["code_verifiers"] = {sid: self.code_verifiers[sid]}
+
         self.sdb[sid] = res
 
     def begin(self, baseurl, request, response_type="", **kwargs):
@@ -246,17 +254,20 @@ class Consumer(Client):
 
         sid = stateID(request, self.seed)
         self.grant[sid] = Grant(seed=self.seed)
+        # Before the backup, so that another instance can send the code_verifier
+        request_args = self.add_pkce_to_authorization_request(sid)
         self._backup(sid)
         self.sdb["seed:{}".format(self.seed)] = sid
 
         if not response_type:
             response_type = self.response_type
 
+        request_args.update({"state": sid, "response_type": response_type})
         location = self.request_info(
             AuthorizationRequest,
             method="GET",
             scope=self.scope,
-            request_args={"state": sid, "response_type": response_type},
+            request_args=request_args,
         )[0]
 
         logger.debug("Redirecting to: %s", sanitize(location))

@@ -14,10 +14,11 @@ It is possible to instance them directly or use environment values to fill the s
 
 import json
 import re
+from collections.abc import MutableMapping
 from typing import Annotated, Any
 
 import requests
-from pydantic import field_validator
+from pydantic import InstanceOf, field_validator
 from pydantic_settings import BaseSettings, NoDecode
 
 _SCHEME_PATTERN = re.compile(r"[a-z0-9+.\-*?\[\]!]+")
@@ -53,6 +54,15 @@ class ClientSettings(PyoidcSettings):
 
     requests_session: requests.Session | None = None
     """Instance of `requests.Session` with configuration options."""
+    code_verifier_store: Annotated[InstanceOf[MutableMapping] | None, NoDecode] = None
+    """
+    Where to keep the PKCE code verifiers between the authorization and the access token request, keyed by state.
+
+    Any mutable mapping, e.g. a thin wrapper around a database or cache, so that another client instance (or process)
+    can send the access token request. The client only reads, writes and deletes single entries.
+    If not set, each client keeps its verifiers in its own in-memory dict.
+    This is a live object, so it cannot be set from the environment.
+    """
 
 
 class OauthClientSettings(ClientSettings):

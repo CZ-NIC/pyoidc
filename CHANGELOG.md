@@ -23,6 +23,7 @@ The format is based on the [KeepAChangeLog] project.
   rejected unless allowed via `OicProviderSettings.native_redirect_schemes`. Schemes such as `javascript`, `data`,
   `mailto` or `ftp` are always rejected. Native clients using the out-of-band `urn:ietf:wg:oauth:2.0:oob` redirect are
   therefore rejected by default; the workaround is to allowlist `urn`, which allows all `urn:` URIs. `Provider.verify_redirect_uris` is no longer a staticmethod.
+- [#913]: Clients configured with `code_challenge` now keep the PKCE `code_verifier` and send it with the access token request
 
 ### Fixed
 
@@ -35,6 +36,7 @@ The format is based on the [KeepAChangeLog] project.
 [#905]: https://github.com/CZ-NIC/pyoidc/pull/905
 [#907]: https://github.com/CZ-NIC/pyoidc/pull/907
 [#910]: https://github.com/CZ-NIC/pyoidc/pull/910
+[#913]: https://github.com/CZ-NIC/pyoidc/pull/913
 
 ## 1.7.0 [2024-04-25]
 ### Changed
