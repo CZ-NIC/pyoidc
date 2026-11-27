@@ -51,6 +51,6 @@ def test_registration_key_loading_does_not_return_exception_text(provider, monke
 
     resp = provider.do_client_registration(request, "client1")
 
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert json.loads(resp.message)["error"] == "invalid_configuration_parameter"
     _assert_no_internal_details(resp)

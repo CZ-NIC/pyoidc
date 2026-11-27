@@ -1331,7 +1331,7 @@ class Provider(AProvider):
             error = ClientRegistrationErrorResponse(
                 error="invalid_configuration_parameter", error_description="Could not load the client keys"
             )
-            return Response(error.to_json(), content="application/json", status="400 Bad Request")
+            return BadRequest(error.to_json(), content="application/json")
 
         return _cinfo
 
