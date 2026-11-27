@@ -315,6 +315,54 @@ and based on the token type choose the authentication method.
 used openid as the scope, *userinfo* will not contain a lot of information,
 actually only the *sub* parameter.
 
+PKCE
+^^^^
+
+Proof Key for Code Exchange (PKCE, `RFC 7636`_) binds the authorization code to
+the client that asked for it: the client sends a ``code_challenge`` with the
+authentication request and the matching ``code_verifier`` with the access token
+request. Use it with the Authorization Code Flow; some providers require it.
+
+.. _RFC 7636: https://tools.ietf.org/html/rfc7636
+
+If you build the authentication request yourself, as above, create the challenge
+with ``add_code_challenge`` and keep the verifier together with the state and
+nonce::
+
+    pkce_args, session["code_verifier"] = client.add_code_challenge()
+    args.update(pkce_args)
+
+    auth_req = client.construct_AuthorizationRequest(request_args=args)
+
+and send it with the access token request::
+
+    args = {
+        "code": aresp["code"],
+        "code_verifier": session["code_verifier"],
+    }
+
+    resp = client.do_access_token_request(state=aresp["state"],
+                                          request_args=args,
+                                          authn_method="client_secret_basic")
+
+The verifier is a secret: keep it on the server side, never put it in a cookie
+or a URL.
+
+``add_code_challenge`` uses the ``code_challenge`` entry of the client
+configuration, if there is one::
+
+    client = Client(client_authn_method=CLIENT_AUTHN_METHOD,
+                    config={"code_challenge": {"method": "S256", "length": 64}})
+
+``method`` can be ``S256`` (the default), ``S384`` or ``S512``; ``length`` is
+the length of the verifier, 43 to 128 characters, 64 by default.
+
+With this configuration, ``do_authorization_request`` adds the challenge on its
+own and keeps the verifier per state in the client instance;
+``do_access_token_request`` then sends it for that state. This only works if the
+same client instance handles both requests. Set ``code_challenge`` to ``{}`` to
+use the defaults.
+
 Implicit Flow
 ^^^^^^^^^^^^^
 

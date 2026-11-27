@@ -250,6 +250,8 @@ class Client(PBase):
         self._c_secret: str = ""
         self.kid: dict[str, dict] = {"sig": {}, "enc": {}}
         self.authz_req: dict[str, Message] = {}
+        # PKCE code verifiers by state, see `add_pkce_to_authorization_request`
+        self.code_verifiers: dict[str, str] = {}
 
         # the OAuth issuer is the URL of the authorization server's
         # configuration information location
@@ -284,6 +286,7 @@ class Client(PBase):
         self.nonce = None
 
         self.grant = {}
+        self.code_verifiers = {}
 
         self.authorization_endpoint = None
         self.token_endpoint = None
@@ -804,18 +807,16 @@ class Client(PBase):
         request = self.message_factory.get_request_type("authorization_endpoint")
         response_cls = self.message_factory.get_response_type("authorization_endpoint")
 
+        request_args = self.add_pkce_to_authorization_request(state, request_args)
         if state:
-            try:
-                request_args["state"] = state
-            except TypeError:
-                request_args = {"state": state}
+            request_args["state"] = state
 
         kwargs["authn_endpoint"] = "authorization"
         url, body, ht_args, csi = self.request_info(request, method, request_args, extra_args, **kwargs)
 
         try:
             self.authz_req[request_args["state"]] = csi
-        except TypeError:
+        except KeyError:
             pass
 
         if http_args is None:
@@ -866,6 +867,11 @@ class Client(PBase):
         kwargs["authn_endpoint"] = "token"
         if http_args is not None and "password" in http_args:
             extra_args["password"] = http_args.pop("password")
+
+        # Send the PKCE code_verifier kept for this state, unless the caller passes one
+        if state in self.code_verifiers and "code_verifier" not in (request_args or {}):
+            request_args = dict(request_args or {})
+            request_args["code_verifier"] = self.code_verifiers[state]
 
         # method is default POST
         url, body, ht_args, csi = self.request_info(
@@ -1008,22 +1014,27 @@ class Client(PBase):
         return self.http_request(uri, method, headers=headers)
 
     def add_code_challenge(self):
-        """PKCE RFC 7636 support.
+        """Create a new PKCE (RFC 7636) code verifier and its code challenge.
 
-        :return:
+        The settings come from ``config["code_challenge"]``, a dict with the optional keys ``length``
+        (verifier length, 43-128, default 64) and ``method`` (``S256`` (default), ``S384`` or ``S512``).
+
+        This method does not keep the verifier. Callers that build the authorization request themselves
+        must store it (e.g. in the user's session) and send it as ``code_verifier`` with the access token
+        request. `add_pkce_to_authorization_request` does that for ``do_authorization_request``.
+
+        :return: A tuple of the authorization request arguments (``code_challenge`` and
+            ``code_challenge_method``) and the code verifier.
+        :raises Unsupported: If the configured method is not supported.
         """
-        try:
-            cv_len = self.config["code_challenge"]["length"]
-        except KeyError:
-            cv_len = 64  # Use default
+        settings = self.config.get("code_challenge")
+        if not isinstance(settings, dict):
+            settings = {}
+        cv_len = settings.get("length", 64)
+        _method = settings.get("method", "S256")
 
         code_verifier = unreserved(cv_len)
         _cv = code_verifier.encode("ascii")
-
-        try:
-            _method = self.config["code_challenge"]["method"]
-        except KeyError:
-            _method = "S256"
 
         try:
             _h = CC_METHOD[_method](_cv).digest()
@@ -1031,12 +1042,31 @@ class Client(PBase):
         except KeyError as err:
             raise Unsupported("PKCE Transformation method:{}".format(_method)) from err
 
-        # TODO store code_verifier
-
         return (
             {"code_challenge": code_challenge, "code_challenge_method": _method},
             code_verifier,
         )
+
+    def add_pkce_to_authorization_request(self, state, request_args=None):
+        """Add a PKCE code challenge to the authorization request arguments, if configured.
+
+        PKCE is on when ``config["code_challenge"]`` is set to anything but ``None`` or ``False``
+        (see `add_code_challenge`). The verifier is kept per state in ``code_verifiers``, and
+        ``do_access_token_request`` sends it for that state.
+
+        :param state: The state of the authorization request.
+        :param request_args: The authorization request arguments; the caller's dict is not changed.
+        :return: The request arguments to use.
+        """
+        request_args = dict(request_args or {})
+        if self.config.get("code_challenge") in (None, False):
+            return request_args
+
+        state = state or request_args.get("state", "")
+        _args, code_verifier = self.add_code_challenge()
+        request_args.update(_args)
+        self.code_verifiers[state] = code_verifier
+        return request_args
 
     def handle_provider_config(
         self,

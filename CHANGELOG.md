@@ -29,6 +29,7 @@ The format is based on the [KeepAChangeLog] project.
 - [#897]: End Session endpoint verifies id token hint against incorrect issuer
 - [#907]: LogoutToken accepts extra members in the `events` claim
 - [#910]: Reject relative (non-absolute), malformed and unsafe-scheme redirect_uris and post_logout_redirect_uris during client registration
+- [#XXX]: Clients configured with `code_challenge` now keep the PKCE `code_verifier` and send it with the access token request
 
 [#896]: https://github.com/CZ-NIC/pyoidc/pull/896
 [#897]: https://github.com/CZ-NIC/pyoidc/pull/897

@@ -2,12 +2,9 @@ import hashlib
 import logging
 import warnings
 
-from jwkest import b64e
-
-from oic import oauth2, unreserved
+from oic import oauth2
 from oic.exception import AuthzError, PyoidcError
 from oic.extension.message import ClientRegistrationError, ExtensionMessageFactory
-from oic.oauth2.exception import Unsupported
 from oic.oauth2.message import ErrorResponse
 from oic.utils.http_util import SUCCESSFUL
 from oic.utils.sanitize import sanitize
@@ -294,58 +291,6 @@ class Client(oauth2.Client):
                 )
 
         return resp
-
-    def add_code_challenge(self):
-        try:
-            cv_len = self.config["code_challenge"]["length"]
-        except KeyError:
-            cv_len = 64  # Use default
-
-        code_verifier = unreserved(cv_len)
-        _cv = code_verifier.encode("ascii")
-
-        try:
-            _method = self.config["code_challenge"]["method"]
-        except KeyError:
-            _method = "S256"
-
-        try:
-            _h = CC_METHOD[_method](_cv).digest()
-            code_challenge = b64e(_h).decode("ascii")
-        except KeyError:
-            raise Unsupported("PKCE Transformation method:{}".format(_method)) from None
-
-        # TODO store code_verifier
-
-        return (
-            {"code_challenge": code_challenge, "code_challenge_method": _method},
-            code_verifier,
-        )
-
-    def do_authorization_request(
-        self,
-        state="",
-        body_type="",
-        method="GET",
-        request_args=None,
-        extra_args=None,
-        http_args=None,
-        **kwargs,
-    ):
-        if "code_challenge" in self.config and self.config["code_challenge"]:
-            _args, code_verifier = self.add_code_challenge()
-            request_args.update(_args)
-
-        oauth2.Client.do_authorization_request(
-            self,
-            state=state,
-            body_type=body_type,
-            method=method,
-            request_args=request_args,
-            extra_args=extra_args,
-            http_args=http_args,
-            **kwargs,
-        )
 
     def store_registration_info(self, reginfo):
         self.registration_response = reginfo
