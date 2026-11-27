@@ -83,7 +83,7 @@ class TestExtensionProviderErrorResponses:
 
     def test_code_reuse_returns_400(self):
         # A used code is invalid_grant, HTTP 400 (RFC 6749, section 5.2)
-        code =self._make_code()
+        code = self._make_code()
         _assert_token(self._token(code))
 
         _assert_error(self._token(code), 400, "invalid_grant")

@@ -23,18 +23,27 @@ The format is based on the [KeepAChangeLog] project.
   rejected unless allowed via `OicProviderSettings.native_redirect_schemes`. Schemes such as `javascript`, `data`,
   `mailto` or `ftp` are always rejected. Native clients using the out-of-band `urn:ietf:wg:oauth:2.0:oob` redirect are
   therefore rejected by default; the workaround is to allowlist `urn`, which allows all `urn:` URIs. `Provider.verify_redirect_uris` is no longer a staticmethod.
+- [#914]: The token endpoint now uses the error codes of RFC 6749, section 5.2. Failed client authentication returns
+  `invalid_client` (401) instead of `unauthorized_client`; an unknown or used code and a `redirect_uri` or `state`
+  mismatch return `invalid_grant` (400) instead of `unauthorized_client` (401); an unknown `grant_type` returns
+  `unsupported_grant_type` (400) instead of raising `UnSupported` in `oic.oauth2.provider.Provider.token_endpoint`.
+  The extension provider's introspection and revocation endpoints return `invalid_client` instead of `unauthorized_client`.
 
 ### Fixed
 
 - [#897]: End Session endpoint verifies id token hint against incorrect issuer
 - [#907]: LogoutToken accepts extra members in the `events` claim
 - [#910]: Reject relative (non-absolute), malformed and unsafe-scheme redirect_uris and post_logout_redirect_uris during client registration
+- [#914]: The extension provider answered an unknown or used authorization code, and failed client authentication at
+  the introspection and revocation endpoints, with HTTP 200 (the `status` argument of `Response` was ignored); a wrong
+  client secret there raised an unhandled `AuthnFailure`. They now return 400 `invalid_grant` and 401 `invalid_client`.
 
 [#896]: https://github.com/CZ-NIC/pyoidc/pull/896
 [#897]: https://github.com/CZ-NIC/pyoidc/pull/897
 [#905]: https://github.com/CZ-NIC/pyoidc/pull/905
 [#907]: https://github.com/CZ-NIC/pyoidc/pull/907
 [#910]: https://github.com/CZ-NIC/pyoidc/pull/910
+[#914]: https://github.com/CZ-NIC/pyoidc/pull/914
 
 ## 1.7.0 [2024-04-25]
 ### Changed

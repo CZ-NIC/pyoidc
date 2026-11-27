@@ -6,7 +6,6 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from testfixtures import LogCapture
 
-from oic.exception import UnSupported
 from oic.oauth2.consumer import Consumer
 from oic.oauth2.message import (
     AccessTokenRequest,
